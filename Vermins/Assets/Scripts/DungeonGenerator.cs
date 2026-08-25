@@ -1,9 +1,11 @@
+using System.Collections.Generic;
 using UnityEngine;
 
 public class DungeonGenerator : MonoBehaviour
 {
     public DungeonModule startRoomPrefab;
-    public DungeonModule corridorPrefab;
+
+    public DungeonModule[] corridorPrefabs;
     public DungeonModule[] roomPrefabs;
 
     public int roomsToGenerate = 10;
@@ -19,21 +21,39 @@ public class DungeonGenerator : MonoBehaviour
             Quaternion.identity
         );
 
-        int currentExitSocket = 0;
-
         for (int i = 0; i < roomsToGenerate; i++)
         {
+            int currentRoomSocket =
+                GetRandomFreeSocketIndex(currentRoom);
+
+            if (currentRoomSocket == -1)
+            {
+                Debug.Log(
+                    "A sala atual não possui saídas livres. Geração encerrada."
+                );
+
+                break;
+            }
+
+            DungeonModule selectedCorridor =
+                corridorPrefabs[
+                    Random.Range(0, corridorPrefabs.Length)
+                ];
+
             DungeonModule corridor = Instantiate(
-                corridorPrefab,
+                selectedCorridor,
                 Vector3.zero,
                 Quaternion.identity
             );
 
+            int corridorEntrySocket =
+                GetRandomFreeSocketIndex(corridor);
+
             ConnectModules(
                 currentRoom,
-                currentExitSocket,
+                currentRoomSocket,
                 corridor,
-                0
+                corridorEntrySocket
             );
 
             if (HasOverlap(corridor))
@@ -44,6 +64,25 @@ public class DungeonGenerator : MonoBehaviour
 
                 corridor.gameObject.SetActive(false);
                 Destroy(corridor.gameObject);
+
+                break;
+            }
+
+            OccupyConnection(
+                currentRoom,
+                currentRoomSocket,
+                corridor,
+                corridorEntrySocket
+            );
+
+            int corridorExitSocket =
+                GetRandomFreeSocketIndex(corridor);
+
+            if (corridorExitSocket == -1)
+            {
+                Debug.Log(
+                    "O corredor não possui uma saída livre."
+                );
 
                 break;
             }
@@ -63,11 +102,20 @@ public class DungeonGenerator : MonoBehaviour
                     Quaternion.identity
                 );
 
+                int newRoomEntrySocket =
+                    GetRandomFreeSocketIndex(newRoom);
+
+                if (newRoomEntrySocket == -1)
+                {
+                    Destroy(newRoom.gameObject);
+                    continue;
+                }
+
                 ConnectModules(
                     corridor,
-                    1,
+                    corridorExitSocket,
                     newRoom,
-                    0
+                    newRoomEntrySocket
                 );
 
                 if (HasOverlap(newRoom))
@@ -82,9 +130,14 @@ public class DungeonGenerator : MonoBehaviour
                     continue;
                 }
 
-                currentRoom = newRoom;
-                currentExitSocket = 1;
+                OccupyConnection(
+                    corridor,
+                    corridorExitSocket,
+                    newRoom,
+                    newRoomEntrySocket
+                );
 
+                currentRoom = newRoom;
                 roomPlaced = true;
 
                 break;
@@ -96,12 +149,41 @@ public class DungeonGenerator : MonoBehaviour
                     "Nenhuma sala conseguiu encaixar. Geração interrompida."
                 );
 
-                corridor.gameObject.SetActive(false);
-                Destroy(corridor.gameObject);
-
                 break;
             }
         }
+    }
+
+    private int GetRandomFreeSocketIndex(DungeonModule module)
+    {
+        List<int> freeSockets = new List<int>();
+
+        for (int i = 0; i < module.doorSockets.Length; i++)
+        {
+            if (!module.doorSockets[i].isOccupied)
+            {
+                freeSockets.Add(i);
+            }
+        }
+
+        if (freeSockets.Count == 0)
+        {
+            return -1;
+        }
+
+        return freeSockets[
+            Random.Range(0, freeSockets.Count)
+        ];
+    }
+
+    private void OccupyConnection(
+        DungeonModule moduleA,
+        int socketAIndex,
+        DungeonModule moduleB,
+        int socketBIndex)
+    {
+        moduleA.doorSockets[socketAIndex].isOccupied = true;
+        moduleB.doorSockets[socketBIndex].isOccupied = true;
     }
 
     private void ConnectModules(

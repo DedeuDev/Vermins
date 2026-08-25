@@ -276,11 +276,17 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::DungeonGenerator
   startRoomPrefab: {fileID: 3617688692674874025, guid: fd5f8388a079def47bf96827943dc0f5, type: 3}
-  corridorPrefab: {fileID: 4551082487138096251, guid: de1a92ac7d2b5254ea929640fa3f1c8a, type: 3}
+  corridorPrefabs:
+  - {fileID: 4551082487138096251, guid: de1a92ac7d2b5254ea929640fa3f1c8a, type: 3}
+  - {fileID: 2242399982333208446, guid: b4502ccc3716fd54c897a612583bd468, type: 3}
+  - {fileID: 6484293723517953823, guid: f3e41effcc4cf42499124e05ad9b9a8b, type: 3}
   roomPrefabs:
   - {fileID: 3617688692674874025, guid: fd5f8388a079def47bf96827943dc0f5, type: 3}
   - {fileID: 4751887747889747545, guid: c2eab541f9278af4b8b388c361509c64, type: 3}
+  - {fileID: 8519086005893616568, guid: f7de092d9ffc3af4d98a5e23592b9f05, type: 3}
+  - {fileID: 1558932115046144590, guid: 1c99cb9ddb1dc3e408d19de99436c0e9, type: 3}
   roomsToGenerate: 10
+  maxRoomAttempts: 5
   dungeonBoundsLayer:
     serializedVersion: 2
     m_Bits: 64
