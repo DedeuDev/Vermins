@@ -285,7 +285,9 @@ MonoBehaviour:
   - {fileID: 4751887747889747545, guid: c2eab541f9278af4b8b388c361509c64, type: 3}
   - {fileID: 8519086005893616568, guid: f7de092d9ffc3af4d98a5e23592b9f05, type: 3}
   - {fileID: 1558932115046144590, guid: 1c99cb9ddb1dc3e408d19de99436c0e9, type: 3}
+  terminalRoomPrefab: {fileID: 7957981032441545955, guid: 505208b8616c83240a4faf0b76b5d7e6, type: 3}
   roomsToGenerate: 10
+  maxCorridorAttempts: 5
   maxRoomAttempts: 5
   dungeonBoundsLayer:
     serializedVersion: 2
