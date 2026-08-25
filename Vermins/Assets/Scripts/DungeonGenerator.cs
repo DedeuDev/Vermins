@@ -9,152 +9,219 @@ public class DungeonGenerator : MonoBehaviour
     public DungeonModule[] roomPrefabs;
 
     public int roomsToGenerate = 10;
+
+    public int maxCorridorAttempts = 5;
     public int maxRoomAttempts = 5;
 
     public LayerMask dungeonBoundsLayer;
 
+    private List<DoorSocket> availableSockets =
+        new List<DoorSocket>();
+
     private void Start()
     {
-        DungeonModule currentRoom = Instantiate(
+        DungeonModule startRoom = Instantiate(
             startRoomPrefab,
             Vector3.zero,
             Quaternion.identity
         );
 
-        for (int i = 0; i < roomsToGenerate; i++)
+        AddFreeSockets(startRoom);
+
+        int generatedRooms = 0;
+
+        while (
+            generatedRooms < roomsToGenerate &&
+            availableSockets.Count > 0
+        )
         {
-            int currentRoomSocket =
-                GetRandomFreeSocketIndex(currentRoom);
+            int randomSocketIndex =
+                Random.Range(0, availableSockets.Count);
 
-            if (currentRoomSocket == -1)
-            {
-                Debug.Log(
-                    "A sala atual não possui saídas livres. Geração encerrada."
+            DoorSocket targetSocket =
+                availableSockets[randomSocketIndex];
+
+            DungeonModule targetModule =
+                targetSocket.GetComponentInParent<DungeonModule>();
+
+            int targetSocketIndex =
+                GetSocketIndex(
+                    targetModule,
+                    targetSocket
                 );
 
-                break;
-            }
+            bool branchCreated = false;
 
-            DungeonModule selectedCorridor =
-                corridorPrefabs[
-                    Random.Range(0, corridorPrefabs.Length)
-                ];
-
-            DungeonModule corridor = Instantiate(
-                selectedCorridor,
-                Vector3.zero,
-                Quaternion.identity
-            );
-
-            int corridorEntrySocket =
-                GetRandomFreeSocketIndex(corridor);
-
-            ConnectModules(
-                currentRoom,
-                currentRoomSocket,
-                corridor,
-                corridorEntrySocket
-            );
-
-            if (HasOverlap(corridor))
+            for (
+                int corridorAttempt = 0;
+                corridorAttempt < maxCorridorAttempts;
+                corridorAttempt++
+            )
             {
-                Debug.Log(
-                    "O corredor se sobrepôs a outro módulo. Geração interrompida."
-                );
-
-                corridor.gameObject.SetActive(false);
-                Destroy(corridor.gameObject);
-
-                break;
-            }
-
-            OccupyConnection(
-                currentRoom,
-                currentRoomSocket,
-                corridor,
-                corridorEntrySocket
-            );
-
-            int corridorExitSocket =
-                GetRandomFreeSocketIndex(corridor);
-
-            if (corridorExitSocket == -1)
-            {
-                Debug.Log(
-                    "O corredor não possui uma saída livre."
-                );
-
-                break;
-            }
-
-            bool roomPlaced = false;
-
-            for (int attempt = 0; attempt < maxRoomAttempts; attempt++)
-            {
-                DungeonModule selectedRoom =
-                    roomPrefabs[
-                        Random.Range(0, roomPrefabs.Length)
+                DungeonModule selectedCorridor =
+                    corridorPrefabs[
+                        Random.Range(
+                            0,
+                            corridorPrefabs.Length
+                        )
                     ];
 
-                DungeonModule newRoom = Instantiate(
-                    selectedRoom,
+                DungeonModule corridor = Instantiate(
+                    selectedCorridor,
                     Vector3.zero,
                     Quaternion.identity
                 );
 
-                int newRoomEntrySocket =
-                    GetRandomFreeSocketIndex(newRoom);
+                int corridorEntrySocket =
+                    GetRandomFreeSocketIndex(corridor);
 
-                if (newRoomEntrySocket == -1)
+                int corridorExitSocket =
+                    GetRandomFreeSocketIndexExcept(
+                        corridor,
+                        corridorEntrySocket
+                    );
+
+                if (corridorExitSocket == -1)
                 {
-                    Destroy(newRoom.gameObject);
+                    Destroy(corridor.gameObject);
                     continue;
                 }
 
                 ConnectModules(
+                    targetModule,
+                    targetSocketIndex,
                     corridor,
-                    corridorExitSocket,
-                    newRoom,
-                    newRoomEntrySocket
+                    corridorEntrySocket
                 );
 
-                if (HasOverlap(newRoom))
+                if (HasOverlap(corridor))
                 {
                     Debug.Log(
-                        "Sala sobreposta. Tentando outra sala..."
+                        "Corredor sobreposto. Tentando outro corredor..."
                     );
 
-                    newRoom.gameObject.SetActive(false);
-                    Destroy(newRoom.gameObject);
+                    corridor.gameObject.SetActive(false);
+                    Destroy(corridor.gameObject);
 
                     continue;
                 }
 
-                OccupyConnection(
-                    corridor,
-                    corridorExitSocket,
-                    newRoom,
-                    newRoomEntrySocket
-                );
+                for (
+                    int roomAttempt = 0;
+                    roomAttempt < maxRoomAttempts;
+                    roomAttempt++
+                )
+                {
+                    DungeonModule selectedRoom =
+                        roomPrefabs[
+                            Random.Range(
+                                0,
+                                roomPrefabs.Length
+                            )
+                        ];
 
-                currentRoom = newRoom;
-                roomPlaced = true;
+                    DungeonModule newRoom = Instantiate(
+                        selectedRoom,
+                        Vector3.zero,
+                        Quaternion.identity
+                    );
 
-                break;
+                    int newRoomEntrySocket =
+                        GetRandomFreeSocketIndex(newRoom);
+
+                    if (newRoomEntrySocket == -1)
+                    {
+                        Destroy(newRoom.gameObject);
+                        continue;
+                    }
+
+                    ConnectModules(
+                        corridor,
+                        corridorExitSocket,
+                        newRoom,
+                        newRoomEntrySocket
+                    );
+
+                    if (HasOverlap(newRoom))
+                    {
+                        Debug.Log(
+                            "Sala sobreposta. Tentando outra sala..."
+                        );
+
+                        newRoom.gameObject.SetActive(false);
+                        Destroy(newRoom.gameObject);
+
+                        continue;
+                    }
+
+                    OccupyConnection(
+                        targetModule,
+                        targetSocketIndex,
+                        corridor,
+                        corridorEntrySocket
+                    );
+
+                    OccupyConnection(
+                        corridor,
+                        corridorExitSocket,
+                        newRoom,
+                        newRoomEntrySocket
+                    );
+
+                    availableSockets.Remove(targetSocket);
+
+                    AddFreeSockets(newRoom);
+
+                    generatedRooms++;
+                    branchCreated = true;
+
+                    break;
+                }
+
+                if (branchCreated)
+                {
+                    break;
+                }
+
+                corridor.gameObject.SetActive(false);
+                Destroy(corridor.gameObject);
             }
 
-            if (!roomPlaced)
+            if (!branchCreated)
             {
                 Debug.Log(
-                    "Nenhuma sala conseguiu encaixar. Geração interrompida."
+                    "Não foi possível gerar nada neste socket. " +
+                    "Tentando outro ponto da dungeon."
                 );
 
-                break;
+                availableSockets.Remove(targetSocket);
+            }
+        }
+
+        Debug.Log(
+            "Salas geradas: " + generatedRooms
+        );
+
+        Debug.Log(
+            "Sockets livres restantes: " +
+            availableSockets.Count
+        );
+    }
+
+    private void AddFreeSockets(DungeonModule module)
+    {
+        foreach (DoorSocket socket in module.doorSockets)
+        {
+            if (!socket.isOccupied)
+            {
+                availableSockets.Add(socket);
             }
         }
     }
 
-    private int GetRandomFreeSocketIndex(DungeonModule module)
+    private int GetRandomFreeSocketIndex(
+        DungeonModule module
+    )
     {
         List<int> freeSockets = new List<int>();
 
@@ -176,11 +243,56 @@ public class DungeonGenerator : MonoBehaviour
         ];
     }
 
+    private int GetRandomFreeSocketIndexExcept(
+        DungeonModule module,
+        int excludedIndex
+    )
+    {
+        List<int> freeSockets = new List<int>();
+
+        for (int i = 0; i < module.doorSockets.Length; i++)
+        {
+            if (
+                !module.doorSockets[i].isOccupied &&
+                i != excludedIndex
+            )
+            {
+                freeSockets.Add(i);
+            }
+        }
+
+        if (freeSockets.Count == 0)
+        {
+            return -1;
+        }
+
+        return freeSockets[
+            Random.Range(0, freeSockets.Count)
+        ];
+    }
+
+    private int GetSocketIndex(
+        DungeonModule module,
+        DoorSocket socket
+    )
+    {
+        for (int i = 0; i < module.doorSockets.Length; i++)
+        {
+            if (module.doorSockets[i] == socket)
+            {
+                return i;
+            }
+        }
+
+        return -1;
+    }
+
     private void OccupyConnection(
         DungeonModule moduleA,
         int socketAIndex,
         DungeonModule moduleB,
-        int socketBIndex)
+        int socketBIndex
+    )
     {
         moduleA.doorSockets[socketAIndex].isOccupied = true;
         moduleB.doorSockets[socketBIndex].isOccupied = true;
@@ -190,7 +302,8 @@ public class DungeonGenerator : MonoBehaviour
         DungeonModule fixedModule,
         int fixedSocketIndex,
         DungeonModule movingModule,
-        int movingSocketIndex)
+        int movingSocketIndex
+    )
     {
         DoorSocket fixedSocket =
             fixedModule.doorSockets[fixedSocketIndex];
@@ -220,7 +333,10 @@ public class DungeonGenerator : MonoBehaviour
     {
         Physics.SyncTransforms();
 
-        foreach (BoxCollider box in module.moduleBounds.boxColliders)
+        foreach (
+            BoxCollider box
+            in module.moduleBounds.boxColliders
+        )
         {
             Vector3 center =
                 box.transform.TransformPoint(box.center);
