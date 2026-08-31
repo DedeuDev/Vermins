@@ -1,13 +1,29 @@
+using System.Collections.Generic;
 using UnityEngine;
 
 public class DungeonModule : MonoBehaviour
 {
-    public DoorSocket[] doorSockets;
-    public ModuleBounds moduleBounds;
+    [Header("Collision")]
+    [SerializeField] private BoxCollider placementBounds;
+
+    private DungeonSocket[] sockets;
+
+    public IReadOnlyList<DungeonSocket> Sockets => sockets;
+
+    public BoxCollider PlacementBounds => placementBounds;
+
+    public void Initialize()
+    {
+        sockets = GetComponentsInChildren<DungeonSocket>(true);
+
+        foreach (DungeonSocket socket in sockets)
+        {
+            socket.Initialize(this);
+        }
+    }
 
     private void Awake()
     {
-        doorSockets = GetComponentsInChildren<DoorSocket>();
-        moduleBounds = GetComponentInChildren<ModuleBounds>();
+        Initialize();
     }
 }
