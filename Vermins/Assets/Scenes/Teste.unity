@@ -119,6 +119,77 @@ NavMeshSettings:
     debug:
       m_Flags: 0
   m_NavMeshData: {fileID: 0}
+--- !u!1 &79518020
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 79518021}
+  - component: {fileID: 79518022}
+  m_Layer: 0
+  m_Name: DungeonGenerator
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &79518021
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 79518020}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &79518022
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 79518020}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b583099fceabcdc47a093b7f3a384da1, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ModularDungeonGenerator
+  startRoomPrefab: {fileID: 830059782633357233, guid: 04c199bc70aab4c4783cd543a7c541c4, type: 3}
+  finalRoomPrefab: {fileID: 830059782633357233, guid: 04c199bc70aab4c4783cd543a7c541c4, type: 3}
+  roomPrefabs:
+  - {fileID: 3842591760852237224, guid: 7940ed590237ef14ba646dba6606d95b, type: 3}
+  - {fileID: 525421151945673928, guid: 288bd3fbf3fff214aa95957f300ad78b, type: 3}
+  - {fileID: 6458392688010890456, guid: 900fab5cf1d558f40b3592a5110bd49f, type: 3}
+  - {fileID: 4112773310431782833, guid: cb1430444d0f28648bf643830072149e, type: 3}
+  - {fileID: 9106026606270926762, guid: 602830586278d5847b75e874eb608598, type: 3}
+  - {fileID: 5108991184130643275, guid: b317e4ef502d90f46ad1d3e656066eb6, type: 3}
+  - {fileID: 2468310055477016165, guid: bfb24d46c293cbf47b45947de297d1cc, type: 3}
+  corridorPrefabs:
+  - {fileID: 1622441819026266171, guid: b9fe2bc4e7cc3f547bc0ab7801fc8155, type: 3}
+  - {fileID: 4089367115916095043, guid: 3060d56d058e150449e89c014e7be937, type: 3}
+  - {fileID: 4356530016015852055, guid: f7691a35ff462354db9ded061591bfb5, type: 3}
+  - {fileID: 5697964851920276829, guid: c4a8eefc70b094e4eaa3fdb1c5833652, type: 3}
+  - {fileID: 6196011207336881690, guid: 15be8c8d30c73d14995c5a03bfec1885, type: 3}
+  - {fileID: 8003529307281231310, guid: f9ecea79ced354e48b63bfffefd61c4c, type: 3}
+  - {fileID: 8547013069835180014, guid: b4f9dbcc06a33924cbd50feaa8f1228b, type: 3}
+  - {fileID: 9202728413640393550, guid: 92b5476f2472ac14a839d16c106c164b, type: 3}
+  socketBlockerPrefab: {fileID: 1535053994835432617, guid: c15d27500cec6af45847e373ec0cb455, type: 3}
+  targetModuleCount: 20
+  attemptsPerSocket: 30
+  generateOnStart: 1
+  randomSeed: 1
+  seed: 12345
+  overlapTolerance: 0.01
+  generatedRoot: {fileID: 0}
 --- !u!1 &2078270678
 GameObject:
   m_ObjectHideFlags: 0
@@ -216,3 +287,4 @@ SceneRoots:
   m_ObjectHideFlags: 0
   m_Roots:
   - {fileID: 2078270681}
+  - {fileID: 79518021}

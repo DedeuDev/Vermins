@@ -18,22 +18,28 @@ public class DungeonSocket : MonoBehaviour
 
     public bool IsCompatibleWith(DungeonSocket other)
     {
-        return other != null && socketType == other.socketType;
+        return other != null &&
+               socketType == other.socketType;
     }
 
     public void Connect(DungeonSocket other)
     {
-        IsConnected = true;
+        if (other == null)
+            return;
 
-        if (other != null)
-            other.IsConnected = true;
+        IsConnected = true;
+        other.IsConnected = true;
+    }
+
+    public void Seal()
+    {
+        IsConnected = true;
     }
 
     private void OnDrawGizmos()
     {
         Gizmos.DrawSphere(transform.position, 0.1f);
 
-        // O eixo Z+ (azul) deve apontar PARA FORA da sala.
         Gizmos.DrawLine(
             transform.position,
             transform.position + transform.forward * 0.75f

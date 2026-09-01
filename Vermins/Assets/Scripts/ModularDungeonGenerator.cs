@@ -3,9 +3,16 @@ using UnityEngine;
 
 public class ModularDungeonGenerator : MonoBehaviour
 {
-    [Header("Modules")]
-    [SerializeField] private DungeonModule startModulePrefab;
-    [SerializeField] private List<DungeonModule> modulePrefabs = new();
+    [Header("Important Rooms")]
+    [SerializeField] private DungeonModule startRoomPrefab;
+    [SerializeField] private DungeonModule finalRoomPrefab;
+
+    [Header("Normal Modules")]
+    [SerializeField] private List<DungeonModule> roomPrefabs = new();
+    [SerializeField] private List<DungeonModule> corridorPrefabs = new();
+
+    [Header("Socket Closing")]
+    [SerializeField] private GameObject socketBlockerPrefab;
 
     [Header("Generation")]
     [Min(1)]
@@ -14,12 +21,14 @@ public class ModularDungeonGenerator : MonoBehaviour
     [Min(1)]
     [SerializeField] private int attemptsPerSocket = 30;
 
+    [Header("Runtime")]
+    [SerializeField] private bool generateOnStart = true;
+
     [Header("Seed")]
     [SerializeField] private bool randomSeed = true;
     [SerializeField] private int seed = 12345;
 
     [Header("Collision")]
-    [Tooltip("Pequenas interpenetrações abaixo desse valor serão ignoradas.")]
     [SerializeField] private float overlapTolerance = 0.01f;
 
     [Header("Hierarchy")]
@@ -28,20 +37,34 @@ public class ModularDungeonGenerator : MonoBehaviour
     private readonly List<DungeonModule> generatedModules = new();
     private readonly List<DungeonSocket> openSockets = new();
 
+    private void Start()
+    {
+        if (generateOnStart)
+        {
+            GenerateDungeon();
+        }
+    }
+
     [ContextMenu("Generate Dungeon")]
     public void GenerateDungeon()
     {
         ClearDungeon();
 
-        if (startModulePrefab == null)
+        if (startRoomPrefab == null)
         {
-            Debug.LogError("Nenhum Start Module foi definido.");
+            Debug.LogError("Start Room Prefab não foi definido.");
             return;
         }
 
-        if (modulePrefabs == null || modulePrefabs.Count == 0)
+        if (roomPrefabs.Count == 0)
         {
-            Debug.LogError("Nenhum módulo foi adicionado à lista.");
+            Debug.LogError("Nenhuma Room foi adicionada.");
+            return;
+        }
+
+        if (corridorPrefabs.Count == 0)
+        {
+            Debug.LogError("Nenhum Corridor foi adicionado.");
             return;
         }
 
@@ -54,73 +77,87 @@ public class ModularDungeonGenerator : MonoBehaviour
 
         Random.InitState(seed);
 
-        // ------------------------------------------------
-        // CRIA A PRIMEIRA SALA
-        // ------------------------------------------------
+        // ========================================
+        // SALA INICIAL
+        // ========================================
 
-        DungeonModule startModule = Instantiate(
-            startModulePrefab,
+        DungeonModule startRoom = Instantiate(
+            startRoomPrefab,
             transform.position,
             transform.rotation,
             generatedRoot
         );
 
-        startModule.Initialize();
+        startRoom.Initialize();
+        startRoom.GenerationDepth = 0;
 
-        generatedModules.Add(startModule);
+        generatedModules.Add(startRoom);
 
-        foreach (DungeonSocket socket in startModule.Sockets)
+        foreach (DungeonSocket socket in startRoom.Sockets)
         {
             openSockets.Add(socket);
         }
 
-        // ------------------------------------------------
-        // GERA AS OUTRAS SALAS
-        // ------------------------------------------------
+        /*
+         * Reservamos aproximadamente um módulo
+         * para a sala final.
+         */
+        int normalTarget = finalRoomPrefab != null
+            ? Mathf.Max(1, targetModuleCount - 1)
+            : targetModuleCount;
+
+        // ========================================
+        // GERAÇÃO NORMAL
+        // ========================================
 
         int safety = 10000;
 
         while (
-            generatedModules.Count < targetModuleCount &&
+            generatedModules.Count < normalTarget &&
             openSockets.Count > 0 &&
             safety > 0
         )
         {
             safety--;
 
-            // Escolhe aleatoriamente uma porta disponível.
-            int socketIndex = Random.Range(0, openSockets.Count);
+            int socketIndex =
+                Random.Range(0, openSockets.Count);
 
-            DungeonSocket targetSocket = openSockets[socketIndex];
+            DungeonSocket targetSocket =
+                openSockets[socketIndex];
 
-            // Ela será processada apenas uma vez.
             openSockets.RemoveAt(socketIndex);
 
-            if (targetSocket == null || targetSocket.IsConnected)
+            if (
+                targetSocket == null ||
+                targetSocket.IsConnected
+            )
+            {
                 continue;
+            }
 
             DungeonModule newModule;
-            DungeonSocket newModuleSocket;
+            DungeonSocket newSocket;
 
-            bool success = TryPlaceModule(
+            bool success = TryPlaceNormalModule(
                 targetSocket,
                 out newModule,
-                out newModuleSocket
+                out newSocket
             );
 
             if (!success)
                 continue;
 
-            // Conecta os dois sockets.
-            targetSocket.Connect(newModuleSocket);
+            targetSocket.Connect(newSocket);
+
+            newModule.GenerationDepth =
+                targetSocket.Owner.GenerationDepth + 1;
 
             generatedModules.Add(newModule);
 
-            // Todos os outros sockets da nova sala
-            // agora podem receber novas salas.
             foreach (DungeonSocket socket in newModule.Sockets)
             {
-                if (socket == newModuleSocket)
+                if (socket == newSocket)
                     continue;
 
                 if (socket.IsConnected)
@@ -130,15 +167,77 @@ public class ModularDungeonGenerator : MonoBehaviour
             }
         }
 
+        // ========================================
+        // SALA FINAL
+        // ========================================
+
+        bool finalPlaced = PlaceFinalRoom();
+
+        if (!finalPlaced && finalRoomPrefab != null)
+        {
+            Debug.LogWarning(
+                "Não foi possível posicionar a sala final."
+            );
+        }
+
+        // ========================================
+        // FECHA TODAS AS PORTAS RESTANTES
+        // ========================================
+
+        SealUnusedSockets();
+
         Debug.Log(
-            $"Dungeon gerada. " +
-            $"Seed: {seed} | " +
+            $"Dungeon gerada | Seed: {seed} | " +
             $"Módulos: {generatedModules.Count}"
         );
     }
 
-    private bool TryPlaceModule(
+    // ==================================================
+    // ESCOLHE ROOM OU CORRIDOR
+    // ==================================================
+
+    private bool TryPlaceNormalModule(
         DungeonSocket targetSocket,
+        out DungeonModule placedModule,
+        out DungeonSocket placedSocket
+    )
+    {
+        /*
+         * Se o socket pertence a uma ROOM:
+         *
+         * Room -> Corridor
+         *
+         * Se pertence a um CORRIDOR:
+         *
+         * Corridor -> Room
+         */
+
+        if (targetSocket.Owner.ModuleType ==
+            DungeonModuleType.Room)
+        {
+            return TryPlaceFromPool(
+                targetSocket,
+                corridorPrefabs,
+                out placedModule,
+                out placedSocket
+            );
+        }
+
+        return TryPlaceFromPool(
+            targetSocket,
+            roomPrefabs,
+            out placedModule,
+            out placedSocket
+        );
+    }
+
+    // ==================================================
+    // TENTA UM DOS PREFABS DE UMA LISTA
+    // ==================================================
+
+    private bool TryPlaceFromPool(
+        DungeonSocket targetSocket,
+        IReadOnlyList<DungeonModule> pool,
         out DungeonModule placedModule,
         out DungeonSocket placedSocket
     )
@@ -146,82 +245,359 @@ public class ModularDungeonGenerator : MonoBehaviour
         placedModule = null;
         placedSocket = null;
 
-        for (int attempt = 0; attempt < attemptsPerSocket; attempt++)
-        {
-            // --------------------------------------------
-            // ESCOLHE UM PREFAB ALEATÓRIO
-            // --------------------------------------------
+        if (pool == null || pool.Count == 0)
+            return false;
 
+        for (
+            int attempt = 0;
+            attempt < attemptsPerSocket;
+            attempt++
+        )
+        {
             DungeonModule prefab =
-                modulePrefabs[Random.Range(0, modulePrefabs.Count)];
+                pool[Random.Range(0, pool.Count)];
 
             if (prefab == null)
                 continue;
 
-            DungeonModule candidate = Instantiate(
-                prefab,
-                Vector3.zero,
-                Quaternion.identity,
-                generatedRoot
-            );
-
-            candidate.Initialize();
-
-            // --------------------------------------------
-            // PROCURA SOCKETS COMPATÍVEIS
-            // --------------------------------------------
-
-            List<DungeonSocket> compatibleSockets =
-                new List<DungeonSocket>();
-
-            foreach (DungeonSocket socket in candidate.Sockets)
+            if (
+                TryPlacePrefabOnce(
+                    targetSocket,
+                    prefab,
+                    out placedModule,
+                    out placedSocket
+                )
+            )
             {
-                if (socket.IsCompatibleWith(targetSocket))
-                {
-                    compatibleSockets.Add(socket);
-                }
+                return true;
             }
-
-            if (compatibleSockets.Count == 0)
-            {
-                DestroyObject(candidate.gameObject);
-                continue;
-            }
-
-            DungeonSocket candidateSocket =
-                compatibleSockets[
-                    Random.Range(0, compatibleSockets.Count)
-                ];
-
-            // --------------------------------------------
-            // ALINHA AS DUAS PORTAS
-            // --------------------------------------------
-
-            AlignModule(
-                candidate,
-                candidateSocket,
-                targetSocket
-            );
-
-            // --------------------------------------------
-            // TESTA COLISÃO
-            // --------------------------------------------
-
-            if (!IsPlacementValid(candidate))
-            {
-                DestroyObject(candidate.gameObject);
-                continue;
-            }
-
-            // Funcionou.
-            placedModule = candidate;
-            placedSocket = candidateSocket;
-
-            return true;
         }
 
         return false;
     }
+
+    // ==================================================
+    // TENTA UM PREFAB ESPECÍFICO
+    // ==================================================
+
+    private bool TryPlaceSpecificPrefab(
+        DungeonSocket targetSocket,
+        DungeonModule prefab,
+        out DungeonModule placedModule,
+        out DungeonSocket placedSocket
+    )
+    {
+        placedModule = null;
+        placedSocket = null;
+
+        if (prefab == null)
+            return false;
+
+        for (
+            int attempt = 0;
+            attempt < attemptsPerSocket;
+            attempt++
+        )
+        {
+            if (
+                TryPlacePrefabOnce(
+                    targetSocket,
+                    prefab,
+                    out placedModule,
+                    out placedSocket
+                )
+            )
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    // ==================================================
+    // CRIA E TESTA UM CANDIDATO
+    // ==================================================
+
+    private bool TryPlacePrefabOnce(
+        DungeonSocket targetSocket,
+        DungeonModule prefab,
+        out DungeonModule placedModule,
+        out DungeonSocket placedSocket
+    )
+    {
+        placedModule = null;
+        placedSocket = null;
+
+        DungeonModule candidate = Instantiate(
+            prefab,
+            Vector3.zero,
+            Quaternion.identity,
+            generatedRoot
+        );
+
+        candidate.Initialize();
+
+        List<DungeonSocket> compatibleSockets =
+            new List<DungeonSocket>();
+
+        foreach (DungeonSocket socket in candidate.Sockets)
+        {
+            if (socket.IsCompatibleWith(targetSocket))
+            {
+                compatibleSockets.Add(socket);
+            }
+        }
+
+        if (compatibleSockets.Count == 0)
+        {
+            DestroyObject(candidate.gameObject);
+            return false;
+        }
+
+        DungeonSocket candidateSocket =
+            compatibleSockets[
+                Random.Range(
+                    0,
+                    compatibleSockets.Count
+                )
+            ];
+
+        AlignModule(
+            candidate,
+            candidateSocket,
+            targetSocket
+        );
+
+        if (!IsPlacementValid(candidate))
+        {
+            DestroyObject(candidate.gameObject);
+            return false;
+        }
+
+        placedModule = candidate;
+        placedSocket = candidateSocket;
+
+        return true;
+    }
+
+    // ==================================================
+    // SALA FINAL
+    // ==================================================
+
+    private bool PlaceFinalRoom()
+    {
+        if (finalRoomPrefab == null)
+            return true;
+
+        /*
+         * Primeiro procuramos sockets livres
+         * pertencentes a corredores.
+         *
+         * Corridor -> Final Room
+         */
+
+        List<DungeonSocket> candidates =
+            GetUnusedSockets(
+                DungeonModuleType.Corridor
+            );
+
+        /*
+         * Os módulos mais distantes da sala inicial
+         * vêm primeiro.
+         */
+
+        candidates.Sort(
+            (a, b) =>
+                b.Owner.GenerationDepth.CompareTo(
+                    a.Owner.GenerationDepth
+                )
+        );
+
+        foreach (DungeonSocket socket in candidates)
+        {
+            DungeonModule finalRoom;
+            DungeonSocket finalSocket;
+
+            if (
+                TryPlaceSpecificPrefab(
+                    socket,
+                    finalRoomPrefab,
+                    out finalRoom,
+                    out finalSocket
+                )
+            )
+            {
+                socket.Connect(finalSocket);
+
+                finalRoom.GenerationDepth =
+                    socket.Owner.GenerationDepth + 1;
+
+                generatedModules.Add(finalRoom);
+
+                return true;
+            }
+        }
+
+        /*
+         * FALLBACK:
+         *
+         * Se só existem sockets livres em salas,
+         * tentamos criar:
+         *
+         * Room -> Corridor -> Final Room
+         */
+
+        List<DungeonSocket> roomSockets =
+            GetUnusedSockets(
+                DungeonModuleType.Room
+            );
+
+        roomSockets.Sort(
+            (a, b) =>
+                b.Owner.GenerationDepth.CompareTo(
+                    a.Owner.GenerationDepth
+                )
+        );
+
+        foreach (DungeonSocket roomSocket in roomSockets)
+        {
+            DungeonModule bridgeCorridor;
+            DungeonSocket bridgeEntrance;
+
+            if (
+                !TryPlaceFromPool(
+                    roomSocket,
+                    corridorPrefabs,
+                    out bridgeCorridor,
+                    out bridgeEntrance
+                )
+            )
+            {
+                continue;
+            }
+
+            bridgeCorridor.GenerationDepth =
+                roomSocket.Owner.GenerationDepth + 1;
+
+            /*
+             * Adicionamos temporariamente para que
+             * a checagem de colisão da sala final
+             * também considere este corredor.
+             */
+
+            generatedModules.Add(bridgeCorridor);
+
+            foreach (
+                DungeonSocket corridorSocket
+                in bridgeCorridor.Sockets
+            )
+            {
+                if (corridorSocket == bridgeEntrance)
+                    continue;
+
+                DungeonModule finalRoom;
+                DungeonSocket finalSocket;
+
+                bool success =
+                    TryPlaceSpecificPrefab(
+                        corridorSocket,
+                        finalRoomPrefab,
+                        out finalRoom,
+                        out finalSocket
+                    );
+
+                if (!success)
+                    continue;
+
+                roomSocket.Connect(bridgeEntrance);
+
+                corridorSocket.Connect(finalSocket);
+
+                finalRoom.GenerationDepth =
+                    bridgeCorridor.GenerationDepth + 1;
+
+                generatedModules.Add(finalRoom);
+
+                return true;
+            }
+
+            /*
+             * Nenhuma saída desse corredor serviu.
+             * Então descartamos ele.
+             */
+
+            generatedModules.Remove(bridgeCorridor);
+
+            DestroyObject(
+                bridgeCorridor.gameObject
+            );
+        }
+
+        return false;
+    }
+
+    private List<DungeonSocket> GetUnusedSockets(
+        DungeonModuleType ownerType
+    )
+    {
+        List<DungeonSocket> result =
+            new List<DungeonSocket>();
+
+        foreach (DungeonModule module in generatedModules)
+        {
+            if (module.ModuleType != ownerType)
+                continue;
+
+            foreach (DungeonSocket socket in module.Sockets)
+            {
+                if (!socket.IsConnected)
+                {
+                    result.Add(socket);
+                }
+            }
+        }
+
+        return result;
+    }
+
+    // ==================================================
+    // PAREDES DE FECHAMENTO
+    // ==================================================
+
+    private void SealUnusedSockets()
+    {
+        if (socketBlockerPrefab == null)
+        {
+            Debug.LogWarning(
+                "Socket Blocker Prefab não definido."
+            );
+
+            return;
+        }
+
+        foreach (DungeonModule module in generatedModules)
+        {
+            foreach (DungeonSocket socket in module.Sockets)
+            {
+                if (socket.IsConnected)
+                    continue;
+
+                Instantiate(
+                    socketBlockerPrefab,
+                    socket.transform.position,
+                    socket.transform.rotation,
+                    socket.transform
+                );
+
+                socket.Seal();
+            }
+        }
+    }
+
+    // ==================================================
+    // ALINHAMENTO
+    // ==================================================
 
     private void AlignModule(
         DungeonModule module,
@@ -229,42 +605,35 @@ public class ModularDungeonGenerator : MonoBehaviour
         DungeonSocket targetSocket
     )
     {
-        /*
-         * Queremos:
-         *
-         * targetSocket
-         *        →
-         *
-         *        ←
-         * moduleSocket
-         *
-         * Então o socket novo precisa ficar 180 graus
-         * oposto ao socket existente.
-         */
-
         Quaternion desiredSocketRotation =
             targetSocket.transform.rotation *
             Quaternion.Euler(0f, 180f, 0f);
 
         Quaternion rotationDifference =
             desiredSocketRotation *
-            Quaternion.Inverse(moduleSocket.transform.rotation);
+            Quaternion.Inverse(
+                moduleSocket.transform.rotation
+            );
 
         module.transform.rotation =
             rotationDifference *
             module.transform.rotation;
 
-        // Depois da rotação, move o módulo
-        // para colocar os sockets exatamente no mesmo ponto.
-
         Vector3 positionDifference =
             targetSocket.transform.position -
             moduleSocket.transform.position;
 
-        module.transform.position += positionDifference;
+        module.transform.position +=
+            positionDifference;
     }
 
-    private bool IsPlacementValid(DungeonModule candidate)
+    // ==================================================
+    // COLISÃO
+    // ==================================================
+
+    private bool IsPlacementValid(
+        DungeonModule candidate
+    )
     {
         BoxCollider candidateBounds =
             candidate.PlacementBounds;
@@ -272,11 +641,14 @@ public class ModularDungeonGenerator : MonoBehaviour
         if (candidateBounds == null)
         {
             Debug.LogWarning(
-                $"O módulo {candidate.name} não possui PlacementBounds."
+                $"O módulo {candidate.name} " +
+                $"não possui PlacementBounds."
             );
 
             return false;
         }
+
+        Physics.SyncTransforms();
 
         foreach (DungeonModule existing in generatedModules)
         {
@@ -289,20 +661,24 @@ public class ModularDungeonGenerator : MonoBehaviour
             if (existingBounds == null)
                 continue;
 
-            bool overlapping = Physics.ComputePenetration(
-                candidateBounds,
-                candidateBounds.transform.position,
-                candidateBounds.transform.rotation,
+            bool overlapping =
+                Physics.ComputePenetration(
+                    candidateBounds,
+                    candidateBounds.transform.position,
+                    candidateBounds.transform.rotation,
 
-                existingBounds,
-                existingBounds.transform.position,
-                existingBounds.transform.rotation,
+                    existingBounds,
+                    existingBounds.transform.position,
+                    existingBounds.transform.rotation,
 
-                out Vector3 direction,
-                out float distance
-            );
+                    out Vector3 direction,
+                    out float distance
+                );
 
-            if (overlapping && distance > overlapTolerance)
+            if (
+                overlapping &&
+                distance > overlapTolerance
+            )
             {
                 return false;
             }
@@ -310,6 +686,10 @@ public class ModularDungeonGenerator : MonoBehaviour
 
         return true;
     }
+
+    // ==================================================
+    // CLEANUP
+    // ==================================================
 
     [ContextMenu("Clear Dungeon")]
     public void ClearDungeon()
@@ -320,10 +700,16 @@ public class ModularDungeonGenerator : MonoBehaviour
         if (generatedRoot == null)
             return;
 
-        for (int i = generatedRoot.childCount - 1; i >= 0; i--)
+        for (
+            int i = generatedRoot.childCount - 1;
+            i >= 0;
+            i--
+        )
         {
             DestroyObject(
-                generatedRoot.GetChild(i).gameObject
+                generatedRoot
+                    .GetChild(i)
+                    .gameObject
             );
         }
     }
@@ -343,24 +729,35 @@ public class ModularDungeonGenerator : MonoBehaviour
         }
 
         GameObject root =
-            new GameObject("Generated Dungeon");
+            new GameObject(
+                "Generated Dungeon"
+            );
 
         generatedRoot = root.transform;
 
         generatedRoot.SetParent(transform);
 
-        generatedRoot.localPosition = Vector3.zero;
-        generatedRoot.localRotation = Quaternion.identity;
+        generatedRoot.localPosition =
+            Vector3.zero;
+
+        generatedRoot.localRotation =
+            Quaternion.identity;
     }
 
-    private void DestroyObject(GameObject obj)
+    private void DestroyObject(
+        GameObject obj
+    )
     {
         if (obj == null)
             return;
 
         if (Application.isPlaying)
+        {
             Destroy(obj);
+        }
         else
+        {
             DestroyImmediate(obj);
+        }
     }
 }
