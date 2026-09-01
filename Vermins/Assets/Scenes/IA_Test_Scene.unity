@@ -363,13 +363,13 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 450394645}
   serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 1, z: -10}
+  m_LocalRotation: {x: 0.32811168, y: 0.51008034, z: -0.21896455, w: 0.76433986}
+  m_LocalPosition: {x: -8.54, y: 7.83, z: -3.57}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 0}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+  m_LocalEulerAnglesHint: {x: 46.465, y: 67.434, z: 0}
 --- !u!114 &450394649
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -633,7 +633,7 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1033876031}
   serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
   m_LocalPosition: {x: -0.91084, y: 0, z: 0.37609}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
@@ -820,11 +820,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ea28f18596d0745be8750cdc0eebb079, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::InimigoSeguir
+  dados: {fileID: 11400000, guid: 220f119427ebc42e6a09362ac7010194, type: 2}
   estadoAtual: 0
   player: {fileID: 1355169781}
-  raioDetecao: 3.61
-  raioAtaque: 1.5
-  tempoEntreAtaques: 1.5
   camadaObstaculos:
     serializedVersion: 2
     m_Bits: 8
@@ -832,8 +830,6 @@ MonoBehaviour:
   - {fileID: 1537273747}
   - {fileID: 1309144953}
   - {fileID: 407971529}
-  distanciaPonto: 0.5
-  tempoEsperaPonto: 2
 --- !u!1 &1309144952
 GameObject:
   m_ObjectHideFlags: 0
@@ -877,6 +873,8 @@ GameObject:
   - component: {fileID: 1355169780}
   - component: {fileID: 1355169779}
   - component: {fileID: 1355169778}
+  - component: {fileID: 1355169783}
+  - component: {fileID: 1355169782}
   m_Layer: 0
   m_Name: Player
   m_TagString: Untagged
@@ -979,6 +977,42 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1355169782
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1355169777}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: cd0db08d01c11c2469b7686e9d29ab0b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Movement
+  moveSpeed: 10
+  sampleDistance: 0.5
+--- !u!195 &1355169783
+NavMeshAgent:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1355169777}
+  m_Enabled: 1
+  m_AgentTypeID: 0
+  m_Radius: 0.5
+  m_Speed: 3.5
+  m_Acceleration: 8
+  avoidancePriority: 50
+  m_AngularSpeed: 120
+  m_StoppingDistance: 0
+  m_AutoTraverseOffMeshLink: 1
+  m_AutoBraking: 1
+  m_AutoRepath: 1
+  m_Height: 2
+  m_BaseOffset: 1
+  m_WalkableMask: 4294967295
+  m_ObstacleAvoidanceType: 4
 --- !u!1 &1537273746
 GameObject:
   m_ObjectHideFlags: 0

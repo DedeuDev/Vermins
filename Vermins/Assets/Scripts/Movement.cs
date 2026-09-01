@@ -21,7 +21,7 @@ public class Movement : MonoBehaviour
 
     void Update()
     {
-        if (Mouse.current.leftButton.isPressed)
+        if (Mouse.current.rightButton.isPressed)
         {
             Vector2 mousePosition = Mouse.current.position.ReadValue();
 
