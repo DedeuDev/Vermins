@@ -24,12 +24,21 @@ public class PlayerController : MonoBehaviour
 
     [SerializeField] private float maxRayDistance = 200f;
 
+    [Header("Clique pra atacar")]
+    [Tooltip("Tudo menos a Ignore Raycast. Nao existe layer de inimigo " +
+             "ainda, entao em vez de filtrar por layer eu exijo um " +
+             "Health no que foi clicado - o que nao tem vida nao vira " +
+             "alvo. Quando a gente criar a layer, e so apertar aqui.")]
+    [SerializeField] private LayerMask attackMask = ~(1 << 2);
+
     [Header("Camera")]
     [Tooltip("Deixe vazio pra usar a Camera.main.")]
     [SerializeField] private Camera viewCamera;
 
     private InputSystem_Actions input;
     private PlayerMotor motor;
+    private Health health;
+    private PlayerCombat combat;
 
     /// <summary>
     /// Disparado toda vez que o jogador manda andar pra um ponto.
@@ -41,6 +50,8 @@ public class PlayerController : MonoBehaviour
     private void Awake()
     {
         motor = GetComponent<PlayerMotor>();
+        health = GetComponent<Health>();
+        combat = GetComponent<PlayerCombat>();
         input = new InputSystem_Actions();
 
         if (viewCamera == null)
@@ -59,11 +70,17 @@ public class PlayerController : MonoBehaviour
     private void OnEnable()
     {
         input.Player.Enable();
+
+        if (health != null)
+            health.OnDied += HandleDied;
     }
 
     private void OnDisable()
     {
         input.Player.Disable();
+
+        if (health != null)
+            health.OnDied -= HandleDied;
     }
 
     private void OnDestroy()
@@ -73,15 +90,28 @@ public class PlayerController : MonoBehaviour
 
     private void Update()
     {
-        // Segurar o botao continua andando, igual ARPG. Nao e so
-        // no clique.
-        if (!input.Player.MoveTo.IsPressed())
+        // Morto nao anda nem bate. Checo aqui em vez de desligar o
+        // componente porque assim, quando o Revive existir, o controle
+        // volta sozinho sem ninguem precisar religar nada.
+        if (health != null && health.IsDead)
+            return;
+
+        // Segurar o botao continua valendo, igual ARPG. Nao e so no
+        // clique.
+        bool atacando = combat != null && input.Player.Attack.IsPressed();
+        bool andando = input.Player.MoveTo.IsPressed();
+
+        if (!atacando && !andando)
             return;
 
         if (IsPointerOverUI())
             return;
 
-        TryMoveToPointer();
+        if (atacando)
+            TryAttackAtPointer();
+
+        if (andando)
+            TryMoveToPointer();
     }
 
     private void TryMoveToPointer()
@@ -105,7 +135,54 @@ public class PlayerController : MonoBehaviour
         if (!motor.MoveTo(hit.point))
             return;
 
+        // Mandar andar desiste do alvo. Sem isso o PlayerCombat
+        // sobrescreveria o destino no frame seguinte e o jogador nao
+        // conseguiria fugir de uma briga.
+        if (combat != null)
+            combat.ClearTarget();
+
         OnMoveOrdered?.Invoke(hit.point);
+    }
+
+    /// <summary>
+    /// Botao esquerdo escolhe em quem bater. Quem persegue e da o golpe
+    /// e o PlayerCombat - aqui so traduzo o clique num alvo.
+    /// </summary>
+    private void TryAttackAtPointer()
+    {
+        if (viewCamera == null)
+            return;
+
+        Vector2 screenPosition = input.Player.Point.ReadValue<Vector2>();
+        Ray ray = viewCamera.ScreenPointToRay(screenPosition);
+
+        bool acertouAlgo = Physics.Raycast(
+            ray,
+            out RaycastHit hit,
+            maxRayDistance,
+            attackMask
+        );
+
+        if (!acertouAlgo)
+            return;
+
+        // InParent porque o collider costuma estar num filho e a vida
+        // no objeto raiz.
+        Health alvo = hit.collider.GetComponentInParent<Health>();
+
+        if (alvo == null || alvo == health || alvo.IsDead)
+            return;
+
+        combat.SetTarget(alvo);
+    }
+
+    /// <summary>
+    /// O jogador para na hora que morre. Se ele estivesse no meio de
+    /// um caminho, o NavMeshAgent continuaria andando com o corpo caido.
+    /// </summary>
+    private void HandleDied(Health _)
+    {
+        motor.Stop();
     }
 
     /// <summary>
