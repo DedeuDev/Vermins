@@ -12,16 +12,24 @@ using UnityEngine.AI;
 public class PlayerMotor : MonoBehaviour
 {
     [Header("Movimento")]
-    [Tooltip("Casado com a velocidade do clipe de sprint (5,31 m/s). " +
-             "Mudar isso sem mexer no blend tree faz o pe deslizar no " +
-             "talo, que e onde o personagem mais fica.")]
-    [SerializeField] private float moveSpeed = 5.31f;
+    [Tooltip("Casado com a velocidade do clipe de SprintForward, que e " +
+             "o limiar de cima do blend tree. Mudar isso sem mexer la " +
+             "faz o pe deslizar no talo, que e onde o personagem mais " +
+             "fica. Se alguem trocar o clipe de sprint, rode o menu do " +
+             "Mixamo e leia a velocidade nova do clipe.")]
+    [SerializeField] private float moveSpeed = 4.13f;
 
-    [Tooltip("Medi tres valores com a animacao rodando: 40 chega na " +
-             "velocidade em 0,12 s e a animacao nao acompanha (pico de " +
-             "3,2 m/s de diferenca). 20 chega em 0,25 s, continua seco " +
-             "no clique e o pico cai pra 1,2.")]
-    [SerializeField] private float acceleration = 20f;
+    [Tooltip("Alto de proposito. O caso que decide isto nao e a " +
+             "arrancada, e a inversao no meio da corrida: clicar pra " +
+             "tras enquanto ele corre. Medi com 20 e ele passava 0,43 m " +
+             "alem do ponto antes de conseguir voltar, e levava 0,40 s " +
+             "pra estar correndo pro outro lado - le-se como freio de " +
+             "carro. Com 80 sao 0,11 m e 0,10 s. " +
+             "Nao custa nada na animacao: medi o escorregamento somado " +
+             "num trajeto reto com 20, 40 e 80, e deu 0,25 m nos tres. " +
+             "So a arrancada melhora, de 0,16 pra 0,08 m.")]
+    [SerializeField] private float acceleration = 80f;
+
     [Tooltip("Graus por segundo pra virar o corpo. Quem gira e este " +
              "script, nao o NavMeshAgent - veja o Girar() la embaixo.")]
     [SerializeField] private float angularSpeed = 1440f;
