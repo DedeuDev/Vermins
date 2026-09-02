@@ -22,7 +22,9 @@ public class PlayerMotor : MonoBehaviour
              "3,2 m/s de diferenca). 20 chega em 0,25 s, continua seco " +
              "no clique e o pico cai pra 1,2.")]
     [SerializeField] private float acceleration = 20f;
-    [SerializeField] private float angularSpeed = 720f;
+    [Tooltip("Graus por segundo pra virar o corpo. Quem gira e este " +
+             "script, nao o NavMeshAgent - veja o Girar() la embaixo.")]
+    [SerializeField] private float angularSpeed = 1440f;
 
     [Header("NavMesh")]
     [Tooltip("Altura do pivo do personagem acima dos pes dele. " +
@@ -52,9 +54,50 @@ public class PlayerMotor : MonoBehaviour
 
         agent.speed = moveSpeed;
         agent.acceleration = acceleration;
-        agent.angularSpeed = angularSpeed;
         agent.baseOffset = baseOffset;
-        agent.updateRotation = true;
+
+        // Copio o mesmo numero pro agente so pra o Inspector nao mentir.
+        // Com updateRotation desligado ele nao usa esse campo pra nada,
+        // mas quem abrisse veria 120 ali e acharia que e essa a
+        // velocidade de giro.
+        agent.angularSpeed = angularSpeed;
+
+        // Tiro a rotacao do agente. Ele vira o corpo na direcao da
+        // velocidade que ele JA tem, e essa chega atrasada: no meio de
+        // uma virada o personagem corre de banda por um instante. Medi
+        // num zigue-zague: com o agente girando, o corpo passava 14,6%
+        // do tempo mais de 10 graus torto em relacao a pra onde andava.
+        // Girando eu mesmo pela desiredVelocity, cai pra 1%.
+        agent.updateRotation = false;
+    }
+
+    private void Update()
+    {
+        Girar();
+    }
+
+    /// <summary>
+    /// Vira o corpo pra onde o agente QUER ir, nao pra onde ele ja
+    /// conseguiu ir. A desiredVelocity muda no mesmo frame do clique,
+    /// entao o personagem comeca a virar antes de sair do lugar - que e
+    /// como um ARPG se comporta.
+    /// </summary>
+    private void Girar()
+    {
+        Vector3 direcao = agent.desiredVelocity;
+        direcao.y = 0f;
+
+        // Parado a desiredVelocity e lixo numerico. Sem esse corte o
+        // personagem fica tremendo, e pior: brigaria com o PlayerCombat,
+        // que e quem vira o corpo pro alvo na hora de bater.
+        if (direcao.sqrMagnitude < 0.01f)
+            return;
+
+        transform.rotation = Quaternion.RotateTowards(
+            transform.rotation,
+            Quaternion.LookRotation(direcao),
+            angularSpeed * Time.deltaTime
+        );
     }
 
     /// <summary>

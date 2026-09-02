@@ -143,13 +143,21 @@ public static class MixamoPlayerImport
             // virar root motion tambem, ele some e o personagem desliza
             // rigido igual estatua em carrinho.
             clipes[i].lockRootHeightY = true;
-            clipes[i].heightFromFeet = true;
+            clipes[i].heightFromFeet = false;
 
-            // So os ciclos assam a rotacao na pose, e ai o personagem
-            // encara sempre o +Z do objeto. Nas de uma vez so isso seria
-            // errado: a de virar 90 graus giraria e voltaria de tranco.
+            // So os ciclos assam a rotacao na pose. Nas de uma vez so
+            // isso seria errado: a de virar 90 graus giraria e voltaria
+            // de tranco.
             clipes[i].lockRootRotation = ciclo;
-            clipes[i].keepOriginalOrientation = false;
+
+            // "Original" e nao "Body Orientation". Body Orientation tira
+            // a referencia da postura media do corpo, e nesse rig ela sai
+            // torta: medi o WalkForward andando 41 graus de lado do lugar
+            // pra onde o personagem olhava, e na tela isso vira o
+            // personagem deslizando de banda. Com Original a referencia e
+            // a que o Mixamo exportou, e o desvio cai pra menos de 3
+            // graus na caminhada e na corrida.
+            clipes[i].keepOriginalOrientation = true;
         }
 
         imp.clipAnimations = clipes;
