@@ -1,0 +1,118 @@
+# ============================================================
+# Vermins - configuracao de arquivos do Git
+# ============================================================
+#
+# Ninguem precisa configurar nada na maquina. E so dar pull.
+#
+# Coloquei este arquivo porque sem ele cada um commita com o
+# final de linha do proprio sistema, e o diff acaba mostrando
+# "arquivo inteiro modificado" quando so mudou uma linha. Assim
+# fica impossivel revisar o codigo de alguem.
+
+
+# ------------------------------------------------------------
+# Final de linha
+# ------------------------------------------------------------
+# text=auto -> deixo o Git detectar sozinho o que e texto e o
+#              que e binario, pra ele nunca converter um binario
+#              por engano.
+# eol=lf    -> texto fica em LF no repositorio E na pasta de
+#              trabalho de todo mundo. A Unity ja grava em LF
+#              nativamente, entao alinha tudo.
+* text=auto eol=lf
+
+# Script de terminal do Windows precisa de CRLF, senao quebra.
+*.bat  text eol=crlf
+*.cmd  text eol=crlf
+*.ps1  text eol=crlf
+
+
+# ------------------------------------------------------------
+# Arquivos que a Unity grava em BINARIO
+# ------------------------------------------------------------
+# Mesmo com Force Text ligado, alguns .asset continuam binarios.
+# A deteccao automatica la de cima ja pega isso, mas preferi
+# deixar explicito pra nao depender de sorte: se um desses for
+# tratado como texto, o arquivo corrompe.
+NavMesh-*.asset     binary
+LightingData.asset  binary
+
+
+# ------------------------------------------------------------
+# Binarios - nunca converter
+# ------------------------------------------------------------
+# Ja deixei a lista pronta pros assets de arte e audio que ainda
+# vao entrar, pra ninguem precisar lembrar disso depois.
+
+# Modelos 3D
+*.fbx    binary
+*.blend  binary
+*.obj    binary
+*.dae    binary
+*.3ds    binary
+*.max    binary
+*.ma     binary
+*.mb     binary
+
+# Texturas e imagens
+*.png    binary
+*.jpg    binary
+*.jpeg   binary
+*.tga    binary
+*.tif    binary
+*.tiff   binary
+*.psd    binary
+*.bmp    binary
+*.gif    binary
+*.exr    binary
+*.hdr    binary
+*.cubemap binary
+
+# Audio
+*.wav    binary
+*.mp3    binary
+*.ogg    binary
+*.aif    binary
+*.aiff   binary
+
+# Video
+*.mp4    binary
+*.mov    binary
+*.webm   binary
+
+# Fontes
+*.ttf    binary
+*.otf    binary
+
+# Empacotados e bibliotecas
+*.unitypackage binary
+*.dll    binary
+*.so     binary
+*.pdb    binary
+*.zip    binary
+*.7z     binary
+*.rar    binary
+
+
+# ============================================================
+# CENA E PREFAB: ISSO AQUI NENHUMA CONFIGURACAO RESOLVE
+# ============================================================
+#
+# Arquivo .unity e .prefab nao mescla bem. Se duas pessoas
+# editarem a MESMA cena ao mesmo tempo, alguem vai perder
+# trabalho, e nao tem ajuste de Git que conserte.
+#
+# Pra evitar:
+#
+#   1. Avisa no grupo antes de mexer numa cena, e espera quem
+#      estava nela dar push.
+#   2. Sempre que der, trabalha dentro de prefab. Prefab isola a
+#      mudanca e mescla bem melhor que cena.
+#   3. Cada um na sua cena de teste, em vez de todo mundo na
+#      mesma.
+#
+# Existe uma ferramenta da Unity (UnityYAMLMerge) que mescla
+# cena automaticamente, mas ela exige que cada um configure o
+# caminho da propria instalacao na maquina. Deixei de fora pra
+# nao dar trabalho pra todo mundo. Testei e funciona, entao se
+# acharem que vale a pena a gente adota depois.
