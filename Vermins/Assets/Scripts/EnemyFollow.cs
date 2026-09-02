@@ -25,9 +25,14 @@ public class InimigoSeguir : MonoBehaviour
     private NavMeshAgent agent;
     private float tempoUltimoAtaque;
 
+    // Ian: opcional. Se o inimigo nao tiver um MeleeAttack, tudo
+    // aqui funciona exatamente como antes.
+    private MeleeAttack ataque;
+
     void Start()
     {
         agent = GetComponent<NavMeshAgent>();
+        ataque = GetComponent<MeleeAttack>();
 
         if (dados != null)
         {
@@ -127,6 +132,12 @@ public class InimigoSeguir : MonoBehaviour
                 if (Time.time >= tempoUltimoAtaque + dados.tempoEntreAtaques)
                 {
                     Debug.Log($"{dados.nomeTipo} Atacou!");
+
+                    // Ian: aqui o ataque sai do console e vira dano
+                    // de verdade. O quanto tira fica no componente
+                    // MeleeAttack do proprio inimigo.
+                    if (ataque != null)
+                        ataque.TryHit(player);
                     tempoUltimoAtaque = Time.time;
                 }
                 break;
