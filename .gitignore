@@ -42,6 +42,10 @@
 **/[Aa]ssets/Plugins/Editor/JetBrains*
 # Jetbrains Rider personal-layer settings
 *.DotSettings.user
+# Pasta de configuracao do Rider. Sem "/" na frente de proposito:
+# assim vale em qualquer pasta, e a que aparece de verdade e
+# Vermins/.idea/, nao a raiz.
+.idea/
 
 # Visual Studio cache directory
 .vs/
