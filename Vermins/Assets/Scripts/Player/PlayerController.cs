@@ -122,11 +122,17 @@ public class PlayerController : MonoBehaviour
         Vector2 screenPosition = input.Player.Point.ReadValue<Vector2>();
         Ray ray = viewCamera.ScreenPointToRay(screenPosition);
 
+        // Trigger nunca e destino de clique. Hoje a groundMask sozinha
+        // ja daria conta, porque ela so aceita a layer do chao - isso
+        // aqui e pra quando alguem puser uma zona de agua ou de dano
+        // nessa mesma layer e o clique parar de responder sem motivo
+        // aparente.
         bool hitGround = Physics.Raycast(
             ray,
             out RaycastHit hit,
             maxRayDistance,
-            groundMask
+            groundMask,
+            QueryTriggerInteraction.Ignore
         );
 
         if (!hitGround)
@@ -156,11 +162,17 @@ public class PlayerController : MonoBehaviour
         Vector2 screenPosition = input.Player.Point.ReadValue<Vector2>();
         Ray ray = viewCamera.ScreenPointToRay(screenPosition);
 
+        // Sem isto o clique nao acha alvo nenhum dentro da dungeon. Os
+        // modulos tem um BoxCollider "PlacementBounds" que e trigger,
+        // esta na layer Default e cobre a sala ate 3 m de altura - e a
+        // attackMask aceita Default. Testei com uma caixa igual: o raio
+        // batia nela, que nao tem Health, e o ataque morria ali.
         bool acertouAlgo = Physics.Raycast(
             ray,
             out RaycastHit hit,
             maxRayDistance,
-            attackMask
+            attackMask,
+            QueryTriggerInteraction.Ignore
         );
 
         if (!acertouAlgo)

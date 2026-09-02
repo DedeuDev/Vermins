@@ -12,11 +12,28 @@ using UnityEngine.AI;
 public class PlayerMotor : MonoBehaviour
 {
     [Header("Movimento")]
-    [SerializeField] private float moveSpeed = 6f;
-    [SerializeField] private float acceleration = 40f;
+    [Tooltip("Casado com a velocidade do clipe de sprint (5,31 m/s). " +
+             "Mudar isso sem mexer no blend tree faz o pe deslizar no " +
+             "talo, que e onde o personagem mais fica.")]
+    [SerializeField] private float moveSpeed = 5.31f;
+
+    [Tooltip("Medi tres valores com a animacao rodando: 40 chega na " +
+             "velocidade em 0,12 s e a animacao nao acompanha (pico de " +
+             "3,2 m/s de diferenca). 20 chega em 0,25 s, continua seco " +
+             "no clique e o pico cai pra 1,2.")]
+    [SerializeField] private float acceleration = 20f;
     [SerializeField] private float angularSpeed = 720f;
 
     [Header("NavMesh")]
+    [Tooltip("Altura do pivo do personagem acima dos pes dele. " +
+             "Nao e 1 de proposito. O NavMesh assado nao fica colado no " +
+             "chao: ele nasce meio voxel acima, e o voxel padrao e o raio " +
+             "do agente dividido por 3. Com raio 0,5 da 0,083 m. Se eu " +
+             "deixasse 1 aqui, o personagem andaria flutuando 8 cm - da " +
+             "pra ver, ainda mais com sombra. Medi na cena: chao em 0, " +
+             "NavMesh em 0,0833.")]
+    [SerializeField] private float baseOffset = 0.9167f;
+
     [Tooltip("Distancia maxima entre o ponto pedido e o NavMesh pra " +
              "ele ainda valer como destino.")]
     [SerializeField] private float sampleDistance = 1f;
@@ -36,6 +53,7 @@ public class PlayerMotor : MonoBehaviour
         agent.speed = moveSpeed;
         agent.acceleration = acceleration;
         agent.angularSpeed = angularSpeed;
+        agent.baseOffset = baseOffset;
         agent.updateRotation = true;
     }
 
