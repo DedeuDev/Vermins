@@ -539,7 +539,7 @@ GameObject:
   - component: {fileID: 1033876033}
   - component: {fileID: 1033876032}
   - component: {fileID: 1033876036}
-  m_Layer: 0
+  m_Layer: 8
   m_Name: Floor
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -874,7 +874,8 @@ GameObject:
   - component: {fileID: 1355169779}
   - component: {fileID: 1355169778}
   - component: {fileID: 1355169783}
-  - component: {fileID: 1355169782}
+  - component: {fileID: 1355169785}
+  - component: {fileID: 1355169784}
   m_Layer: 0
   m_Name: Player
   m_TagString: Untagged
@@ -977,20 +978,6 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &1355169782
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1355169777}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: cd0db08d01c11c2469b7686e9d29ab0b, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::Movement
-  moveSpeed: 10
-  sampleDistance: 0.5
 --- !u!195 &1355169783
 NavMeshAgent:
   m_ObjectHideFlags: 0
@@ -1013,6 +1000,39 @@ NavMeshAgent:
   m_BaseOffset: 1
   m_WalkableMask: 4294967295
   m_ObstacleAvoidanceType: 4
+--- !u!114 &1355169784
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1355169777}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: cd1c234b199f9b3489dc3c3d40467e88, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PlayerController
+  groundMask:
+    serializedVersion: 2
+    m_Bits: 256
+  maxRayDistance: 200
+  viewCamera: {fileID: 0}
+--- !u!114 &1355169785
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1355169777}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 359d780d83e4813409b1409f6b994544, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PlayerMotor
+  moveSpeed: 6
+  acceleration: 40
+  angularSpeed: 720
+  sampleDistance: 1
 --- !u!1 &1537273746
 GameObject:
   m_ObjectHideFlags: 0
