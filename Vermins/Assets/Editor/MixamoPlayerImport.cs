@@ -72,7 +72,8 @@ public static class MixamoPlayerImport
 
         AssetDatabase.SaveAssets();
 
-        Debug.Log($"[Mixamo] Pronto: modelo humanoide + {convertidas} animacoes ligadas no avatar '{avatar.name}'.");
+        Debug.Log($"[Mixamo] Pronto: modelo humanoide + {convertidas} animacoes " +
+                  $"ligadas no avatar '{avatar.name}'.");
     }
 
     private static void ConfigurarModelo(ModelImporter modelo)
@@ -215,5 +216,116 @@ public static class MixamoPlayerImport
         }
 
         return false;
+    }
+
+    /// <summary>
+    /// Conferidor. Nao muda nada: so mede e imprime.
+    ///
+    /// Isto existe por causa de um erro meu, e deixo escrito pra ninguem
+    /// repetir. O personagem parece estar meio de lado quando anda, e a
+    /// tentacao e girar os clipes pra endireitar - eu tentei duas vezes,
+    /// mirando no root motion e depois no tronco, e as duas pioraram.
+    ///
+    /// O motivo esta na coluna da passada aqui embaixo. Sem offset
+    /// nenhum, os nove clipes de locomocao varrem o chao EXATAMENTE no
+    /// eixo certo: WalkForward 180,3 graus, RunForward 181,6,
+    /// SprintForward 179,9, os de tras em -0,3 e -0,1, os da esquerda em
+    /// 93,7 e 90,3, os da direita em -90,6 e -88,9. Nove de nove. O
+    /// clipe esta certo; girar ele so tira a perna do lugar. Quando eu
+    /// alinhei pelo tronco, a passada saiu 30 a 38 graus pra fora e na
+    /// tela ele andava de caranguejo.
+    ///
+    /// O tronco fica mesmo virado (23 graus no sprint, 54 parado), mas
+    /// isso e postura de combate, e como o Mixamo fez estes clipes - o
+    /// prefixo "Standing" deles quer dizer exatamente isso. Nao e defeito
+    /// de import: o corpo do PlayerTest tem a linha dos ombros em 0,0
+    /// grau, e dar avatar proprio pro clipe em vez de copiar o do
+    /// PlayerTest muda o angulo em 1,5 grau, ou seja, esta no dado.
+    ///
+    /// Se um dia isso incomodar de verdade, o conserto e clipe novo, nao
+    /// numero novo.
+    ///
+    /// Menu: Vermins > Player > Conferir Clipes
+    /// </summary>
+    [MenuItem("Vermins/Player/Conferir Clipes")]
+    public static void Conferir()
+    {
+        var ci = System.Globalization.CultureInfo.InvariantCulture;
+        var sb = new System.Text.StringBuilder();
+
+        sb.AppendLine("[Mixamo] Conferencia dos clipes de ciclo.");
+        sb.AppendLine("  passada: pra onde o pe varre o chao, visto de dentro do corpo.");
+        sb.AppendLine("           frente=180  tras=0  esquerda=90  direita=-90");
+        sb.AppendLine("  tronco:  quantos graus os ombros e o quadril estao girados.");
+        sb.AppendLine();
+        sb.AppendLine("  clipe            passada   erro   tronco   vel");
+
+        using (var lab = new AnaliseDeClipe())
+        {
+            if (!lab.Pronto)
+            {
+                Debug.LogError("[Mixamo] Nao consegui montar o modelo pra medir.");
+                return;
+            }
+
+            foreach (string path in CaminhosDasAnimacoes())
+            {
+                string nome = NomeDoClipe(path);
+
+                if (!EhCiclo(nome))
+                    continue;
+
+                AnimationClip clipe = Clipe(path);
+
+                if (clipe == null)
+                    continue;
+
+                AnaliseDeClipe.Medida m = lab.Medir(clipe);
+
+                if (!m.valido || m.amostrasNoChao == 0)
+                {
+                    sb.AppendLine($"  {nome,-14}   (sem passada legivel)");
+                    continue;
+                }
+
+                float esperada = PassadaEsperada(nome);
+                string erro = float.IsNaN(esperada)
+                    ? "   -"
+                    : Mathf.DeltaAngle(esperada, m.direcaoDaPassada).ToString("F1", ci);
+
+                sb.AppendLine(string.Format(ci, "  {0,-14} {1,8:F1} {2,6} {3,8:F1} {4,5:F2}",
+                    nome, m.direcaoDaPassada, erro, m.anguloDoCorpo, m.velocidade));
+            }
+        }
+
+        Debug.Log(sb.ToString());
+    }
+
+    /// <summary>
+    /// Pra onde a passada deveria ir, lido do nome. NaN quer dizer que o
+    /// clipe nao anda pra lado nenhum (o Idle).
+    /// </summary>
+    private static float PassadaEsperada(string nome)
+    {
+        string m = nome.ToLowerInvariant();
+
+        // O pe varre ao contrario de pra onde o personagem vai.
+        if (m.Contains("forward")) return 180f;
+        if (m.Contains("back")) return 0f;
+        if (m.Contains("left")) return 90f;
+        if (m.Contains("right")) return -90f;
+
+        return float.NaN;
+    }
+
+    private static AnimationClip Clipe(string path)
+    {
+        foreach (Object o in AssetDatabase.LoadAllAssetsAtPath(path))
+        {
+            if (o is AnimationClip c && !c.name.StartsWith("__preview__"))
+                return c;
+        }
+
+        return null;
     }
 }

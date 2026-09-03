@@ -12,11 +12,15 @@ using UnityEngine.AI;
 public class PlayerMotor : MonoBehaviour
 {
     [Header("Movimento")]
-    [Tooltip("Casado com a velocidade do clipe de SprintForward, que e " +
-             "o limiar de cima do blend tree. Mudar isso sem mexer la " +
-             "faz o pe deslizar no talo, que e onde o personagem mais " +
-             "fica. Se alguem trocar o clipe de sprint, rode o menu do " +
-             "Mixamo e leia a velocidade nova do clipe.")]
+    [Tooltip("Casado com a velocidade do clipe de SprintForward, que e o " +
+             "ponto mais longe do blend tree 2D. Se alguem trocar o clipe " +
+             "de sprint, rode 'Vermins/Player/Montar Blend Tree 2D' e " +
+             "copie pra ca o numero que sair no log. " +
+             "Aviso pra quem for mexer: nao adianta cacar o ponto em que o " +
+             "pe para de deslizar, ele nao existe. Varri de 2,5 a 6,0 m/s " +
+             "medindo a velocidade do pe no chao e ela nunca desce de " +
+             "1,4 m/s - estes clipes do Mixamo ja vem com o pe patinando. " +
+             "Isso so sai com clipe melhor, nao com numero melhor.")]
     [SerializeField] private float moveSpeed = 4.13f;
 
     [Tooltip("Alto de proposito. O caso que decide isto nao e a " +
