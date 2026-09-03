@@ -573,6 +573,11 @@ MonoBehaviour:
   attackRange: 9
   attackCooldown: 1.2
   turnSpeed: 720
+  projetil: {fileID: 9151330617227145017, guid: 97ef60d97bd87f146bcd17db235ff6c5, type: 3}
+  oQueBloqueiaVisao:
+    serializedVersion: 2
+    m_Bits: 8
+  alturaDoRaio: 0
   repathThreshold: 0.25
 --- !u!114 &897700279
 MonoBehaviour:
@@ -957,7 +962,10 @@ PrefabInstance:
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
-    m_AddedComponents: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 74ed56a1bb954534c9343a9cd7b14eef, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 1699965557}
   m_SourcePrefab: {fileID: 100100000, guid: 74ed56a1bb954534c9343a9cd7b14eef, type: 3}
 --- !u!4 &1699965554 stripped
 Transform:
@@ -969,6 +977,23 @@ Animator:
   m_CorrespondingSourceObject: {fileID: 5866666021909216657, guid: 74ed56a1bb954534c9343a9cd7b14eef, type: 3}
   m_PrefabInstance: {fileID: 1699965553}
   m_PrefabAsset: {fileID: 0}
+--- !u!1 &1699965556 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 919132149155446097, guid: 74ed56a1bb954534c9343a9cd7b14eef, type: 3}
+  m_PrefabInstance: {fileID: 1699965553}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &1699965557
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1699965556}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5560106205436b74b8dab9cdc0168f8f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::EventoDeAnimacao
 --- !u!1 &1763480890
 GameObject:
   m_ObjectHideFlags: 0
