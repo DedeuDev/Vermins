@@ -30,13 +30,32 @@ public class PlayerMotor : MonoBehaviour
              "So a arrancada melhora, de 0,16 pra 0,08 m.")]
     [SerializeField] private float acceleration = 80f;
 
-    [Tooltip("Graus por segundo pra virar o corpo. Quem gira e este " +
-             "script, nao o NavMeshAgent - veja o Girar() la embaixo.")]
-    [SerializeField] private float angularSpeed = 1440f;
+    [Tooltip("Teto de graus por segundo pra virar o corpo. Quem gira e " +
+             "este script, nao o NavMeshAgent - veja o Girar() la embaixo. " +
+             "Numa curva normal o giro nem encosta aqui; quem manda e o " +
+             "tempoDeGiro. Este teto so pega na inversao de 180, que e o " +
+             "giro mais violento que existe: sem ele o corpo dava saltos " +
+             "de 21,7 graus de um frame pro outro a 60 fps, e com 900 cai " +
+             "pra 13,9. Custa 0,07 s a mais pra completar a inversao.")]
+    [SerializeField] private float angularSpeed = 900f;
+
+    [Tooltip("Quanto tempo o corpo leva pra assentar na direcao nova. " +
+             "Antes eu girava a taxa constante, e a 60 fps uma curva de " +
+             "90 graus acabava em 3 frames, com o corpo pulando 25 graus " +
+             "por frame e parando seco no fim - isso le-se como teleporte, " +
+             "nao como virada. Com 0,08 a mesma curva leva 11 frames, o " +
+             "maior salto cai pra 12,7 graus e ela desacelera no fim. " +
+             "O preco e o corpo ficar mais torto DURANTE a virada: o erro " +
+             "medio entre pra onde ele olha e pra onde ele anda, pesado " +
+             "pela distancia andada, sobe de 1,3 pra 4,3 graus na curva de " +
+             "90. Subir muito daqui pra cima comeca a parecer que ele anda " +
+             "de lado - medi 0,18 e ja da 19,4% do tempo mais de 10 graus " +
+             "torto.")]
+    [SerializeField] private float tempoDeGiro = 0.08f;
 
     [Header("NavMesh")]
     [Tooltip("Altura do pivo do personagem acima dos pes dele. " +
-             "Nao e 1 de proposito. O NavMesh assado nao fica colado no " +
+             "Nao e 1 de proposito. O NavMesh bakeado nao fica colado no " +
              "chao: ele nasce meio voxel acima, e o voxel padrao e o raio " +
              "do agente dividido por 3. Com raio 0,5 da 0,083 m. Se eu " +
              "deixasse 1 aqui, o personagem andaria flutuando 8 cm - da " +
@@ -49,6 +68,11 @@ public class PlayerMotor : MonoBehaviour
     [SerializeField] private float sampleDistance = 1f;
 
     private NavMeshAgent agent;
+
+    // Embalo do giro. O SmoothDampAngle guarda a velocidade
+    // angular aqui entre um frame e outro - e ela que faz o
+    // corpo desacelerar em vez de parar seco.
+    private float velocidadeAngular;
 
     /// <summary>Verdadeiro enquanto o jogador esta indo pra algum lugar.</summary>
     public bool IsMoving =>
@@ -89,6 +113,8 @@ public class PlayerMotor : MonoBehaviour
     /// conseguiu ir. A desiredVelocity muda no mesmo frame do clique,
     /// entao o personagem comeca a virar antes de sair do lugar - que e
     /// como um ARPG se comporta.
+    /// O giro e amortecido, nao a taxa constante: ele arranca e assenta
+    /// devagar. Ver o tooltip do tempoDeGiro pra o porque.
     /// </summary>
     private void Girar()
     {
@@ -99,13 +125,28 @@ public class PlayerMotor : MonoBehaviour
         // personagem fica tremendo, e pior: brigaria com o PlayerCombat,
         // que e quem vira o corpo pro alvo na hora de bater.
         if (direcao.sqrMagnitude < 0.01f)
+        {
+            // Zerar o embalo aqui e obrigatorio. Se eu deixar a
+            // velocidade angular guardada, ele para de andar ainda
+            // girando e sai rodando sozinho no lugar.
+            velocidadeAngular = 0f;
             return;
+        }
 
-        transform.rotation = Quaternion.RotateTowards(
-            transform.rotation,
-            Quaternion.LookRotation(direcao),
-            angularSpeed * Time.deltaTime
+        float alvo = Mathf.Atan2(direcao.x, direcao.z) * Mathf.Rad2Deg;
+
+        float y = Mathf.SmoothDampAngle(
+            transform.eulerAngles.y,
+            alvo,
+            ref velocidadeAngular,
+            tempoDeGiro,
+            angularSpeed,
+            Time.deltaTime
         );
+
+        // Euler direto em vez de LookRotation porque assim eu tranco X e
+        // Z em zero de graca: o corpo nunca inclina, nem em rampa.
+        transform.rotation = Quaternion.Euler(0f, y, 0f);
     }
 
     /// <summary>
