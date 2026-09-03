@@ -39,8 +39,36 @@ public static class MixamoPlayerImport
         "jump", "land", "turn"
     };
 
+    /// <summary>
+    /// Prepara os FBX que ainda nao foram preparados. Nao encosta em
+    /// clipe que ja tem ajuste salvo.
+    /// </summary>
     [MenuItem("Vermins/Player/Configurar FBX do Mixamo")]
     public static void Configurar()
+    {
+        Configurar(false);
+    }
+
+    /// <summary>
+    /// Joga fora todo ajuste manual e reconstroi tudo do padrao do
+    /// arquivo. So use se alguem tiver baguncado um clipe e voce quiser
+    /// comecar de novo - isto apaga corte, loop e offset feitos na mao.
+    /// </summary>
+    [MenuItem("Vermins/Player/Reconfigurar Tudo do Zero")]
+    public static void Reconfigurar()
+    {
+        bool certeza = EditorUtility.DisplayDialog(
+            "Reconfigurar do zero?",
+            "Isto apaga qualquer ajuste manual nos clipes do player - " +
+            "corte (Start/End), loop e offset de rotacao - e reconstroi " +
+            "tudo do padrao do Mixamo.",
+            "Reconstruir", "Cancelar");
+
+        if (certeza)
+            Configurar(true);
+    }
+
+    private static void Configurar(bool forcar)
     {
         ModelImporter modelo = AssetImporter.GetAtPath(ModeloPath) as ModelImporter;
 
@@ -66,14 +94,16 @@ public static class MixamoPlayerImport
 
         foreach (string path in CaminhosDasAnimacoes())
         {
-            if (ConfigurarAnimacao(path, avatar))
+            if (ConfigurarAnimacao(path, avatar, forcar))
                 convertidas++;
         }
 
         AssetDatabase.SaveAssets();
 
         Debug.Log($"[Mixamo] Pronto: modelo humanoide + {convertidas} animacoes " +
-                  $"ligadas no avatar '{avatar.name}'.");
+                  $"preparadas no avatar '{avatar.name}'" +
+                  (forcar ? " (tudo reconstruido do zero)." :
+                   ". As que ja tinham ajuste salvo eu nao toquei."));
     }
 
     private static void ConfigurarModelo(ModelImporter modelo)
@@ -91,11 +121,20 @@ public static class MixamoPlayerImport
         modelo.SaveAndReimport();
     }
 
-    private static bool ConfigurarAnimacao(string path, Avatar avatar)
+    private static bool ConfigurarAnimacao(string path, Avatar avatar, bool forcar)
     {
         ModelImporter imp = AssetImporter.GetAtPath(path) as ModelImporter;
 
         if (imp == null)
+            return false;
+
+        // Clipe que ja tem ajuste salvo eu nao toco. Isto aqui reconstroi
+        // o clipe a partir do padrao do arquivo, entao antes ele apagava
+        // qualquer Start/End que alguem tivesse marcado na mao no
+        // Inspector - e corte de animacao se acerta olhando o preview,
+        // nao por conta. Quem quiser mesmo voltar tudo pro padrao usa o
+        // outro menu.
+        if (!forcar && imp.clipAnimations.Length > 0)
             return false;
 
         imp.animationType = ModelImporterAnimationType.Human;
@@ -138,7 +177,13 @@ public static class MixamoPlayerImport
             // "Bake Into Pose" faz o contrario: guarda o deslocamento
             // DENTRO do corpo. Medi e o quadril andava 0,9 m por ciclo
             // de corrida - o personagem ia embora do proprio pe.
-            clipes[i].lockRootPositionXZ = false;
+            //
+            // Golpe, morte e react sao o contrario: ali o deslocamento TEM
+            // que ficar na pose. A morte joga o corpo um metro pra tras, e
+            // quem manda no transform e o NavMeshAgent - se esse metro
+            // virasse root motion ele seria jogado fora e o personagem
+            // morreria em pe, parado no mesmo lugar.
+            clipes[i].lockRootPositionXZ = DeslocamentoNaPose(nome);
 
             // Y e a excecao: quero o sobe-e-desce do passo no corpo. Se
             // virar root motion tambem, ele some e o personagem desliza
@@ -159,6 +204,7 @@ public static class MixamoPlayerImport
             // a que o Mixamo exportou, e o desvio cai pra menos de 3
             // graus na caminhada e na corrida.
             clipes[i].keepOriginalOrientation = true;
+
         }
 
         imp.clipAnimations = clipes;
@@ -197,6 +243,26 @@ public static class MixamoPlayerImport
             nome = char.ToUpperInvariant(nome[0]) + nome.Substring(1);
 
         return nome;
+    }
+
+    /// <summary>
+    /// Se o deslocamento do clipe deve ficar DENTRO do corpo em vez de
+    /// sair como root motion.
+    ///
+    /// Vale pras de uma vez so, com excecao do pulo e da aterrissagem.
+    /// Esses dois viajam de verdade - o JumpRunning anda 3,8 m ao longo do
+    /// clipe - e guardar isso na pose tiraria o personagem de dentro do
+    /// proprio collider. Eles ainda nao estao ligados em estado nenhum,
+    /// mas quem for ligar nao vai ter que descobrir isso na marra.
+    /// </summary>
+    private static bool DeslocamentoNaPose(string nome)
+    {
+        if (EhCiclo(nome))
+            return false;
+
+        string m = nome.ToLowerInvariant();
+
+        return !m.Contains("jump") && !m.Contains("land");
     }
 
     private static bool EhCiclo(string nome)

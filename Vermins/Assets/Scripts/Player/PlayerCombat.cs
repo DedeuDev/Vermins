@@ -18,12 +18,27 @@ using UnityEngine.AI;
 public class PlayerCombat : MonoBehaviour
 {
     [Header("Ataque")]
-    [Tooltip("Distancia de centro a centro. Deixei maior que o raio de " +
-             "ataque do inimigo pra o jogador ter um pouco mais de " +
-             "alcance que os bichos.")]
-    [SerializeField] private float attackRange = 2f;
+    [Tooltip("Distancia de centro a centro. Era 2, de corpo a corpo, e " +
+             "subiu pra 9 porque o jogador lanca magia e nao bate de " +
+             "perto. O inimigo alcanca 1,5 m, entao o jogador tem uns " +
+             "tres golpes antes do bicho encostar - e isso que faz valer " +
+             "a pena recuar em vez de ficar parado trocando dano. " +
+             "Duas coisas que ainda nao existem e ficam mais visiveis " +
+             "com o alcance grande: nao tem projetil (o dano acontece na " +
+             "hora, a 9 m de distancia, sem nada sair da mao) e nao tem " +
+             "linha de visao (da pra atacar atraves de parede).")]
+    [SerializeField] private float attackRange = 9f;
 
-    [SerializeField] private float attackCooldown = 0.8f;
+    [Tooltip("Segundos entre um golpe e o proximo. Era 0,8 e subiu pra " +
+             "1,2 quando entrou a animacao de magia: o clipe leva 2,2 s e " +
+             "solta a magia perto do fim, entao com 0,8 o golpe seguinte " +
+             "reiniciava a animacao antes dela chegar a soltar - o " +
+             "personagem ficava carregando pra sempre. " +
+             "Quem mexer aqui nao precisa mexer na animacao: o menu " +
+             "Vermins/Player/Montar Animator le este numero e acerta a " +
+             "velocidade dos clipes de ataque pra caberem. So rode ele " +
+             "depois.")]
+    [SerializeField] private float attackCooldown = 1.2f;
 
     [Tooltip("Graus por segundo pra virar de frente pro alvo. O " +
              "NavMeshAgent so gira quem esta andando, entao parado " +
@@ -47,6 +62,12 @@ public class PlayerCombat : MonoBehaviour
 
     public Health Target => target;
     public bool HasTarget => target != null && !target.IsDead;
+
+    /// <summary>
+    /// Quanto tempo entre um golpe e o proximo. Quem le isto e o montador
+    /// do Animator, pra acertar a velocidade do clipe de ataque.
+    /// </summary>
+    public float AttackCooldown => attackCooldown;
 
     /// <summary>
     /// Disparado no golpe que acertou. Serve pra animacao, som e

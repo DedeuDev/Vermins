@@ -14,7 +14,7 @@ public class PlayerMotor : MonoBehaviour
     [Header("Movimento")]
     [Tooltip("Casado com a velocidade do clipe de SprintForward, que e o " +
              "ponto mais longe do blend tree 2D. Se alguem trocar o clipe " +
-             "de sprint, rode 'Vermins/Player/Montar Blend Tree 2D' e " +
+             "de sprint, rode 'Vermins/Player/Montar Animator' e " +
              "copie pra ca o numero que sair no log. " +
              "Aviso pra quem for mexer: nao adianta cacar o ponto em que o " +
              "pe para de deslizar, ele nao existe. Varri de 2,5 a 6,0 m/s " +

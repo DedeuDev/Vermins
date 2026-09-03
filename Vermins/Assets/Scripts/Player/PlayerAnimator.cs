@@ -47,9 +47,17 @@ public class PlayerAnimator : MonoBehaviour
     private static readonly int SpeedId = Animator.StringToHash("Speed");
     private static readonly int VelXId = Animator.StringToHash("VelX");
     private static readonly int VelZId = Animator.StringToHash("VelZ");
+    private static readonly int AtacarId = Animator.StringToHash("Atacar");
+    private static readonly int MortoId = Animator.StringToHash("Morto");
+    private static readonly int VariacaoId = Animator.StringToHash("Variacao");
 
     private NavMeshAgent agent;
     private Health health;
+    private PlayerCombat combate;
+
+    // Qual das duas magias vai sair no proximo golpe. Alterno porque
+    // repetir o mesmo gesto e o que mais faz parecer bonequinho.
+    private int variacao;
 
     // Amorteco o MODULO da velocidade, nunca a direcao.
     //
@@ -79,6 +87,7 @@ public class PlayerAnimator : MonoBehaviour
     {
         agent = GetComponent<NavMeshAgent>();
         health = GetComponent<Health>();
+        combate = GetComponent<PlayerCombat>();
 
         if (animator == null)
             animator = GetComponentInChildren<Animator>();
@@ -102,13 +111,53 @@ public class PlayerAnimator : MonoBehaviour
         {
             Debug.LogError($"[{name}] O Animator Controller nao tem o float " +
                            $"'{faltando}'. Rode o menu " +
-                           "'Vermins/Player/Montar Blend Tree 2D'.", this);
+                           "Vermins/Player/Montar Animator.", this);
             enabled = false;
         }
     }
 
+    private void OnEnable()
+    {
+        if (combate != null)
+            combate.OnAttack += Golpear;
+    }
+
+    private void OnDisable()
+    {
+        if (combate != null)
+            combate.OnAttack -= Golpear;
+    }
+
+    /// <summary>
+    /// O PlayerCombat avisa no golpe que acertou, e aqui vira animacao.
+    ///
+    /// Vale saber que o dano ja foi aplicado quando isto chega: o
+    /// PlayerCombat tira a vida e SO ENTAO dispara o evento. Entao a
+    /// magia acerta um pouco antes de a mao terminar de lancar. Cortei os
+    /// clipes pra encurtar essa distancia (o disparo cai a meio segundo
+    /// do inicio do golpe em vez de a um e meio), mas ela nao zera daqui.
+    /// Zerar exige o dano sair de um evento de animacao, e o dano hoje
+    /// mora no MeleeAttack, que o inimigo tambem usa - nao vou mexer nele
+    /// so por causa da animacao do player.
+    /// </summary>
+    private void Golpear(Health _)
+    {
+        if (health != null && health.IsDead)
+            return;
+
+        animator.SetFloat(VariacaoId, variacao);
+        animator.SetTrigger(AtacarId);
+
+        variacao = 1 - variacao;
+    }
+
     private void Update()
     {
+        // Bool e nao trigger de proposito: assim o Revive desliga isto
+        // sozinho e o corpo levanta, sem ninguem precisar lembrar de
+        // mandar um aviso separado no respawn.
+        animator.SetBool(MortoId, health != null && health.IsDead);
+
         Vector3 velocidade = VelocidadeNoChao();
 
         if (velocidade.sqrMagnitude > 0f)
@@ -153,9 +202,20 @@ public class PlayerAnimator : MonoBehaviour
     /// Devolve o nome do primeiro parametro que falta no controller, ou
     /// null se estiver tudo la.
     /// </summary>
+    private bool TemParametro(int id, AnimatorControllerParameterType tipo)
+    {
+        foreach (AnimatorControllerParameter p in animator.parameters)
+        {
+            if (p.nameHash == id && p.type == tipo)
+                return true;
+        }
+
+        return false;
+    }
+
     private string ParametroQueFalta()
     {
-        foreach (int id in new[] { SpeedId, VelXId, VelZId })
+        foreach (int id in new[] { SpeedId, VelXId, VelZId, VariacaoId })
         {
             bool achou = false;
 
@@ -169,8 +229,19 @@ public class PlayerAnimator : MonoBehaviour
             }
 
             if (!achou)
-                return id == SpeedId ? "Speed" : id == VelXId ? "VelX" : "VelZ";
+            {
+                return id == SpeedId ? "Speed"
+                     : id == VelXId ? "VelX"
+                     : id == VelZId ? "VelZ"
+                     : "Variacao";
+            }
         }
+
+        if (!TemParametro(AtacarId, AnimatorControllerParameterType.Trigger))
+            return "Atacar";
+
+        if (!TemParametro(MortoId, AnimatorControllerParameterType.Bool))
+            return "Morto";
 
         return null;
     }

@@ -135,6 +135,7 @@ GameObject:
   - component: {fileID: 104259275}
   - component: {fileID: 104259274}
   - component: {fileID: 104259273}
+  - component: {fileID: 104259281}
   m_Layer: 0
   m_Name: Inimigo Culto
   m_TagString: Untagged
@@ -306,6 +307,21 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &104259281
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 104259272}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: bac3ac55a5aea1f4d9ca9976e1fe2501, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::FlashDeDano
+  cor: {r: 1, g: 0, b: 0, a: 1}
+  duracao: 0.15
+  forca: 0.8
 --- !u!1001 &726793627
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -420,6 +436,7 @@ GameObject:
   - component: {fileID: 897700279}
   - component: {fileID: 897700278}
   - component: {fileID: 897700280}
+  - component: {fileID: 897700281}
   m_Layer: 0
   m_Name: Player
   m_TagString: Untagged
@@ -553,8 +570,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 04d734ae3786933459f784527e500964, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerCombat
-  attackRange: 2
-  attackCooldown: 0.8
+  attackRange: 9
+  attackCooldown: 1.2
   turnSpeed: 720
   repathThreshold: 0.25
 --- !u!114 &897700279
@@ -585,6 +602,21 @@ MonoBehaviour:
   animator: {fileID: 1699965555}
   suavizacao: 0.06
   velocidadeMinima: 0.1
+--- !u!114 &897700281
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 897700269}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: bac3ac55a5aea1f4d9ca9976e1fe2501, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::FlashDeDano
+  cor: {r: 1, g: 0, b: 0, a: 1}
+  duracao: 0.15
+  forca: 0.8
 --- !u!1 &1202721233
 GameObject:
   m_ObjectHideFlags: 0
@@ -953,6 +985,7 @@ GameObject:
   - component: {fileID: 1763480893}
   - component: {fileID: 1763480892}
   - component: {fileID: 1763480891}
+  - component: {fileID: 1763480899}
   m_Layer: 0
   m_Name: Inimigo Plataforma
   m_TagString: Untagged
@@ -1124,6 +1157,21 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1763480899
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1763480890}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: bac3ac55a5aea1f4d9ca9976e1fe2501, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::FlashDeDano
+  cor: {r: 1, g: 0, b: 0, a: 1}
+  duracao: 0.15
+  forca: 0.8
 --- !u!1 &1944098673
 GameObject:
   m_ObjectHideFlags: 0
@@ -1140,6 +1188,7 @@ GameObject:
   - component: {fileID: 1944098676}
   - component: {fileID: 1944098675}
   - component: {fileID: 1944098674}
+  - component: {fileID: 1944098682}
   m_Layer: 0
   m_Name: Inimigo Arena
   m_TagString: Untagged
@@ -1311,6 +1360,21 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1944098682
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1944098673}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: bac3ac55a5aea1f4d9ca9976e1fe2501, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::FlashDeDano
+  cor: {r: 1, g: 0, b: 0, a: 1}
+  duracao: 0.15
+  forca: 0.8
 --- !u!1 &1969745420
 GameObject:
   m_ObjectHideFlags: 0
