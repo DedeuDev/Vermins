@@ -198,6 +198,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 575408d2091566b49bf83125d32e03c9, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::DungeonModule
+  moduleType: 0
+  spawnWeight: 2
   placementBounds: {fileID: 4824027159475103149}
 --- !u!1 &3238787365674900162
 GameObject:

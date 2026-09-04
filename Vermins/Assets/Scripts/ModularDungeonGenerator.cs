@@ -34,8 +34,11 @@ public class ModularDungeonGenerator : MonoBehaviour
     [Header("Hierarchy")]
     [SerializeField] private Transform generatedRoot;
 
-    private readonly List<DungeonModule> generatedModules = new();
-    private readonly List<DungeonSocket> openSockets = new();
+    private readonly List<DungeonModule> generatedModules =
+        new List<DungeonModule>();
+
+    private readonly List<DungeonSocket> openSockets =
+        new List<DungeonSocket>();
 
     private void Start()
     {
@@ -50,29 +53,51 @@ public class ModularDungeonGenerator : MonoBehaviour
     {
         ClearDungeon();
 
+        // ========================================
+        // VALIDAÇÃO
+        // ========================================
+
         if (startRoomPrefab == null)
         {
-            Debug.LogError("Start Room Prefab não foi definido.");
+            Debug.LogError(
+                "Start Room Prefab não foi definido."
+            );
+
             return;
         }
 
-        if (roomPrefabs.Count == 0)
+        if (roomPrefabs == null || roomPrefabs.Count == 0)
         {
-            Debug.LogError("Nenhuma Room foi adicionada.");
+            Debug.LogError(
+                "Nenhuma Room foi adicionada."
+            );
+
             return;
         }
 
-        if (corridorPrefabs.Count == 0)
+        if (
+            corridorPrefabs == null ||
+            corridorPrefabs.Count == 0
+        )
         {
-            Debug.LogError("Nenhum Corridor foi adicionado.");
+            Debug.LogError(
+                "Nenhum Corridor foi adicionado."
+            );
+
             return;
         }
 
         CreateGeneratedRoot();
 
+        // ========================================
+        // SEED
+        // ========================================
+
         if (randomSeed)
         {
-            seed = unchecked((int)System.DateTime.Now.Ticks);
+            seed = unchecked(
+                (int)System.DateTime.Now.Ticks
+            );
         }
 
         Random.InitState(seed);
@@ -95,16 +120,31 @@ public class ModularDungeonGenerator : MonoBehaviour
 
         foreach (DungeonSocket socket in startRoom.Sockets)
         {
-            openSockets.Add(socket);
+            if (socket != null)
+            {
+                openSockets.Add(socket);
+            }
         }
 
-        /*
-         * Reservamos aproximadamente um módulo
-         * para a sala final.
-         */
-        int normalTarget = finalRoomPrefab != null
-            ? Mathf.Max(1, targetModuleCount - 1)
-            : targetModuleCount;
+        // ========================================
+        // RESERVA ESPAÇO PARA FINAL ROOM
+        // ========================================
+
+        int normalTarget;
+
+        if (finalRoomPrefab != null)
+        {
+            normalTarget =
+                Mathf.Max(
+                    1,
+                    targetModuleCount - 1
+                );
+        }
+        else
+        {
+            normalTarget =
+                targetModuleCount;
+        }
 
         // ========================================
         // GERAÇÃO NORMAL
@@ -121,32 +161,36 @@ public class ModularDungeonGenerator : MonoBehaviour
             safety--;
 
             int socketIndex =
-                Random.Range(0, openSockets.Count);
+                Random.Range(
+                    0,
+                    openSockets.Count
+                );
 
             DungeonSocket targetSocket =
                 openSockets[socketIndex];
 
             openSockets.RemoveAt(socketIndex);
 
-            if (
-                targetSocket == null ||
-                targetSocket.IsConnected
-            )
-            {
+            if (targetSocket == null)
                 continue;
-            }
+
+            if (targetSocket.IsConnected)
+                continue;
 
             DungeonModule newModule;
             DungeonSocket newSocket;
 
-            bool success = TryPlaceNormalModule(
-                targetSocket,
-                out newModule,
-                out newSocket
-            );
+            bool success =
+                TryPlaceNormalModule(
+                    targetSocket,
+                    out newModule,
+                    out newSocket
+                );
 
             if (!success)
+            {
                 continue;
+            }
 
             targetSocket.Connect(newSocket);
 
@@ -155,8 +199,14 @@ public class ModularDungeonGenerator : MonoBehaviour
 
             generatedModules.Add(newModule);
 
-            foreach (DungeonSocket socket in newModule.Sockets)
+            foreach (
+                DungeonSocket socket
+                in newModule.Sockets
+            )
             {
+                if (socket == null)
+                    continue;
+
                 if (socket == newSocket)
                     continue;
 
@@ -171,9 +221,13 @@ public class ModularDungeonGenerator : MonoBehaviour
         // SALA FINAL
         // ========================================
 
-        bool finalPlaced = PlaceFinalRoom();
+        bool finalPlaced =
+            PlaceFinalRoom();
 
-        if (!finalPlaced && finalRoomPrefab != null)
+        if (
+            !finalPlaced &&
+            finalRoomPrefab != null
+        )
         {
             Debug.LogWarning(
                 "Não foi possível posicionar a sala final."
@@ -181,19 +235,24 @@ public class ModularDungeonGenerator : MonoBehaviour
         }
 
         // ========================================
-        // FECHA TODAS AS PORTAS RESTANTES
+        // FECHA SOCKETS RESTANTES
         // ========================================
 
         SealUnusedSockets();
 
+        // ========================================
+        // LOG
+        // ========================================
+
         Debug.Log(
-            $"Dungeon gerada | Seed: {seed} | " +
+            $"Dungeon gerada | " +
+            $"Seed: {seed} | " +
             $"Módulos: {generatedModules.Count}"
         );
     }
 
     // ==================================================
-    // ESCOLHE ROOM OU CORRIDOR
+    // ESCOLHE ENTRE ROOM E CORRIDOR
     // ==================================================
 
     private bool TryPlaceNormalModule(
@@ -202,18 +261,27 @@ public class ModularDungeonGenerator : MonoBehaviour
         out DungeonSocket placedSocket
     )
     {
+        placedModule = null;
+        placedSocket = null;
+
+        if (
+            targetSocket == null ||
+            targetSocket.Owner == null
+        )
+        {
+            return false;
+        }
+
         /*
-         * Se o socket pertence a uma ROOM:
+         * ROOM -> CORRIDOR
          *
-         * Room -> Corridor
-         *
-         * Se pertence a um CORRIDOR:
-         *
-         * Corridor -> Room
+         * CORRIDOR -> ROOM
          */
 
-        if (targetSocket.Owner.ModuleType ==
-            DungeonModuleType.Room)
+        if (
+            targetSocket.Owner.ModuleType ==
+            DungeonModuleType.Room
+        )
         {
             return TryPlaceFromPool(
                 targetSocket,
@@ -232,7 +300,8 @@ public class ModularDungeonGenerator : MonoBehaviour
     }
 
     // ==================================================
-    // TENTA UM DOS PREFABS DE UMA LISTA
+    // TENTA COLOCAR UM PREFAB DA LISTA
+    // UTILIZANDO PESO DE SPAWN
     // ==================================================
 
     private bool TryPlaceFromPool(
@@ -245,8 +314,13 @@ public class ModularDungeonGenerator : MonoBehaviour
         placedModule = null;
         placedSocket = null;
 
-        if (pool == null || pool.Count == 0)
+        if (
+            pool == null ||
+            pool.Count == 0
+        )
+        {
             return false;
+        }
 
         for (
             int attempt = 0;
@@ -255,25 +329,110 @@ public class ModularDungeonGenerator : MonoBehaviour
         )
         {
             DungeonModule prefab =
-                pool[Random.Range(0, pool.Count)];
+                GetWeightedRandomPrefab(pool);
 
             if (prefab == null)
+            {
                 continue;
+            }
 
-            if (
+            bool success =
                 TryPlacePrefabOnce(
                     targetSocket,
                     prefab,
                     out placedModule,
                     out placedSocket
-                )
-            )
+                );
+
+            if (success)
             {
                 return true;
             }
         }
 
         return false;
+    }
+
+    // ==================================================
+    // ESCOLHA ALEATÓRIA POR PESO
+    // ==================================================
+
+    private DungeonModule GetWeightedRandomPrefab(
+        IReadOnlyList<DungeonModule> pool
+    )
+    {
+        if (
+            pool == null ||
+            pool.Count == 0
+        )
+        {
+            return null;
+        }
+
+        float totalWeight = 0f;
+
+        DungeonModule lastValidPrefab = null;
+
+        foreach (DungeonModule prefab in pool)
+        {
+            if (prefab == null)
+                continue;
+
+            float weight =
+                Mathf.Max(
+                    0f,
+                    prefab.SpawnWeight
+                );
+
+            if (weight <= 0f)
+                continue;
+
+            totalWeight += weight;
+
+            lastValidPrefab = prefab;
+        }
+
+        if (
+            totalWeight <= 0f ||
+            lastValidPrefab == null
+        )
+        {
+            return null;
+        }
+
+        float randomValue =
+            Random.Range(
+                0f,
+                totalWeight
+            );
+
+        float accumulatedWeight = 0f;
+
+        foreach (DungeonModule prefab in pool)
+        {
+            if (prefab == null)
+                continue;
+
+            float weight =
+                Mathf.Max(
+                    0f,
+                    prefab.SpawnWeight
+                );
+
+            if (weight <= 0f)
+                continue;
+
+            accumulatedWeight += weight;
+
+            if (
+                randomValue <= accumulatedWeight
+            )
+            {
+                return prefab;
+            }
+        }
+
+        return lastValidPrefab;
     }
 
     // ==================================================
@@ -299,14 +458,15 @@ public class ModularDungeonGenerator : MonoBehaviour
             attempt++
         )
         {
-            if (
+            bool success =
                 TryPlacePrefabOnce(
                     targetSocket,
                     prefab,
                     out placedModule,
                     out placedSocket
-                )
-            )
+                );
+
+            if (success)
             {
                 return true;
             }
@@ -316,7 +476,7 @@ public class ModularDungeonGenerator : MonoBehaviour
     }
 
     // ==================================================
-    // CRIA E TESTA UM CANDIDATO
+    // CRIA E TESTA UM MÓDULO
     // ==================================================
 
     private bool TryPlacePrefabOnce(
@@ -329,21 +489,40 @@ public class ModularDungeonGenerator : MonoBehaviour
         placedModule = null;
         placedSocket = null;
 
-        DungeonModule candidate = Instantiate(
-            prefab,
-            Vector3.zero,
-            Quaternion.identity,
-            generatedRoot
-        );
+        if (
+            targetSocket == null ||
+            prefab == null
+        )
+        {
+            return false;
+        }
+
+        DungeonModule candidate =
+            Instantiate(
+                prefab,
+                Vector3.zero,
+                Quaternion.identity,
+                generatedRoot
+            );
 
         candidate.Initialize();
 
         List<DungeonSocket> compatibleSockets =
             new List<DungeonSocket>();
 
-        foreach (DungeonSocket socket in candidate.Sockets)
+        foreach (
+            DungeonSocket socket
+            in candidate.Sockets
+        )
         {
-            if (socket.IsCompatibleWith(targetSocket))
+            if (socket == null)
+                continue;
+
+            if (
+                socket.IsCompatibleWith(
+                    targetSocket
+                )
+            )
             {
                 compatibleSockets.Add(socket);
             }
@@ -351,7 +530,10 @@ public class ModularDungeonGenerator : MonoBehaviour
 
         if (compatibleSockets.Count == 0)
         {
-            DestroyObject(candidate.gameObject);
+            DestroyObject(
+                candidate.gameObject
+            );
+
             return false;
         }
 
@@ -369,9 +551,14 @@ public class ModularDungeonGenerator : MonoBehaviour
             targetSocket
         );
 
+        Physics.SyncTransforms();
+
         if (!IsPlacementValid(candidate))
         {
-            DestroyObject(candidate.gameObject);
+            DestroyObject(
+                candidate.gameObject
+            );
+
             return false;
         }
 
@@ -388,11 +575,13 @@ public class ModularDungeonGenerator : MonoBehaviour
     private bool PlaceFinalRoom()
     {
         if (finalRoomPrefab == null)
+        {
             return true;
+        }
 
         /*
-         * Primeiro procuramos sockets livres
-         * pertencentes a corredores.
+         * Primeiro procuramos sockets de corredores.
+         * Assim mantemos:
          *
          * Corridor -> Final Room
          */
@@ -403,8 +592,7 @@ public class ModularDungeonGenerator : MonoBehaviour
             );
 
         /*
-         * Os módulos mais distantes da sala inicial
-         * vêm primeiro.
+         * Mais profundos primeiro.
          */
 
         candidates.Sort(
@@ -414,36 +602,39 @@ public class ModularDungeonGenerator : MonoBehaviour
                 )
         );
 
-        foreach (DungeonSocket socket in candidates)
+        foreach (
+            DungeonSocket socket
+            in candidates
+        )
         {
             DungeonModule finalRoom;
             DungeonSocket finalSocket;
 
-            if (
+            bool success =
                 TryPlaceSpecificPrefab(
                     socket,
                     finalRoomPrefab,
                     out finalRoom,
                     out finalSocket
-                )
-            )
-            {
-                socket.Connect(finalSocket);
+                );
 
-                finalRoom.GenerationDepth =
-                    socket.Owner.GenerationDepth + 1;
+            if (!success)
+                continue;
 
-                generatedModules.Add(finalRoom);
+            socket.Connect(finalSocket);
 
-                return true;
-            }
+            finalRoom.GenerationDepth =
+                socket.Owner.GenerationDepth + 1;
+
+            generatedModules.Add(finalRoom);
+
+            return true;
         }
 
         /*
          * FALLBACK:
          *
-         * Se só existem sockets livres em salas,
-         * tentamos criar:
+         * Caso só existam sockets em Rooms:
          *
          * Room -> Corridor -> Final Room
          */
@@ -460,19 +651,23 @@ public class ModularDungeonGenerator : MonoBehaviour
                 )
         );
 
-        foreach (DungeonSocket roomSocket in roomSockets)
+        foreach (
+            DungeonSocket roomSocket
+            in roomSockets
+        )
         {
             DungeonModule bridgeCorridor;
             DungeonSocket bridgeEntrance;
 
-            if (
-                !TryPlaceFromPool(
+            bool bridgePlaced =
+                TryPlaceFromPool(
                     roomSocket,
                     corridorPrefabs,
                     out bridgeCorridor,
                     out bridgeEntrance
-                )
-            )
+                );
+
+            if (!bridgePlaced)
             {
                 continue;
             }
@@ -481,20 +676,31 @@ public class ModularDungeonGenerator : MonoBehaviour
                 roomSocket.Owner.GenerationDepth + 1;
 
             /*
-             * Adicionamos temporariamente para que
-             * a checagem de colisão da sala final
-             * também considere este corredor.
+             * Adicionamos temporariamente para a
+             * Final Room testar colisão contra ele.
              */
 
-            generatedModules.Add(bridgeCorridor);
+            generatedModules.Add(
+                bridgeCorridor
+            );
+
+            bool finalPlaced = false;
 
             foreach (
                 DungeonSocket corridorSocket
                 in bridgeCorridor.Sockets
             )
             {
-                if (corridorSocket == bridgeEntrance)
+                if (corridorSocket == null)
                     continue;
+
+                if (
+                    corridorSocket ==
+                    bridgeEntrance
+                )
+                {
+                    continue;
+                }
 
                 DungeonModule finalRoom;
                 DungeonSocket finalSocket;
@@ -510,24 +716,35 @@ public class ModularDungeonGenerator : MonoBehaviour
                 if (!success)
                     continue;
 
-                roomSocket.Connect(bridgeEntrance);
+                roomSocket.Connect(
+                    bridgeEntrance
+                );
 
-                corridorSocket.Connect(finalSocket);
+                corridorSocket.Connect(
+                    finalSocket
+                );
 
                 finalRoom.GenerationDepth =
-                    bridgeCorridor.GenerationDepth + 1;
+                    bridgeCorridor.GenerationDepth
+                    + 1;
 
-                generatedModules.Add(finalRoom);
+                generatedModules.Add(
+                    finalRoom
+                );
 
+                finalPlaced = true;
+
+                break;
+            }
+
+            if (finalPlaced)
+            {
                 return true;
             }
 
-            /*
-             * Nenhuma saída desse corredor serviu.
-             * Então descartamos ele.
-             */
-
-            generatedModules.Remove(bridgeCorridor);
+            generatedModules.Remove(
+                bridgeCorridor
+            );
 
             DestroyObject(
                 bridgeCorridor.gameObject
@@ -537,6 +754,10 @@ public class ModularDungeonGenerator : MonoBehaviour
         return false;
     }
 
+    // ==================================================
+    // PROCURA SOCKETS LIVRES
+    // ==================================================
+
     private List<DungeonSocket> GetUnusedSockets(
         DungeonModuleType ownerType
     )
@@ -544,13 +765,30 @@ public class ModularDungeonGenerator : MonoBehaviour
         List<DungeonSocket> result =
             new List<DungeonSocket>();
 
-        foreach (DungeonModule module in generatedModules)
+        foreach (
+            DungeonModule module
+            in generatedModules
+        )
         {
-            if (module.ModuleType != ownerType)
+            if (module == null)
                 continue;
 
-            foreach (DungeonSocket socket in module.Sockets)
+            if (
+                module.ModuleType !=
+                ownerType
+            )
             {
+                continue;
+            }
+
+            foreach (
+                DungeonSocket socket
+                in module.Sockets
+            )
+            {
+                if (socket == null)
+                    continue;
+
                 if (!socket.IsConnected)
                 {
                     result.Add(socket);
@@ -562,7 +800,7 @@ public class ModularDungeonGenerator : MonoBehaviour
     }
 
     // ==================================================
-    // PAREDES DE FECHAMENTO
+    // FECHA SOCKETS NÃO UTILIZADOS
     // ==================================================
 
     private void SealUnusedSockets()
@@ -576,10 +814,22 @@ public class ModularDungeonGenerator : MonoBehaviour
             return;
         }
 
-        foreach (DungeonModule module in generatedModules)
+        foreach (
+            DungeonModule module
+            in generatedModules
+        )
         {
-            foreach (DungeonSocket socket in module.Sockets)
+            if (module == null)
+                continue;
+
+            foreach (
+                DungeonSocket socket
+                in module.Sockets
+            )
             {
+                if (socket == null)
+                    continue;
+
                 if (socket.IsConnected)
                     continue;
 
@@ -607,7 +857,11 @@ public class ModularDungeonGenerator : MonoBehaviour
     {
         Quaternion desiredSocketRotation =
             targetSocket.transform.rotation *
-            Quaternion.Euler(0f, 180f, 0f);
+            Quaternion.Euler(
+                0f,
+                180f,
+                0f
+            );
 
         Quaternion rotationDifference =
             desiredSocketRotation *
@@ -628,13 +882,16 @@ public class ModularDungeonGenerator : MonoBehaviour
     }
 
     // ==================================================
-    // COLISÃO
+    // VERIFICAÇÃO DE COLISÃO
     // ==================================================
 
     private bool IsPlacementValid(
         DungeonModule candidate
     )
     {
+        if (candidate == null)
+            return false;
+
         BoxCollider candidateBounds =
             candidate.PlacementBounds;
 
@@ -650,7 +907,10 @@ public class ModularDungeonGenerator : MonoBehaviour
 
         Physics.SyncTransforms();
 
-        foreach (DungeonModule existing in generatedModules)
+        foreach (
+            DungeonModule existing
+            in generatedModules
+        )
         {
             if (existing == null)
                 continue;
@@ -664,12 +924,16 @@ public class ModularDungeonGenerator : MonoBehaviour
             bool overlapping =
                 Physics.ComputePenetration(
                     candidateBounds,
-                    candidateBounds.transform.position,
-                    candidateBounds.transform.rotation,
+                    candidateBounds
+                        .transform.position,
+                    candidateBounds
+                        .transform.rotation,
 
                     existingBounds,
-                    existingBounds.transform.position,
-                    existingBounds.transform.rotation,
+                    existingBounds
+                        .transform.position,
+                    existingBounds
+                        .transform.rotation,
 
                     out Vector3 direction,
                     out float distance
@@ -688,7 +952,7 @@ public class ModularDungeonGenerator : MonoBehaviour
     }
 
     // ==================================================
-    // CLEANUP
+    // LIMPEZA
     // ==================================================
 
     [ContextMenu("Clear Dungeon")]
@@ -701,8 +965,11 @@ public class ModularDungeonGenerator : MonoBehaviour
             return;
 
         for (
-            int i = generatedRoot.childCount - 1;
+            int i =
+                generatedRoot.childCount - 1;
+
             i >= 0;
+
             i--
         )
         {
@@ -714,13 +981,19 @@ public class ModularDungeonGenerator : MonoBehaviour
         }
     }
 
+    // ==================================================
+    // ROOT DA DUNGEON
+    // ==================================================
+
     private void CreateGeneratedRoot()
     {
         if (generatedRoot != null)
             return;
 
         Transform existing =
-            transform.Find("Generated Dungeon");
+            transform.Find(
+                "Generated Dungeon"
+            );
 
         if (existing != null)
         {
@@ -733,16 +1006,26 @@ public class ModularDungeonGenerator : MonoBehaviour
                 "Generated Dungeon"
             );
 
-        generatedRoot = root.transform;
+        generatedRoot =
+            root.transform;
 
-        generatedRoot.SetParent(transform);
+        generatedRoot.SetParent(
+            transform
+        );
 
         generatedRoot.localPosition =
             Vector3.zero;
 
         generatedRoot.localRotation =
             Quaternion.identity;
+
+        generatedRoot.localScale =
+            Vector3.one;
     }
+
+    // ==================================================
+    // DESTROY
+    // ==================================================
 
     private void DestroyObject(
         GameObject obj

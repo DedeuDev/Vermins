@@ -12,12 +12,17 @@ public class DungeonModule : MonoBehaviour
     [Header("Module")]
     [SerializeField] private DungeonModuleType moduleType;
 
+    [Min(0f)]
+    [SerializeField] private float spawnWeight = 1f;
+
     [Header("Collision")]
     [SerializeField] private BoxCollider placementBounds;
 
     private DungeonSocket[] sockets;
 
     public DungeonModuleType ModuleType => moduleType;
+
+    public float SpawnWeight => spawnWeight;
 
     public IReadOnlyList<DungeonSocket> Sockets => sockets;
 

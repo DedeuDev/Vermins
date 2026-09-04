@@ -164,7 +164,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ModularDungeonGenerator
   startRoomPrefab: {fileID: 830059782633357233, guid: 04c199bc70aab4c4783cd543a7c541c4, type: 3}
-  finalRoomPrefab: {fileID: 830059782633357233, guid: 04c199bc70aab4c4783cd543a7c541c4, type: 3}
+  finalRoomPrefab: {fileID: 1217910219277348022, guid: 2cb9d19263abe0348bf9f2f97c33ee1a, type: 3}
   roomPrefabs:
   - {fileID: 3842591760852237224, guid: 7940ed590237ef14ba646dba6606d95b, type: 3}
   - {fileID: 525421151945673928, guid: 288bd3fbf3fff214aa95957f300ad78b, type: 3}
