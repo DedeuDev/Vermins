@@ -437,6 +437,7 @@ GameObject:
   - component: {fileID: 897700278}
   - component: {fileID: 897700280}
   - component: {fileID: 897700281}
+  - component: {fileID: 897700282}
   m_Layer: 0
   m_Name: Player
   m_TagString: Untagged
@@ -622,6 +623,20 @@ MonoBehaviour:
   cor: {r: 1, g: 0, b: 0, a: 1}
   duracao: 0.15
   forca: 0.8
+--- !u!114 &897700282
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 897700269}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 590e5ca4877c62d4b81ef5b17cd8d060, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::AtributosDoPersonagem
+  build: {fileID: 11400000, guid: 31f630484796c03449d43049151a8564, type: 2}
+  encherAVidaAoAplicar: 1
 --- !u!1 &1202721233
 GameObject:
   m_ObjectHideFlags: 0

@@ -50,6 +50,20 @@ public class PlayerAnimator : MonoBehaviour
     private static readonly int AtacarId = Animator.StringToHash("Atacar");
     private static readonly int MortoId = Animator.StringToHash("Morto");
     private static readonly int VariacaoId = Animator.StringToHash("Variacao");
+    private static readonly int VelAtaqueId = Animator.StringToHash("VelAtaque");
+
+    /// <summary>
+    /// Folga entre o fim da animacao e o golpe seguinte. Sem ela o clipe
+    /// fecharia exatamente em cima do proximo golpe, e num frame ruim os
+    /// dois se encavalam.
+    /// </summary>
+    private const float FolgaDoGolpe = 0.95f;
+
+    // Duracao do clipe de magia mais longo, lida do controller uma vez.
+    // Leio em vez de deixar campo serializado porque este numero muda
+    // sozinho quando alguem recorta o clipe, e um campo ficaria mentindo
+    // sem ninguem notar.
+    private float duracaoDoAtaque;
 
     private NavMeshAgent agent;
     private Health health;
@@ -113,7 +127,68 @@ public class PlayerAnimator : MonoBehaviour
                            $"'{faltando}'. Rode o menu " +
                            "Vermins/Player/Montar Animator.", this);
             enabled = false;
+            return;
         }
+
+        MedirOClipeDeAtaque();
+    }
+
+    /// <summary>
+    /// Acha a duracao do clipe de magia mais longo dentro do controller.
+    ///
+    /// Pego o mais longo e nao o primeiro porque a velocidade tem que
+    /// caber os DOIS ataques no cooldown; dimensionando pelo curto, o
+    /// longo estouraria.
+    ///
+    /// Se nao achar, aviso mas nao desligo o componente. Sem este numero
+    /// o ataque toca na velocidade natural - fica feio se o cooldown for
+    /// curto, mas locomocao, morte e o resto continuam funcionando, e
+    /// derrubar tudo por causa disso seria pior.
+    /// </summary>
+    private void MedirOClipeDeAtaque()
+    {
+        RuntimeAnimatorController rac = animator.runtimeAnimatorController;
+
+        if (rac != null)
+        {
+            foreach (AnimationClip c in rac.animationClips)
+            {
+                if (c != null && c.name.Contains("MagicAttack") && c.length > duracaoDoAtaque)
+                    duracaoDoAtaque = c.length;
+            }
+        }
+
+        if (duracaoDoAtaque <= 0f)
+        {
+            Debug.LogWarning($"[{name}] Nao achei clipe de magia no controller, " +
+                             "entao nao sei encurtar o golpe pra caber no cooldown. " +
+                             "Rode Vermins/Player/Montar Animator.", this);
+        }
+    }
+
+    /// <summary>
+    /// Quantas vezes mais rapido o estado de ataque tem que tocar pra
+    /// caber entre um golpe e o proximo.
+    ///
+    /// Os clipes de magia tem 2,2 s e soltam perto do fim. Com cooldown
+    /// menor que isso, o golpe seguinte reiniciaria a animacao antes dela
+    /// chegar a lancar e o personagem ficaria carregando pra sempre.
+    ///
+    /// Nunca devolvo menos que 1: se um dia o cooldown ficar mais longo
+    /// que o clipe, o certo e o personagem esperar parado, nao se mexer
+    /// em camera lenta como se estivesse na agua.
+    /// </summary>
+    private float VelocidadeDoGolpe()
+    {
+        if (duracaoDoAtaque <= 0f || combate == null)
+            return 1f;
+
+        float cooldown = combate.AttackCooldown;
+
+        if (cooldown <= 0f)
+            return 1f;
+
+        return Mathf.Max(1f, duracaoDoAtaque / (cooldown * FolgaDoGolpe));
     }
 
     private void OnEnable()
@@ -144,6 +219,11 @@ public class PlayerAnimator : MonoBehaviour
     {
         if (health != null && health.IsDead)
             return;
+
+        // Recalculo a cada golpe em vez de uma vez no Awake porque a
+        // Celeridade da build mexe no cooldown, e um dia um buff vai
+        // mexer no meio da luta. Uma divisao por golpe nao custa nada.
+        animator.SetFloat(VelAtaqueId, VelocidadeDoGolpe());
 
         animator.SetFloat(VariacaoId, variacao);
         animator.SetTrigger(AtacarId);

@@ -8,9 +8,12 @@ using UnityEngine;
 ///
 /// Fiz como menu em vez de arrastar na janela do Animator porque quase
 /// nada aqui e numero inventado - as posicoes dos clipes na roseta saem
-/// da velocidade medida em cada um, e os tempos de transicao saem do
-/// cooldown do PlayerCombat. Se alguem trocar um clipe ou mexer no
-/// cooldown, e so rodar de novo. Rodar duas vezes da o mesmo resultado.
+/// da velocidade medida em cada um. Se alguem trocar um clipe, e so
+/// rodar de novo. Rodar duas vezes da o mesmo resultado.
+///
+/// O que este menu NAO decide mais e a velocidade do golpe. Ela dependia
+/// do cooldown, e o cooldown virou atributo que muda em runtime - entao
+/// agora sai por parametro e quem calcula e o PlayerAnimator.
 ///
 /// Menu: Vermins > Player > Montar Animator
 /// </summary>
@@ -27,6 +30,21 @@ public static class PlayerAnimatorSetup
     public const string ParamAtacar = "Atacar";
     public const string ParamMorto = "Morto";
     public const string ParamVariacao = "Variacao";
+
+    /// <summary>
+    /// Multiplicador de velocidade do estado de ataque.
+    ///
+    /// Antes esta conta era feita aqui e GRAVADA no clipe: eu lia o
+    /// cooldown do PlayerCombat na hora de montar e escrevia o timeScale
+    /// fixo. Funcionava enquanto o cooldown so mudava no Inspector.
+    ///
+    /// Com o atributo Celeridade o cooldown passou a mudar em runtime, e
+    /// um numero gravado nao acompanha - o golpe seguinte reiniciaria a
+    /// animacao antes dela soltar a magia e o personagem ficaria
+    /// carregando pra sempre. Entao a velocidade virou parametro e quem
+    /// calcula agora e o PlayerAnimator, a cada golpe.
+    /// </summary>
+    public const string ParamVelAtaque = "VelAtaque";
 
     private const string EstadoLocomocao = "Locomocao";
     private const string EstadoAtaque = "Ataque";
@@ -64,9 +82,11 @@ public static class PlayerAnimatorSetup
 
     /// <summary>
     /// Em que ponto do clipe de ataque ele ja pode comecar a voltar pra
-    /// locomocao. E fracao e nao segundo de proposito: como a velocidade
-    /// do golpe ja sai do cooldown (ver VelocidadeDoGolpe), esta fracao
-    /// vale pra qualquer cooldown sem ninguem precisar mexer.
+    /// locomocao. E fracao e nao segundo de proposito: o estado inteiro
+    /// e esticado ou encurtado pelo ParamVelAtaque conforme o cooldown,
+    /// entao 80% continua sendo 80% pra qualquer build. Em segundo, este
+    /// numero teria que ser recalculado toda vez que a Celeridade
+    /// mudasse.
     /// </summary>
     private const float SaidaDoAtaque = 0.80f;
 
@@ -86,6 +106,13 @@ public static class PlayerAnimatorSetup
 
         GarantirParametro(controller, ParamAtacar, AnimatorControllerParameterType.Trigger);
         GarantirParametro(controller, ParamMorto, AnimatorControllerParameterType.Bool);
+
+        // Este comeca em 1 e nao em 0 de proposito. Parametro de
+        // velocidade em zero congela o estado: se alguem abrir a cena
+        // sem o PlayerAnimator, o personagem faria o gesto de ataque
+        // parado no primeiro frame, pra sempre.
+        GarantirParametro(controller, ParamVelAtaque, AnimatorControllerParameterType.Float);
+        DefinirPadraoFloat(controller, ParamVelAtaque, 1f);
 
         Dictionary<string, AnimationClip> porNome = IndexarClipes();
         AnimatorStateMachine maquina = controller.layers[0].stateMachine;
@@ -196,7 +223,6 @@ public static class PlayerAnimatorSetup
             estado = controller.CreateBlendTreeInController(EstadoAtaque, out arvore, 0);
         }
 
-        float cooldown = CooldownDoCombate();
         var filhos = new List<ChildMotion>();
 
         for (int i = 0; i < Ataques.Length; i++)
@@ -211,7 +237,12 @@ public static class PlayerAnimatorSetup
             {
                 motion = clipe,
                 threshold = i,
-                timeScale = VelocidadeDoGolpe(clipe, cooldown),
+
+                // Cada clipe toca na velocidade natural dele. Quem
+                // encurta o golpe pra caber no cooldown e a velocidade
+                // do ESTADO, que vem por parametro - ver ParamVelAtaque.
+                timeScale = 1f,
+
                 directBlendParameter = ParamVariacao,
             });
         }
@@ -224,59 +255,20 @@ public static class PlayerAnimatorSetup
         arvore.useAutomaticThresholds = false;
         arvore.children = filhos.ToArray();
 
+        // A velocidade do golpe sai daqui e nao do clipe. O speed fica em
+        // 1 porque ele MULTIPLICA o parametro - deixar os dois mexendo
+        // daria pra esquecer um e passar meia hora procurando por que o
+        // ataque esta com o dobro da velocidade pedida.
+        estado.speed = 1f;
+        estado.speedParameterActive = true;
+        estado.speedParameter = ParamVelAtaque;
+
         estado.writeDefaultValues = true;
         estado.transitions = new AnimatorStateTransition[0];
 
         EditorUtility.SetDirty(arvore);
 
         return estado;
-    }
-
-    /// <summary>
-    /// Quantas vezes mais rapido o clipe tem que tocar pra caber entre um
-    /// golpe e o proximo.
-    ///
-    /// Nao e capricho: os clipes de magia do Mixamo tem 2,2 s e soltam a
-    /// magia perto do fim - o 01 em 1,50 s e o 02 em 0,99. Com o cooldown
-    /// em 0,8 s o golpe seguinte reiniciava a animacao antes dela chegar
-    /// la, e o personagem ficava carregando pra sempre sem nunca lancar
-    /// nada.
-    ///
-    /// Deixo isto sair de conta em vez de numero fixo pra quem mexer no
-    /// attackCooldown so precisar rodar o menu de novo. E por clipe e nao
-    /// pelo estado porque os dois ataques nao tem a mesma duracao.
-    ///
-    /// Os 5% de folga sao pro clipe fechar um pouco antes do proximo
-    /// golpe em vez de bater exatamente nele.
-    /// </summary>
-    private static float VelocidadeDoGolpe(AnimationClip clipe, float cooldown)
-    {
-        if (cooldown <= 0f || clipe.length <= 0f)
-            return 1f;
-
-        // Nunca deixo em camera lenta. Se um dia entrar clipe curto com
-        // cooldown longo, o certo e o personagem esperar parado, nao se
-        // mexer devagar como se estivesse na agua.
-        return Mathf.Max(1f, clipe.length / (cooldown * 0.95f));
-    }
-
-    /// <summary>
-    /// O cooldown vem do PlayerCombat da cena aberta, pra o numero morar
-    /// num lugar so. Sem a cena do player aberta eu nao invento um: aviso
-    /// e deixo os clipes na velocidade normal.
-    /// </summary>
-    private static float CooldownDoCombate()
-    {
-        var combate = Object.FindFirstObjectByType<PlayerCombat>(FindObjectsInactive.Include);
-
-        if (combate != null)
-            return combate.AttackCooldown;
-
-        Debug.LogWarning("[Animator] Nao achei um PlayerCombat na cena aberta, " +
-                         "entao nao sei o cooldown e deixei os ataques na " +
-                         "velocidade normal. Abra a cena do player e rode de novo.");
-
-        return 0f;
     }
 
     private static AnimatorState MontarMorte(
@@ -418,6 +410,27 @@ public static class PlayerAnimatorSetup
         controller.AddParameter(nome, tipo);
     }
 
+    /// <summary>
+    /// O AddParameter nasce com o valor padrao zerado e nao da pra
+    /// escolher na chamada. Tenho que reescrever o array inteiro de
+    /// parametros porque o que o controller devolve e uma copia.
+    /// </summary>
+    private static void DefinirPadraoFloat(
+        AnimatorController controller,
+        string nome,
+        float valor)
+    {
+        AnimatorControllerParameter[] todos = controller.parameters;
+
+        for (int i = 0; i < todos.Length; i++)
+        {
+            if (todos[i].name == nome)
+                todos[i].defaultFloat = valor;
+        }
+
+        controller.parameters = todos;
+    }
+
     private static Dictionary<string, AnimationClip> IndexarClipes()
     {
         var mapa = new Dictionary<string, AnimationClip>();
@@ -459,9 +472,11 @@ public static class PlayerAnimatorSetup
             {
                 var clipe = (AnimationClip)c.motion;
 
+                // Nao dou o tempo na tela porque daqui eu nao sei: ele
+                // depende do VelAtaque, que so existe rodando.
                 sb.AppendLine(string.Format(ci,
-                    "  ataque: {0}  {1:F2} s x{2:F2} = {3:F2} s na tela",
-                    clipe.name, clipe.length, c.timeScale, clipe.length / c.timeScale));
+                    "  ataque: {0}  {1:F2} s no clipe (na tela depende do VelAtaque)",
+                    clipe.name, clipe.length));
             }
         }
 

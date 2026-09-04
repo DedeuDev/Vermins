@@ -109,10 +109,29 @@ public class PlayerCombat : MonoBehaviour
     public bool HasTarget => target != null && !target.IsDead;
 
     /// <summary>
-    /// Quanto tempo entre um golpe e o proximo. Quem le isto e o montador
-    /// do Animator, pra acertar a velocidade do clipe de ataque.
+    /// Quanto tempo entre um golpe e o proximo.
+    ///
+    /// Tem setter porque a Celeridade da build mexe nisto. Quem escreve
+    /// aqui nao precisa mexer na animacao: o PlayerAnimator recalcula a
+    /// velocidade do clipe de magia a cada golpe a partir deste numero.
+    /// O piso de 0,1 s existe pra nenhuma build conseguir pedir um
+    /// cooldown zero e disparar infinitos golpes por frame.
     /// </summary>
-    public float AttackCooldown => attackCooldown;
+    public float AttackCooldown
+    {
+        get => attackCooldown;
+        set => attackCooldown = Mathf.Max(0.1f, value);
+    }
+
+    /// <summary>
+    /// De quao longe o golpe sai. Tem setter pelo mesmo motivo: e o que
+    /// o atributo Alcance mexe.
+    /// </summary>
+    public float AttackRange
+    {
+        get => attackRange;
+        set => attackRange = Mathf.Max(0.5f, value);
+    }
 
     /// <summary>
     /// Disparado quando o golpe COMECA, e nao quando acerta.

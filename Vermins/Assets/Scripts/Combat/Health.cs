@@ -81,6 +81,27 @@ public class Health : MonoBehaviour
     }
 
     /// <summary>
+    /// Troca a vida maxima. Quem chama hoje e o sistema de atributos,
+    /// no comeco da partida.
+    ///
+    /// O encherAVida existe porque mexer no teto tem duas respostas
+    /// certas, dependendo de quando. Ligando a build, o personagem tem
+    /// que nascer com a barra cheia. Ganhando +20 de vida maxima de um
+    /// item no meio da dungeon, o teto sobe mas a barra nao deveria
+    /// encher de graca - senao equipar e desequipar vira cura infinita.
+    /// </summary>
+    public void DefinirVidaMaxima(float nova, bool encherAVida)
+    {
+        // Teto zero deixaria o personagem morto no instante em que
+        // nasce, e sem jeito de reviver.
+        maxHealth = Mathf.Max(1f, nova);
+
+        Current = encherAVida ? maxHealth : Mathf.Min(Current, maxHealth);
+
+        OnChanged?.Invoke(Current, maxHealth);
+    }
+
+    /// <summary>
     /// Volta a viver. Sem argumento volta com a vida cheia.
     /// Vai servir pro respawn e pro load do save.
     /// </summary>
