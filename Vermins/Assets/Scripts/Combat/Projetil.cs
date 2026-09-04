@@ -66,7 +66,17 @@ public class Projetil : MonoBehaviour
     /// </summary>
     public void Lancar(Vector3 direcao, float dano, GameObject dono)
     {
-        direcao.y = 0f;
+        // Aqui eu achatava o Y, e isso so nao doia porque o blockout era
+        // plano. Com o alvo em cima de uma plataforma de 2,5 m a bola
+        // saia da mao reta e passava por baixo do bicho: o jogador subia
+        // a rampa, entrava em alcance, fazia o gesto e nao acertava
+        // nada. Medi 14 s de ataque contra o inimigo da plataforma e deu
+        // zero de dano.
+        //
+        // Agora ela sobe e desce. Quem mira e o PlayerCombat, que aponta
+        // pro transform do alvo - e esse fica na altura do peito, nao no
+        // pe, entao no chao plano o tiro sai praticamente reto do mesmo
+        // jeito que saia antes.
 
         // Direcao zerada acontece quando o alvo esta exatamente em cima
         // de quem lancou. Sem esta linha o normalized devolve zero e a

@@ -68,8 +68,16 @@ public class PlayerMotor : MonoBehaviour
     [SerializeField] private float baseOffset = 0.9167f;
 
     [Tooltip("Distancia maxima entre o ponto pedido e o NavMesh pra " +
-             "ele ainda valer como destino.")]
+             "ele ainda valer como destino. Vale pro clique: e ela que " +
+             "faz clique no vazio nao virar movimento.")]
     [SerializeField] private float sampleDistance = 1f;
+
+    [Tooltip("Raio de busca de NavMesh em volta do ALVO da perseguicao. " +
+             "Pode ser folgado sem risco, porque eu procuro em cima do " +
+             "proprio personagem: ele ja esta pisando em NavMesh, entao o " +
+             "ponto mais perto e o chao dele mesmo. Nao confundir com o " +
+             "sampleDistance ai de cima, que procura embaixo do mouse.")]
+    [SerializeField] private float raioDeBuscaDoAlvo = 2f;
 
     private NavMeshAgent agent;
 
@@ -169,6 +177,45 @@ public class PlayerMotor : MonoBehaviour
             return false;
         }
 
+        // Clique vai ate o fim. Quem perseguiu antes deixou uma
+        // distancia de parada guardada no agente, e sem zerar aqui o
+        // jogador pararia metros antes de onde a pessoa clicou.
+        agent.stoppingDistance = 0f;
+        agent.isStopped = false;
+        agent.SetDestination(hit.position);
+
+        return true;
+    }
+
+    /// <summary>
+    /// Anda ate um personagem e para a uma distancia dele.
+    ///
+    /// Existe separado do MoveTo por causa de um defeito que so aparece
+    /// quando o cenario tem andar. Antes quem perseguia calculava na mao
+    /// um ponto no ar a X metros do alvo e mandava pro MoveTo. Esse ponto
+    /// nasce na altura do ALVO: com o jogador em cima de uma plataforma e
+    /// o bicho la embaixo, ele caia no meio do vao, o SamplePosition nao
+    /// achava NavMesh dentro de 1 m, o MoveTo devolvia false e o jogador
+    /// ficava parado sem log nenhum. No blockout plano nunca deu as caras.
+    ///
+    /// Aqui eu peco o caminho ate o alvo de verdade, que esta pisando em
+    /// NavMesh por definicao, e deixo o proprio agente parar antes. A
+    /// stoppingDistance conta quanto FALTA andar pelo caminho, entao ela
+    /// funciona em rampa, escada e volta de quina - coisa que recuar um
+    /// vetor em linha reta nunca fez.
+    /// </summary>
+    public bool Perseguir(Vector3 pontoDoAlvo, float distanciaDeParada)
+    {
+        if (!NavMesh.SamplePosition(
+                pontoDoAlvo,
+                out NavMeshHit hit,
+                raioDeBuscaDoAlvo,
+                NavMesh.AllAreas))
+        {
+            return false;
+        }
+
+        agent.stoppingDistance = distanciaDeParada;
         agent.isStopped = false;
         agent.SetDestination(hit.position);
 

@@ -89,6 +89,7 @@ public class PlayerCombat : MonoBehaviour
     private Health target;
     private NavMeshAgent targetAgent;
     private Vector3 lastChasePoint;
+    private float ultimaDistanciaDeParada = -1f;
     private float nextAttackTime;
 
     // O alvo travado no comeco do golpe. A bola so nasce meio segundo
@@ -176,6 +177,7 @@ public class PlayerCombat : MonoBehaviour
         // Forca o primeiro calculo de rota, senao o repathThreshold
         // podia engolir ele.
         lastChasePoint = Vector3.positiveInfinity;
+        ultimaDistanciaDeParada = -1f;
     }
 
     /// <summary>Desiste do alvo. E isso que o clique de andar chama.</summary>
@@ -364,46 +366,52 @@ public class PlayerCombat : MonoBehaviour
 
     private void Chase(Vector3 alvo, float distanciaDeParada)
     {
-        Vector3 ponto = ChasePoint(alvo, distanciaDeParada);
+        Vector3 ponto = ChasePoint(alvo);
 
-        if ((ponto - lastChasePoint).sqrMagnitude <= repathThreshold * repathThreshold)
+        bool mesmoPonto =
+            (ponto - lastChasePoint).sqrMagnitude <= repathThreshold * repathThreshold;
+
+        // A distancia de parada entra na comparacao porque ela muda SEM
+        // o ponto mudar: e o caso do bicho parado atras de uma parede,
+        // que troca 0,8 por 0,3 do alcance. Sem isto o pedido novo seria
+        // descartado como repetido e o jogador nunca chegaria perto o
+        // bastante pra dobrar a quina.
+        if (mesmoPonto &&
+            Mathf.Approximately(distanciaDeParada, ultimaDistanciaDeParada))
+        {
             return;
+        }
 
         // So marco como pedido se o pedido deu certo. Se eu marcasse
         // antes, uma falha do NavMesh travava a perseguicao pra sempre,
         // porque o proximo frame acharia que ja tinha pedido esse ponto.
-        if (motor.MoveTo(ponto))
+        if (motor.Perseguir(ponto, distanciaDeParada))
+        {
             lastChasePoint = ponto;
+            ultimaDistanciaDeParada = distanciaDeParada;
+        }
     }
 
     /// <summary>
-    /// Pra onde andar pra encostar no alvo.
+    /// Onde o alvo esta pisando.
     ///
-    /// Duas correcoes moram aqui. A primeira: o transform de um
-    /// personagem fica na altura do corpo e o NavMesh fica no chao,
-    /// entao desconto a altura do agente do alvo - sem isso o
-    /// SamplePosition nao acha nada e o jogador nao sai do lugar.
+    /// O transform de um personagem fica na altura do corpo e o NavMesh
+    /// fica no chao, entao desconto a altura do agente do alvo. Sem isso
+    /// o SamplePosition procura no ar e pode nao achar nada.
     ///
-    /// A segunda: paro antes de andar pra dentro do inimigo. Fica melhor
-    /// de ver e evita os dois agentes ficarem se empurrando.
-    ///
-    /// A distancia de parada e argumento e nao constante porque os dois
-    /// motivos de perseguir querem numeros diferentes: quando e so falta
-    /// de alcance, paro na beirada; quando e parede na frente, preciso
-    /// chegar bem mais perto pra dobrar a quina e enxergar o bicho.
+    /// Este metodo ja fez mais: ele tambem recuava o ponto em linha reta
+    /// pra o jogador parar antes de entrar dentro do inimigo. Tirei.
+    /// Recuar em linha reta so funciona em chao plano e sem parede - em
+    /// desnivel o ponto caia fora do NavMesh e a perseguicao morria
+    /// calada. Quem para antes agora e o agente, pela stoppingDistance;
+    /// ver PlayerMotor.Perseguir.
     /// </summary>
-    private Vector3 ChasePoint(Vector3 alvo, float distanciaDeParada)
+    private Vector3 ChasePoint(Vector3 alvo)
     {
         if (targetAgent != null)
             alvo.y -= targetAgent.baseOffset;
 
-        Vector3 direcao = alvo - transform.position;
-        direcao.y = 0f;
-
-        if (direcao.sqrMagnitude < 0.0001f)
-            return alvo;
-
-        return alvo - direcao.normalized * distanciaDeParada;
+        return alvo;
     }
 
     private void StopChasing()
