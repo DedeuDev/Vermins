@@ -173,6 +173,7 @@ MonoBehaviour:
   - {fileID: 9106026606270926762, guid: 602830586278d5847b75e874eb608598, type: 3}
   - {fileID: 5108991184130643275, guid: b317e4ef502d90f46ad1d3e656066eb6, type: 3}
   - {fileID: 2468310055477016165, guid: bfb24d46c293cbf47b45947de297d1cc, type: 3}
+  - {fileID: 2782494041361718734, guid: 9753b866b1da5d34387acd97773e71d9, type: 3}
   corridorPrefabs:
   - {fileID: 1622441819026266171, guid: b9fe2bc4e7cc3f547bc0ab7801fc8155, type: 3}
   - {fileID: 4089367115916095043, guid: 3060d56d058e150449e89c014e7be937, type: 3}
@@ -183,8 +184,9 @@ MonoBehaviour:
   - {fileID: 8547013069835180014, guid: b4f9dbcc06a33924cbd50feaa8f1228b, type: 3}
   - {fileID: 9202728413640393550, guid: 92b5476f2472ac14a839d16c106c164b, type: 3}
   socketBlockerPrefab: {fileID: 1535053994835432617, guid: c15d27500cec6af45847e373ec0cb455, type: 3}
-  targetRoomCount: 10
+  targetRoomCount: 15
   attemptsPerSocket: 30
+  mainPathRoomCount: 5
   maxActiveBranches: 3
   minFinalRoomDepth: 8
   generateOnStart: 1
