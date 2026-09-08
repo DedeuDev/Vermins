@@ -15,6 +15,10 @@ public class DungeonModule : MonoBehaviour
     [Min(0f)]
     [SerializeField] private float spawnWeight = 1f;
 
+    [Tooltip("0 = sem limite.")]
+    [Min(0)]
+    [SerializeField] private int maxInstancesPerDungeon = 0;
+
     [Header("Collision")]
     [SerializeField] private BoxCollider placementBounds;
 
@@ -24,12 +28,22 @@ public class DungeonModule : MonoBehaviour
 
     public float SpawnWeight => spawnWeight;
 
+    public int MaxInstancesPerDungeon => maxInstancesPerDungeon;
+
     public IReadOnlyList<DungeonSocket> Sockets => sockets;
 
     public BoxCollider PlacementBounds => placementBounds;
 
     // Distância em conexões a partir da sala inicial.
     public int GenerationDepth { get; set; }
+
+    /*
+     * Referência ao prefab que originou esta instância.
+     *
+     * É usada pelo gerador para controlar
+     * quantas vezes cada prefab apareceu.
+     */
+    public DungeonModule SourcePrefab { get; set; }
 
     public void Initialize()
     {

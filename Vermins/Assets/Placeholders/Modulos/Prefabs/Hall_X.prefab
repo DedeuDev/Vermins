@@ -297,6 +297,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::DungeonModule
   moduleType: 1
+  spawnWeight: 1
+  maxInstancesPerDungeon: 1
   placementBounds: {fileID: 4989111271423983736}
 --- !u!1 &8820840613293042506
 GameObject:

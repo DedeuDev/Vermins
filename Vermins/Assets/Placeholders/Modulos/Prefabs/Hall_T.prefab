@@ -297,4 +297,5 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::DungeonModule
   moduleType: 1
   spawnWeight: 2
+  maxInstancesPerDungeon: 3
   placementBounds: {fileID: 766048416814387069}
