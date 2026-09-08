@@ -7,6 +7,15 @@ public enum DungeonModuleType
     Corridor
 }
 
+public enum DungeonRoomCategory
+{
+    Normal,
+    Treasure,
+    Elite,
+    Shop,
+    Event
+}
+
 public class DungeonModule : MonoBehaviour
 {
     [Header("Module")]
@@ -19,6 +28,17 @@ public class DungeonModule : MonoBehaviour
     [Min(0)]
     [SerializeField] private int maxInstancesPerDungeon = 0;
 
+    [Header("Room Rules")]
+    [Tooltip("Usado apenas quando Module Type = Room.")]
+    [SerializeField] private DungeonRoomCategory roomCategory =
+        DungeonRoomCategory.Normal;
+
+    [Tooltip("Usado apenas quando Module Type = Room.")]
+    [SerializeField] private bool allowedOnMainPath = true;
+
+    [Tooltip("Usado apenas quando Module Type = Room.")]
+    [SerializeField] private bool allowedOnSideBranch = true;
+
     [Header("Collision")]
     [SerializeField] private BoxCollider placementBounds;
 
@@ -28,26 +48,41 @@ public class DungeonModule : MonoBehaviour
 
     public float SpawnWeight => spawnWeight;
 
-    public int MaxInstancesPerDungeon => maxInstancesPerDungeon;
+    public int MaxInstancesPerDungeon =>
+        maxInstancesPerDungeon;
 
-    public IReadOnlyList<DungeonSocket> Sockets => sockets;
+    public DungeonRoomCategory RoomCategory =>
+        roomCategory;
 
-    public BoxCollider PlacementBounds => placementBounds;
+    public bool AllowedOnMainPath =>
+        allowedOnMainPath;
 
-    // Distância em conexões a partir da sala inicial.
+    public bool AllowedOnSideBranch =>
+        allowedOnSideBranch;
+
+    public IReadOnlyList<DungeonSocket> Sockets =>
+        sockets;
+
+    public BoxCollider PlacementBounds =>
+        placementBounds;
+
+    // Distância em conexões a partir da Start Room.
     public int GenerationDepth { get; set; }
 
     /*
-     * Referência ao prefab que originou esta instância.
+     * Prefab que originou esta instância.
      *
-     * É usada pelo gerador para controlar
-     * quantas vezes cada prefab apareceu.
+     * O gerador usa isso para controlar
+     * Max Instances Per Dungeon.
      */
     public DungeonModule SourcePrefab { get; set; }
 
     public void Initialize()
     {
-        sockets = GetComponentsInChildren<DungeonSocket>(true);
+        sockets =
+            GetComponentsInChildren<DungeonSocket>(
+                true
+            );
 
         foreach (DungeonSocket socket in sockets)
         {

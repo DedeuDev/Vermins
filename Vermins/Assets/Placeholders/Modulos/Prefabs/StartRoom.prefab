@@ -96,8 +96,8 @@ BoxCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 3
-  m_Size: {x: 11.7, y: 3, z: 11.7}
-  m_Center: {x: 0, y: 1.5, z: 0}
+  m_Size: {x: 11.776203, y: 3, z: 12}
+  m_Center: {x: 0.038101673, y: 1.5, z: 0}
 --- !u!1 &8325082829124603909
 GameObject:
   m_ObjectHideFlags: 0
@@ -203,4 +203,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 575408d2091566b49bf83125d32e03c9, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::DungeonModule
+  moduleType: 0
+  spawnWeight: 1
+  maxInstancesPerDungeon: 0
   placementBounds: {fileID: 6767159441042986546}

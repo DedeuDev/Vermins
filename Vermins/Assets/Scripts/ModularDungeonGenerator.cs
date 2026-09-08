@@ -3,6 +3,12 @@ using UnityEngine;
 
 public class ModularDungeonGenerator : MonoBehaviour
 {
+    private enum GenerationContext
+    {
+        MainPath,
+        SideBranch
+    }
+
     [Header("Important Rooms")]
     [SerializeField] private DungeonModule startRoomPrefab;
     [SerializeField] private DungeonModule finalRoomPrefab;
@@ -58,22 +64,21 @@ public class ModularDungeonGenerator : MonoBehaviour
         new List<DungeonModule>();
 
     /*
-     * Sockets que estão sendo processados
-     * atualmente como Side Branches.
+     * Side Branches atualmente ativas.
      */
     private readonly List<DungeonSocket> openSockets =
         new List<DungeonSocket>();
 
     /*
-     * Sockets disponíveis para futuras ramificações,
-     * mas que ainda não estão ativos.
+     * Possíveis Side Branches que ainda estão
+     * esperando para serem ativadas.
      */
     private readonly List<DungeonSocket> pendingBranchSockets =
         new List<DungeonSocket>();
 
     /*
      * Quantas vezes cada prefab normal
-     * já foi utilizado.
+     * foi utilizado nesta dungeon.
      */
     private readonly Dictionary<DungeonModule, int> prefabUsageCounts =
         new Dictionary<DungeonModule, int>();
@@ -131,7 +136,7 @@ public class ModularDungeonGenerator : MonoBehaviour
         )
         {
             Debug.LogError(
-                "Nenhuma Room normal foi adicionada."
+                "Nenhuma Room foi adicionada."
             );
 
             return;
@@ -144,6 +149,20 @@ public class ModularDungeonGenerator : MonoBehaviour
         {
             Debug.LogError(
                 "Nenhum Corridor foi adicionado."
+            );
+
+            return;
+        }
+
+        if (
+            !HasRoomAvailableForContext(
+                GenerationContext.MainPath
+            )
+        )
+        {
+            Debug.LogError(
+                "Não existe nenhuma Room habilitada " +
+                "para aparecer no Main Path."
             );
 
             return;
@@ -188,31 +207,17 @@ public class ModularDungeonGenerator : MonoBehaviour
         lastFinalRoomDepth = -1;
 
         // ========================================
-        // CALCULA MAIN PATH NECESSÁRIO
+        // TAMANHO NECESSÁRIO DO MAIN PATH
         // ========================================
 
         /*
-         * Estrutura do Main Path:
+         * Estrutura:
          *
          * Room
          * Corridor
          * Room
          * Corridor
          * Room
-         * ...
-         *
-         * Portanto:
-         *
-         * 2 Rooms no Main Path
-         * -> Final Depth 2
-         *
-         * 3 Rooms
-         * -> Final Depth 4
-         *
-         * 4 Rooms
-         * -> Final Depth 6
-         *
-         * Fórmula:
          *
          * FinalDepth =
          * (MainPathRooms - 1) * 2
@@ -229,10 +234,6 @@ public class ModularDungeonGenerator : MonoBehaviour
                 roomsRequiredByDepth
             );
 
-        /*
-         * A dungeon nunca pode ter menos salas
-         * que seu próprio Main Path.
-         */
         int effectiveTargetRoomCount =
             Mathf.Max(
                 targetRoomCount,
@@ -252,13 +253,7 @@ public class ModularDungeonGenerator : MonoBehaviour
             );
 
         startRoom.Initialize();
-
         startRoom.GenerationDepth = 0;
-
-        /*
-         * Start Room não conta para limites
-         * de prefabs normais.
-         */
         startRoom.SourcePrefab = null;
 
         generatedModules.Add(
@@ -278,7 +273,8 @@ public class ModularDungeonGenerator : MonoBehaviour
         if (!mainPathSuccess)
         {
             Debug.LogError(
-                "Não foi possível construir o Main Path completo."
+                "Não foi possível construir " +
+                "o Main Path completo."
             );
 
             SealUnusedSockets();
@@ -312,6 +308,26 @@ public class ModularDungeonGenerator : MonoBehaviour
         int corridorCount =
             CountGeneratedCorridors();
 
+        int treasureCount =
+            CountRoomsByCategory(
+                DungeonRoomCategory.Treasure
+            );
+
+        int eliteCount =
+            CountRoomsByCategory(
+                DungeonRoomCategory.Elite
+            );
+
+        int shopCount =
+            CountRoomsByCategory(
+                DungeonRoomCategory.Shop
+            );
+
+        int eventCount =
+            CountRoomsByCategory(
+                DungeonRoomCategory.Event
+            );
+
         Debug.Log(
             $"Dungeon gerada | " +
             $"Seed: {seed} | " +
@@ -321,7 +337,11 @@ public class ModularDungeonGenerator : MonoBehaviour
             $"Target Rooms: {effectiveTargetRoomCount} | " +
             $"Main Path Rooms: {effectiveMainPathRoomCount} | " +
             $"Max Active Branches: {maxActiveBranches} | " +
-            $"Final Room Depth: {lastFinalRoomDepth}"
+            $"Final Room Depth: {lastFinalRoomDepth} | " +
+            $"Treasure: {treasureCount} | " +
+            $"Elite: {eliteCount} | " +
+            $"Shop: {shopCount} | " +
+            $"Event: {eventCount}"
         );
     }
 
@@ -341,21 +361,7 @@ public class ModularDungeonGenerator : MonoBehaviour
             startRoom;
 
         /*
-         * Start e Final já ocupam duas posições.
-         *
-         * Exemplo:
-         *
-         * MainPathRoomCount = 5
-         *
-         * Start
-         * Room
-         * Room
-         * Room
-         * Final
-         *
-         * Portanto:
-         *
-         * 5 - 2 = 3 Rooms normais.
+         * Start e Final ocupam duas posições.
          */
         int normalRoomsToCreate =
             Mathf.Max(
@@ -364,8 +370,6 @@ public class ModularDungeonGenerator : MonoBehaviour
             );
 
         // ========================================
-        // CRIA OS PARES:
-        //
         // ROOM -> CORRIDOR -> ROOM
         // ========================================
 
@@ -393,9 +397,7 @@ public class ModularDungeonGenerator : MonoBehaviour
         }
 
         // ========================================
-        // ÚLTIMA ETAPA:
-        //
-        // ROOM -> CORRIDOR -> FINAL ROOM
+        // ROOM -> CORRIDOR -> FINAL
         // ========================================
 
         return TryPlaceFinalPathSegment(
@@ -404,7 +406,7 @@ public class ModularDungeonGenerator : MonoBehaviour
     }
 
     // ==================================================
-    // CRIA UM TRECHO:
+    // MAIN PATH:
     //
     // ROOM -> CORRIDOR -> ROOM
     // ==================================================
@@ -445,7 +447,8 @@ public class ModularDungeonGenerator : MonoBehaviour
             {
                 DungeonModule corridorPrefab =
                     GetWeightedRandomPrefab(
-                        corridorPrefabs
+                        corridorPrefabs,
+                        GenerationContext.MainPath
                     );
 
                 if (corridorPrefab == null)
@@ -469,11 +472,6 @@ public class ModularDungeonGenerator : MonoBehaviour
                     continue;
                 }
 
-                /*
-                 * Um corredor do Main Path precisa
-                 * ter pelo menos uma saída além
-                 * da entrada.
-                 */
                 List<DungeonSocket> corridorExits =
                     GetAvailableSockets(
                         corridor,
@@ -493,9 +491,9 @@ public class ModularDungeonGenerator : MonoBehaviour
                     currentRoom.GenerationDepth + 1;
 
                 /*
-                 * Adicionamos temporariamente para
-                 * que a Room teste colisão contra
-                 * o corredor.
+                 * Entra temporariamente na lista
+                 * para a próxima Room considerar
+                 * sua colisão.
                  */
                 generatedModules.Add(
                     corridor
@@ -518,7 +516,8 @@ public class ModularDungeonGenerator : MonoBehaviour
                     {
                         DungeonModule roomPrefab =
                             GetWeightedRandomPrefab(
-                                roomPrefabs
+                                roomPrefabs,
+                                GenerationContext.MainPath
                             );
 
                         if (roomPrefab == null)
@@ -543,10 +542,11 @@ public class ModularDungeonGenerator : MonoBehaviour
                         }
 
                         /*
-                         * Como essa não é a Final Room,
-                         * ela precisa ter ao menos
-                         * outra saída para o Main Path
-                         * continuar depois.
+                         * Não é Final Room.
+                         *
+                         * Precisa de pelo menos
+                         * uma saída para o Main Path
+                         * continuar.
                          */
                         List<DungeonSocket> roomFutureExits =
                             GetAvailableSockets(
@@ -566,7 +566,7 @@ public class ModularDungeonGenerator : MonoBehaviour
                         }
 
                         // ============================
-                        // COMMIT DO TRECHO
+                        // COMMIT
                         // ============================
 
                         roomExit.Connect(
@@ -605,13 +605,6 @@ public class ModularDungeonGenerator : MonoBehaviour
                     }
                 }
 
-                /*
-                 * Nenhuma Room conseguiu ser
-                 * posicionada depois deste corredor.
-                 *
-                 * Como ainda não conectamos nada,
-                 * podemos simplesmente removê-lo.
-                 */
                 generatedModules.Remove(
                     corridor
                 );
@@ -626,7 +619,7 @@ public class ModularDungeonGenerator : MonoBehaviour
     }
 
     // ==================================================
-    // ÚLTIMO TRECHO DO MAIN PATH:
+    // FINAL DO MAIN PATH:
     //
     // ROOM -> CORRIDOR -> FINAL
     // ==================================================
@@ -666,7 +659,8 @@ public class ModularDungeonGenerator : MonoBehaviour
             {
                 DungeonModule corridorPrefab =
                     GetWeightedRandomPrefab(
-                        corridorPrefabs
+                        corridorPrefabs,
+                        GenerationContext.MainPath
                     );
 
                 if (corridorPrefab == null)
@@ -710,11 +704,6 @@ public class ModularDungeonGenerator : MonoBehaviour
                 corridor.GenerationDepth =
                     currentRoom.GenerationDepth + 1;
 
-                /*
-                 * Adiciona temporariamente para
-                 * a Final Room considerar o corredor
-                 * durante o teste de colisão.
-                 */
                 generatedModules.Add(
                     corridor
                 );
@@ -766,7 +755,7 @@ public class ModularDungeonGenerator : MonoBehaviour
                         }
 
                         // ============================
-                        // COMMIT FINAL
+                        // COMMIT
                         // ============================
 
                         roomExit.Connect(
@@ -828,12 +817,10 @@ public class ModularDungeonGenerator : MonoBehaviour
         pendingBranchSockets.Clear();
 
         /*
-         * Todo socket livre do Main Path pode
-         * potencialmente iniciar uma Side Branch.
+         * Qualquer socket livre do Main Path
+         * pode iniciar uma Side Branch.
          *
-         * A Final Room é excluída propositalmente:
-         * não queremos caminhos continuando depois
-         * dela.
+         * Final Room fica de fora.
          */
         foreach (
             DungeonModule module
@@ -876,7 +863,7 @@ public class ModularDungeonGenerator : MonoBehaviour
     }
 
     // ==================================================
-    // GERA SIDE BRANCHES
+    // SIDE BRANCHES
     // ==================================================
 
     private void GenerateSideBranches(
@@ -929,10 +916,6 @@ public class ModularDungeonGenerator : MonoBehaviour
                 continue;
             }
 
-            /*
-             * A Final Room nunca deve gerar
-             * uma Side Branch.
-             */
             if (
                 targetSocket.Owner ==
                 generatedFinalRoom
@@ -947,17 +930,13 @@ public class ModularDungeonGenerator : MonoBehaviour
             bool success =
                 TryPlaceNormalModule(
                     targetSocket,
+                    GenerationContext.SideBranch,
                     out newModule,
                     out newSocket
                 );
 
             if (!success)
             {
-                /*
-                 * O socket simplesmente permanece
-                 * sem conexão e será fechado
-                 * pelo SocketBlocker no final.
-                 */
                 FillActiveBranches();
 
                 continue;
@@ -999,7 +978,6 @@ public class ModularDungeonGenerator : MonoBehaviour
 
     // ==================================================
     // COLOCA NOVOS SOCKETS NA FILA
-    // DE SIDE BRANCHES
     // ==================================================
 
     private void QueueModuleBranchSockets(
@@ -1032,7 +1010,7 @@ public class ModularDungeonGenerator : MonoBehaviour
     }
 
     // ==================================================
-    // MANTÉM O LIMITE DE BRANCHES ATIVAS
+    // PREENCHE BRANCHES ATIVAS
     // ==================================================
 
     private void FillActiveBranches()
@@ -1077,12 +1055,12 @@ public class ModularDungeonGenerator : MonoBehaviour
     }
 
     // ==================================================
-    // ESCOLHE ROOM OU CORRIDOR
-    // PARA SIDE BRANCH
+    // ROOM / CORRIDOR
     // ==================================================
 
     private bool TryPlaceNormalModule(
         DungeonSocket targetSocket,
+        GenerationContext context,
         out DungeonModule placedModule,
         out DungeonSocket placedSocket
     )
@@ -1112,6 +1090,7 @@ public class ModularDungeonGenerator : MonoBehaviour
             return TryPlaceFromPool(
                 targetSocket,
                 corridorPrefabs,
+                context,
                 out placedModule,
                 out placedSocket
             );
@@ -1120,6 +1099,7 @@ public class ModularDungeonGenerator : MonoBehaviour
         return TryPlaceFromPool(
             targetSocket,
             roomPrefabs,
+            context,
             out placedModule,
             out placedSocket
         );
@@ -1132,6 +1112,7 @@ public class ModularDungeonGenerator : MonoBehaviour
     private bool TryPlaceFromPool(
         DungeonSocket targetSocket,
         IReadOnlyList<DungeonModule> pool,
+        GenerationContext context,
         out DungeonModule placedModule,
         out DungeonSocket placedSocket
     )
@@ -1155,7 +1136,8 @@ public class ModularDungeonGenerator : MonoBehaviour
         {
             DungeonModule prefab =
                 GetWeightedRandomPrefab(
-                    pool
+                    pool,
+                    context
                 );
 
             if (prefab == null)
@@ -1190,12 +1172,14 @@ public class ModularDungeonGenerator : MonoBehaviour
     }
 
     // ==================================================
-    // ESCOLHA ALEATÓRIA POR PESO
-    // + LIMITE DE INSTÂNCIAS
+    // SORTEIO POR PESO
+    // + LIMITE
+    // + MAIN PATH / SIDE BRANCH
     // ==================================================
 
     private DungeonModule GetWeightedRandomPrefab(
-        IReadOnlyList<DungeonModule> pool
+        IReadOnlyList<DungeonModule> pool,
+        GenerationContext context
     )
     {
         if (
@@ -1219,8 +1203,15 @@ public class ModularDungeonGenerator : MonoBehaviour
             if (prefab == null)
                 continue;
 
-            if (!CanUsePrefab(prefab))
+            if (
+                !CanUsePrefabInContext(
+                    prefab,
+                    context
+                )
+            )
+            {
                 continue;
+            }
 
             float weight =
                 Mathf.Max(
@@ -1263,8 +1254,15 @@ public class ModularDungeonGenerator : MonoBehaviour
             if (prefab == null)
                 continue;
 
-            if (!CanUsePrefab(prefab))
+            if (
+                !CanUsePrefabInContext(
+                    prefab,
+                    context
+                )
+            )
+            {
                 continue;
+            }
 
             float weight =
                 Mathf.Max(
@@ -1291,7 +1289,107 @@ public class ModularDungeonGenerator : MonoBehaviour
     }
 
     // ==================================================
-    // LIMITE DE PREFAB
+    // VERIFICA SE PREFAB PODE APARECER
+    // NESTE CONTEXTO
+    // ==================================================
+
+    private bool CanUsePrefabInContext(
+        DungeonModule prefab,
+        GenerationContext context
+    )
+    {
+        if (prefab == null)
+            return false;
+
+        if (!CanUsePrefab(prefab))
+            return false;
+
+        /*
+         * Corredores não possuem restrição
+         * Main Path / Side Branch nesta versão.
+         */
+        if (
+            prefab.ModuleType !=
+            DungeonModuleType.Room
+        )
+        {
+            return true;
+        }
+
+        if (
+            context ==
+            GenerationContext.MainPath
+        )
+        {
+            return prefab.AllowedOnMainPath;
+        }
+
+        return prefab.AllowedOnSideBranch;
+    }
+
+    // ==================================================
+    // EXISTE ROOM DISPONÍVEL PARA O CONTEXTO?
+    // ==================================================
+
+    private bool HasRoomAvailableForContext(
+        GenerationContext context
+    )
+    {
+        if (
+            roomPrefabs == null ||
+            roomPrefabs.Count == 0
+        )
+        {
+            return false;
+        }
+
+        foreach (
+            DungeonModule prefab
+            in roomPrefabs
+        )
+        {
+            if (prefab == null)
+                continue;
+
+            if (
+                prefab.ModuleType !=
+                DungeonModuleType.Room
+            )
+            {
+                continue;
+            }
+
+            if (
+                prefab.SpawnWeight <= 0f
+            )
+            {
+                continue;
+            }
+
+            if (
+                context ==
+                GenerationContext.MainPath &&
+                prefab.AllowedOnMainPath
+            )
+            {
+                return true;
+            }
+
+            if (
+                context ==
+                GenerationContext.SideBranch &&
+                prefab.AllowedOnSideBranch
+            )
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    // ==================================================
+    // LIMITE DE INSTÂNCIAS
     // ==================================================
 
     private bool CanUsePrefab(
@@ -1358,7 +1456,7 @@ public class ModularDungeonGenerator : MonoBehaviour
     }
 
     // ==================================================
-    // CRIA E TESTA CANDIDATO
+    // CRIA E TESTA UM PREFAB
     // ==================================================
 
     private bool TryPlacePrefabOnce(
@@ -1462,7 +1560,7 @@ public class ModularDungeonGenerator : MonoBehaviour
     }
 
     // ==================================================
-    // RETORNA SOCKETS LIVRES DE UM MÓDULO
+    // SOCKETS LIVRES DE UM MÓDULO
     // ==================================================
 
     private List<DungeonSocket> GetAvailableSockets(
@@ -1541,7 +1639,7 @@ public class ModularDungeonGenerator : MonoBehaviour
     }
 
     // ==================================================
-    // CONTA ROOMS
+    // CONTADORES
     // ==================================================
 
     private int CountGeneratedRooms()
@@ -1568,10 +1666,6 @@ public class ModularDungeonGenerator : MonoBehaviour
         return count;
     }
 
-    // ==================================================
-    // CONTA CORREDORES
-    // ==================================================
-
     private int CountGeneratedCorridors()
     {
         int count = 0;
@@ -1596,8 +1690,42 @@ public class ModularDungeonGenerator : MonoBehaviour
         return count;
     }
 
+    private int CountRoomsByCategory(
+        DungeonRoomCategory category
+    )
+    {
+        int count = 0;
+
+        foreach (
+            DungeonModule module
+            in generatedModules
+        )
+        {
+            if (module == null)
+                continue;
+
+            if (
+                module.ModuleType !=
+                DungeonModuleType.Room
+            )
+            {
+                continue;
+            }
+
+            if (
+                module.RoomCategory ==
+                category
+            )
+            {
+                count++;
+            }
+        }
+
+        return count;
+    }
+
     // ==================================================
-    // FECHA SOCKETS NÃO UTILIZADOS
+    // SOCKET BLOCKERS
     // ==================================================
 
     private void SealUnusedSockets()
@@ -1751,7 +1879,7 @@ public class ModularDungeonGenerator : MonoBehaviour
     }
 
     // ==================================================
-    // LIMPEZA
+    // CLEAR
     // ==================================================
 
     [ContextMenu("Clear Dungeon")]
@@ -1790,7 +1918,7 @@ public class ModularDungeonGenerator : MonoBehaviour
     }
 
     // ==================================================
-    // ROOT
+    // GENERATED ROOT
     // ==================================================
 
     private void CreateGeneratedRoot()

@@ -150,6 +150,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 575408d2091566b49bf83125d32e03c9, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::DungeonModule
+  moduleType: 0
+  spawnWeight: 1
+  maxInstancesPerDungeon: 0
   placementBounds: {fileID: 3347407791472248077}
 --- !u!1 &6347135799917512820
 GameObject:
@@ -202,5 +205,5 @@ BoxCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 3
-  m_Size: {x: 3.7, y: 2.86, z: 3.7}
-  m_Center: {x: 0, y: 1.55, z: 0}
+  m_Size: {x: 3.8000429, y: 2.8600001, z: 4}
+  m_Center: {x: 0.05002129, y: 1.55, z: 0}
