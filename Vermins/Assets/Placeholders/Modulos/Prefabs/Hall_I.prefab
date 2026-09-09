@@ -53,6 +53,59 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 7.8, y: 3, z: 4}
   m_Center: {x: -2, y: 1.5, z: 0}
+--- !u!1 &3837232983048860511
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 6778889740627560599}
+  - component: {fileID: 2942558273930995612}
+  m_Layer: 7
+  m_Name: NavMeshFloor
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &6778889740627560599
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3837232983048860511}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 2131410689006436407}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!65 &2942558273930995612
+BoxCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3837232983048860511}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Size: {x: 8, y: 0.25, z: 3.5}
+  m_Center: {x: -2, y: 0, z: 0}
 --- !u!1 &5607890035122635030
 GameObject:
   m_ObjectHideFlags: 0
@@ -133,6 +186,7 @@ Transform:
   - {fileID: 3250618553040390416}
   - {fileID: 1086724850902046425}
   - {fileID: 2201253535139628235}
+  - {fileID: 6778889740627560599}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!33 &1135889191283250441
@@ -207,6 +261,9 @@ MonoBehaviour:
   moduleType: 1
   spawnWeight: 5
   maxInstancesPerDungeon: 0
+  roomCategory: 0
+  allowedOnMainPath: 1
+  allowedOnSideBranch: 1
   placementBounds: {fileID: 2621293011671547564}
 --- !u!1 &9023370050459645496
 GameObject:

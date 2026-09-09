@@ -129,6 +129,8 @@ GameObject:
   m_Component:
   - component: {fileID: 79518021}
   - component: {fileID: 79518022}
+  - component: {fileID: 79518023}
+  - component: {fileID: 79518024}
   m_Layer: 0
   m_Name: DungeonGenerator
   m_TagString: Untagged
@@ -189,11 +191,65 @@ MonoBehaviour:
   mainPathRoomCount: 5
   maxActiveBranches: 3
   minFinalRoomDepth: 8
+  validateAfterGeneration: 1
+  verboseValidationLog: 1
+  retryInvalidDungeon: 1
+  maxGenerationAttempts: 10
+  logFailedAttempts: 1
+  runtimeNavMesh: {fileID: 79518024}
+  buildNavMeshAfterGeneration: 1
   generateOnStart: 1
   randomSeed: 1
   seed: 12345
   overlapTolerance: 0.01
   generatedRoot: {fileID: 0}
+--- !u!114 &79518023
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 79518020}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7a5ac11cc976e418e8d13136b07e1f52, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Unity.AI.Navigation::Unity.AI.Navigation.NavMeshSurface
+  m_SerializedVersion: 0
+  m_AgentTypeID: 0
+  m_CollectObjects: 2
+  m_Size: {x: 10, y: 10, z: 10}
+  m_Center: {x: 0, y: 2, z: 0}
+  m_LayerMask:
+    serializedVersion: 2
+    m_Bits: 128
+  m_UseGeometry: 1
+  m_DefaultArea: 0
+  m_GenerateLinks: 0
+  m_IgnoreNavMeshAgent: 1
+  m_IgnoreNavMeshObstacle: 1
+  m_OverrideTileSize: 0
+  m_TileSize: 256
+  m_OverrideVoxelSize: 1
+  m_VoxelSize: 0.08
+  m_MinRegionArea: 2
+  m_NavMeshData: {fileID: 0}
+  m_BuildHeightMesh: 0
+--- !u!114 &79518024
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 79518020}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f1699d2ed79135b45a227dfce2018368, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::RuntimeDungeonNavMesh
+  navMeshSurface: {fileID: 0}
+  navMeshFloorLayerName: DungeonNavMesh
+  logBuildResult: 1
 --- !u!1 &2078270678
 GameObject:
   m_ObjectHideFlags: 0

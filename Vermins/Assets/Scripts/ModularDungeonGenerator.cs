@@ -59,11 +59,12 @@ public class ModularDungeonGenerator : MonoBehaviour
     [Min(1)]
     [SerializeField] private int maxGenerationAttempts = 10;
 
-    [Tooltip(
-        "Mostra no Console uma mensagem resumida " +
-        "para cada tentativa que falhar."
-    )]
     [SerializeField] private bool logFailedAttempts = true;
+
+    [Header("Runtime NavMesh")]
+    [SerializeField] private RuntimeDungeonNavMesh runtimeNavMesh;
+
+    [SerializeField] private bool buildNavMeshAfterGeneration = true;
 
     [Header("Runtime")]
     [SerializeField] private bool generateOnStart = true;
@@ -79,7 +80,7 @@ public class ModularDungeonGenerator : MonoBehaviour
     [SerializeField] private Transform generatedRoot;
 
     // ==================================================
-    // ESTADO DA DUNGEON
+    // ESTADO
     // ==================================================
 
     private readonly List<DungeonModule> generatedModules =
@@ -129,10 +130,6 @@ public class ModularDungeonGenerator : MonoBehaviour
         int effectiveTargetRoomCount =
             GetEffectiveTargetRoomCount();
 
-        // ========================================
-        // SEED BASE
-        // ========================================
-
         int baseSeed;
 
         if (randomSeed)
@@ -147,10 +144,6 @@ public class ModularDungeonGenerator : MonoBehaviour
             baseSeed = seed;
         }
 
-        // ========================================
-        // QUANTIDADE DE TENTATIVAS
-        // ========================================
-
         int generationAttempts =
             retryInvalidDungeon
                 ? Mathf.Max(
@@ -163,10 +156,6 @@ public class ModularDungeonGenerator : MonoBehaviour
 
         int lastAttemptSeed =
             baseSeed;
-
-        // ========================================
-        // LOOP DE TENTATIVAS
-        // ========================================
 
         for (
             int attemptIndex = 0;
@@ -218,7 +207,7 @@ public class ModularDungeonGenerator : MonoBehaviour
                 validationPassed;
 
             // ====================================
-            // DUNGEON VÁLIDA
+            // TENTATIVA ACEITA
             // ====================================
 
             if (attemptAccepted)
@@ -251,6 +240,28 @@ public class ModularDungeonGenerator : MonoBehaviour
                         true,
                         out _
                     );
+                }
+
+                // ================================
+                // BUILD DO NAVMESH
+                // ================================
+
+                if (
+                    buildNavMeshAfterGeneration &&
+                    runtimeNavMesh != null
+                )
+                {
+                    bool navMeshBuilt =
+                        runtimeNavMesh.BuildNavMesh();
+
+                    if (!navMeshBuilt)
+                    {
+                        Debug.LogError(
+                            "A dungeon foi gerada e validada, " +
+                            "mas o Runtime NavMesh não pôde " +
+                            "ser construído."
+                        );
+                    }
                 }
 
                 break;
@@ -296,10 +307,6 @@ public class ModularDungeonGenerator : MonoBehaviour
             }
         }
 
-        // ========================================
-        // TODAS FALHARAM
-        // ========================================
-
         if (!dungeonAccepted)
         {
             seed =
@@ -330,17 +337,6 @@ public class ModularDungeonGenerator : MonoBehaviour
 
     private int GetEffectiveMainPathRoomCount()
     {
-        /*
-         * No Main Path:
-         *
-         * Room -> Corridor -> Room
-         *
-         * Portanto:
-         *
-         * FinalDepth =
-         * (MainPathRoomCount - 1) * 2
-         */
-
         int roomsRequiredByDepth =
             Mathf.CeilToInt(
                 minFinalRoomDepth / 2f
@@ -357,10 +353,6 @@ public class ModularDungeonGenerator : MonoBehaviour
         int effectiveMainPathRoomCount =
             GetEffectiveMainPathRoomCount();
 
-        /*
-         * O Target nunca pode ser menor
-         * que o próprio Main Path.
-         */
         return Mathf.Max(
             targetRoomCount,
             effectiveMainPathRoomCount
@@ -368,7 +360,7 @@ public class ModularDungeonGenerator : MonoBehaviour
     }
 
     // ==================================================
-    // UMA ÚNICA TENTATIVA
+    // UMA TENTATIVA
     // ==================================================
 
     private bool GenerateSingleAttempt(
@@ -391,7 +383,7 @@ public class ModularDungeonGenerator : MonoBehaviour
         lastFinalRoomDepth = -1;
 
         // ========================================
-        // START ROOM
+        // START
         // ========================================
 
         generatedStartRoom =
@@ -440,10 +432,6 @@ public class ModularDungeonGenerator : MonoBehaviour
         GenerateSideBranches(
             effectiveTargetRoomCount
         );
-
-        // ========================================
-        // FECHA SOCKETS
-        // ========================================
 
         SealUnusedSockets();
 
@@ -542,6 +530,32 @@ public class ModularDungeonGenerator : MonoBehaviour
             maxGenerationAttempts = 1;
         }
 
+        // ========================================
+        // NAVMESH
+        // ========================================
+
+        if (
+            buildNavMeshAfterGeneration &&
+            runtimeNavMesh == null
+        )
+        {
+            runtimeNavMesh =
+                GetComponent<RuntimeDungeonNavMesh>();
+        }
+
+        if (
+            buildNavMeshAfterGeneration &&
+            runtimeNavMesh == null
+        )
+        {
+            Debug.LogError(
+                "Build NavMesh After Generation está ativo, " +
+                "mas nenhum RuntimeDungeonNavMesh foi encontrado."
+            );
+
+            return false;
+        }
+
         return true;
     }
 
@@ -619,7 +633,7 @@ public class ModularDungeonGenerator : MonoBehaviour
     }
 
     // ==================================================
-    // VALIDAÇÃO
+    // VALIDAÇÃO INTERNA
     // ==================================================
 
     private bool RunDungeonValidation(
@@ -634,7 +648,7 @@ public class ModularDungeonGenerator : MonoBehaviour
             new List<string>();
 
         // ========================================
-        // 1. START ROOM
+        // START
         // ========================================
 
         if (generatedStartRoom == null)
@@ -651,7 +665,7 @@ public class ModularDungeonGenerator : MonoBehaviour
         }
 
         // ========================================
-        // 2. FINAL ROOM
+        // FINAL
         // ========================================
 
         if (generatedFinalRoom == null)
@@ -668,7 +682,7 @@ public class ModularDungeonGenerator : MonoBehaviour
         }
 
         // ========================================
-        // 3. QUANTIDADE DE ROOMS
+        // ROOM COUNT
         // ========================================
 
         int generatedRoomCount =
@@ -698,7 +712,7 @@ public class ModularDungeonGenerator : MonoBehaviour
         }
 
         // ========================================
-        // 4. FINAL DEPTH
+        // FINAL DEPTH
         // ========================================
 
         if (generatedFinalRoom != null)
@@ -726,7 +740,7 @@ public class ModularDungeonGenerator : MonoBehaviour
         }
 
         // ========================================
-        // 5. START -> FINAL
+        // START -> FINAL
         // ========================================
 
         if (
@@ -756,7 +770,7 @@ public class ModularDungeonGenerator : MonoBehaviour
         }
 
         // ========================================
-        // 6. SOCKETS
+        // SOCKETS
         // ========================================
 
         int unresolvedSocketCount =
@@ -2189,7 +2203,7 @@ public class ModularDungeonGenerator : MonoBehaviour
     }
 
     // ==================================================
-    // EMBARALHA
+    // SHUFFLE
     // ==================================================
 
     private void ShuffleSockets(
@@ -2466,6 +2480,15 @@ public class ModularDungeonGenerator : MonoBehaviour
     [ContextMenu("Clear Dungeon")]
     public void ClearDungeon()
     {
+        /*
+         * A geometria será apagada.
+         * O NavMesh correspondente também precisa sair.
+         */
+        if (runtimeNavMesh != null)
+        {
+            runtimeNavMesh.ClearNavMesh();
+        }
+
         generatedModules.Clear();
 
         openSockets.Clear();
@@ -2500,6 +2523,14 @@ public class ModularDungeonGenerator : MonoBehaviour
             if (child == null)
                 continue;
 
+            /*
+             * Destroy() durante Play Mode só termina
+             * no fim do frame.
+             *
+             * Desativamos imediatamente para que
+             * tentativas anteriores não participem
+             * da geração nem do NavMesh.
+             */
             child.SetActive(false);
 
             DestroyObject(
