@@ -80,6 +80,44 @@ public static class PlayerAnimatorSetup
 
     private const string ClipeDeMorte = "ReactDeathBackward";
 
+    public const string ParamApanhar = "Apanhar";
+
+    private const string CamadaDaReacao = "Reacao";
+    private const string EstadoVazio = "Vazio";
+    private const string EstadoReagir = "Reagir";
+    private const string ClipeDeReacao = "ReactSmallFromFront";
+
+    private const string MascaraPath =
+        "Assets/Animation/Player/TorsoParaCima.mask";
+
+    /// <summary>
+    /// As partes do esqueleto que a reacao a dano controla. O que fica de
+    /// fora continua vindo da camada de baixo - e por isso que as pernas
+    /// seguem andando enquanto o tronco leva o tranco.
+    ///
+    /// Root fica de fora de proposito, e nao por esquecimento: o clipe de
+    /// reacao tem root motion, e ligar Root empurraria o personagem pra
+    /// tras a cada golpe. Isso seria knockback, que ninguem pediu e que
+    /// brigaria com o NavMeshAgent pela posicao do corpo.
+    /// </summary>
+    private static readonly AvatarMaskBodyPart[] OTorso =
+    {
+        AvatarMaskBodyPart.Body,
+        AvatarMaskBodyPart.Head,
+        AvatarMaskBodyPart.LeftArm,
+        AvatarMaskBodyPart.RightArm,
+        AvatarMaskBodyPart.LeftFingers,
+        AvatarMaskBodyPart.RightFingers,
+    };
+
+    /// <summary>
+    /// Em que ponto do clipe de reacao ele ja pode comecar a voltar pro
+    /// Vazio. Faltando 15% a volta ja comeca, e como a transicao dura
+    /// 0,15 s o fim do tranco e a volta pra locomocao se sobrepoem. Com
+    /// 1,0 aqui o torso da um solavanco no ultimo frame.
+    /// </summary>
+    private const float SaidaDaReacao = 0.85f;
+
     /// <summary>
     /// Em que ponto do clipe de ataque ele ja pode comecar a voltar pra
     /// locomocao. E fracao e nao segundo de proposito: o estado inteiro
@@ -106,6 +144,7 @@ public static class PlayerAnimatorSetup
 
         GarantirParametro(controller, ParamAtacar, AnimatorControllerParameterType.Trigger);
         GarantirParametro(controller, ParamMorto, AnimatorControllerParameterType.Bool);
+        GarantirParametro(controller, ParamApanhar, AnimatorControllerParameterType.Trigger);
 
         // Este comeca em 1 e nao em 0 de proposito. Parametro de
         // velocidade em zero congela o estado: se alguem abrir a cena
@@ -141,6 +180,7 @@ public static class PlayerAnimatorSetup
 
         AnimatorState ataque = MontarAtaque(controller, maquina, porNome, faltando);
         AnimatorState morte = MontarMorte(maquina, porNome, faltando);
+        AnimatorState reacao = MontarReacao(controller, porNome, faltando);
 
         if (faltando.Count > 0)
         {
@@ -155,7 +195,7 @@ public static class PlayerAnimatorSetup
         EditorUtility.SetDirty(controller);
         AssetDatabase.SaveAssets();
 
-        Debug.Log(Resumo(arvore, ataque, morte));
+        Debug.Log(Resumo(arvore, ataque, morte, reacao));
     }
 
     private static void Reclamar(List<string> faltando)
@@ -431,6 +471,157 @@ public static class PlayerAnimatorSetup
         controller.parameters = todos;
     }
 
+    /// <summary>
+    /// A segunda camada, que toca a reacao a dano so no torso.
+    ///
+    /// Camada de Animator e sobreposicao: uma camada com peso 1
+    /// SUBSTITUI o que a de baixo estava fazendo. A AvatarMask e o que
+    /// diz "so estes ossos vem daqui" - o resto continua vindo da
+    /// locomocao. E por isso que da pra apanhar do tronco pra cima
+    /// enquanto as pernas seguem a passada: sao duas animacoes tocando ao
+    /// mesmo tempo em partes diferentes do esqueleto.
+    ///
+    /// Sem mascara, camada nova seria interrupcao. Com mascara, e reacao
+    /// por cima - que e o que ARPG faz, porque tirar o controle do
+    /// jogador por 1,2 s a cada golpe recebido vira stun-lock com dois
+    /// inimigos em cima.
+    ///
+    /// A entrada sai do Any State, e nao do Vazio, pra que um segundo
+    /// golpe REINICIE a reacao no meio dela. Saindo do Vazio, apanhar
+    /// duas vezes seguidas mostraria um tranco so.
+    /// </summary>
+    private static AnimatorState MontarReacao(
+        AnimatorController controller,
+        Dictionary<string, AnimationClip> porNome,
+        List<string> faltando)
+    {
+        AnimatorStateMachine maquina = AcharCamada(controller, CamadaDaReacao);
+
+        if (maquina == null)
+        {
+            maquina = new AnimatorStateMachine
+            {
+                name = CamadaDaReacao,
+                hideFlags = HideFlags.HideInHierarchy,
+            };
+
+            // A maquina de estados e um sub-asset do controller. Sem esta
+            // linha ela fica solta e some quando o Unity recarregar.
+            AssetDatabase.AddObjectToAsset(maquina, controller);
+
+            controller.AddLayer(new AnimatorControllerLayer
+            {
+                name = CamadaDaReacao,
+                defaultWeight = 1f,
+                blendingMode = AnimatorLayerBlendingMode.Override,
+                stateMachine = maquina,
+                avatarMask = GarantirMascara(),
+            });
+        }
+        else
+        {
+            // Rodar de novo tem que dar o mesmo resultado, entao eu
+            // reaproveito a camada e so reescrevo o conteudo dela.
+            AnimatorControllerLayer[] camadas = controller.layers;
+
+            for (int i = 0; i < camadas.Length; i++)
+            {
+                if (camadas[i].name != CamadaDaReacao)
+                    continue;
+
+                camadas[i].defaultWeight = 1f;
+                camadas[i].blendingMode = AnimatorLayerBlendingMode.Override;
+                camadas[i].avatarMask = GarantirMascara();
+            }
+
+            controller.layers = camadas;
+        }
+
+        // Estado sem motion nenhum: enquanto ele esta ativo a camada nao
+        // contribui nada e o torso continua vindo da locomocao. Write
+        // Defaults desligado e o que garante isso - ligado, ele
+        // escreveria a pose padrao por cima.
+        AnimatorState vazio = AcharEstado(maquina, EstadoVazio)
+                              ?? maquina.AddState(EstadoVazio, new Vector3(260f, 60f, 0f));
+
+        vazio.motion = null;
+        vazio.writeDefaultValues = false;
+        vazio.transitions = new AnimatorStateTransition[0];
+
+        AnimatorState reagir = AcharEstado(maquina, EstadoReagir)
+                               ?? maquina.AddState(EstadoReagir, new Vector3(260f, 170f, 0f));
+
+        reagir.writeDefaultValues = false;
+        reagir.transitions = new AnimatorStateTransition[0];
+
+        maquina.defaultState = vazio;
+
+        LimparTransicoesDoAnyState(maquina);
+
+        if (!porNome.TryGetValue(ClipeDeReacao, out AnimationClip clipe))
+        {
+            faltando.Add(ClipeDeReacao);
+            return reagir;
+        }
+
+        reagir.motion = clipe;
+
+        AnimatorStateTransition entrada = maquina.AddAnyStateTransition(reagir);
+        entrada.AddCondition(AnimatorConditionMode.If, 0f, ParamApanhar);
+        entrada.hasExitTime = false;
+        entrada.duration = 0.08f;
+        entrada.canTransitionToSelf = true;
+
+        AnimatorStateTransition saida = reagir.AddTransition(vazio);
+        saida.hasExitTime = true;
+        saida.exitTime = SaidaDaReacao;
+        saida.duration = 0.15f;
+
+        return reagir;
+    }
+
+    /// <summary>
+    /// Cria a mascara do torso se ela nao existir, e reescreve as partes
+    /// ligadas de qualquer jeito - assim uma mascara que alguem mexeu na
+    /// mao volta pro combinado ao rodar o menu.
+    /// </summary>
+    private static AvatarMask GarantirMascara()
+    {
+        var mascara = AssetDatabase.LoadAssetAtPath<AvatarMask>(MascaraPath);
+        bool nova = mascara == null;
+
+        if (nova)
+            mascara = new AvatarMask();
+
+        var ligadas = new HashSet<AvatarMaskBodyPart>(OTorso);
+
+        for (int i = 0; i < (int)AvatarMaskBodyPart.LastBodyPart; i++)
+        {
+            var parte = (AvatarMaskBodyPart)i;
+            mascara.SetHumanoidBodyPartActive(parte, ligadas.Contains(parte));
+        }
+
+        if (nova)
+            AssetDatabase.CreateAsset(mascara, MascaraPath);
+        else
+            EditorUtility.SetDirty(mascara);
+
+        return mascara;
+    }
+
+    private static AnimatorStateMachine AcharCamada(
+        AnimatorController controller,
+        string nome)
+    {
+        foreach (AnimatorControllerLayer camada in controller.layers)
+        {
+            if (camada.name == nome)
+                return camada.stateMachine;
+        }
+
+        return null;
+    }
+
     private static Dictionary<string, AnimationClip> IndexarClipes()
     {
         var mapa = new Dictionary<string, AnimationClip>();
@@ -452,7 +643,11 @@ public static class PlayerAnimatorSetup
         return mapa;
     }
 
-    private static string Resumo(BlendTree arvore, AnimatorState ataque, AnimatorState morte)
+    private static string Resumo(
+        BlendTree arvore,
+        AnimatorState ataque,
+        AnimatorState morte,
+        AnimatorState reacao)
     {
         var ci = System.Globalization.CultureInfo.InvariantCulture;
         var sb = new System.Text.StringBuilder();
@@ -484,6 +679,14 @@ public static class PlayerAnimatorSetup
         {
             sb.AppendLine(string.Format(ci, "  morte:  {0} ({1:F2} s)",
                 morte.motion.name, ((AnimationClip)morte.motion).length));
+        }
+
+        if (reacao != null && reacao.motion != null)
+        {
+            sb.AppendLine(string.Format(ci,
+                "  reacao: {0} ({1:F2} s) na camada {2}, so no torso",
+                reacao.motion.name, ((AnimationClip)reacao.motion).length,
+                CamadaDaReacao));
         }
 
         return sb.ToString();

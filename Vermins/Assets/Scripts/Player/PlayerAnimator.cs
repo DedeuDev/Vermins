@@ -51,6 +51,14 @@ public class PlayerAnimator : MonoBehaviour
     private static readonly int MortoId = Animator.StringToHash("Morto");
     private static readonly int VariacaoId = Animator.StringToHash("Variacao");
     private static readonly int VelAtaqueId = Animator.StringToHash("VelAtaque");
+    private static readonly int ApanharId = Animator.StringToHash("Apanhar");
+
+    /// <summary>
+    /// Nome da camada que toca a reacao a dano. Ela tem uma AvatarMask do
+    /// torso pra cima, entao o tronco reage enquanto as pernas continuam
+    /// vindo da locomocao - o jogador apanha sem parar de andar.
+    /// </summary>
+    private const string CamadaDaReacao = "Reacao";
 
     /// <summary>
     /// Folga entre o fim da animacao e o golpe seguinte. Sem ela o clipe
@@ -68,6 +76,15 @@ public class PlayerAnimator : MonoBehaviour
     private NavMeshAgent agent;
     private Health health;
     private PlayerCombat combate;
+
+    // Indice da camada da reacao, resolvido uma vez. Guardo porque
+    // GetLayerIndex faz busca por nome e eu leio isto todo frame.
+    private int camadaDaReacao = -1;
+
+    // So reajo se o controller tiver as duas pecas: o trigger e a camada.
+    // Sem elas o personagem apanha calado, e esta certo assim - ver o
+    // comentario no Awake.
+    private bool podeReagir;
 
     // Qual das duas magias vai sair no proximo golpe. Alterno porque
     // repetir o mesmo gesto e o que mais faz parecer bonequinho.
@@ -131,6 +148,39 @@ public class PlayerAnimator : MonoBehaviour
         }
 
         MedirOClipeDeAtaque();
+        AcharACamadaDaReacao();
+    }
+
+    /// <summary>
+    /// Resolve a camada e o trigger da reacao a dano.
+    ///
+    /// Aviso e nao erro, ao contrario do que eu faco com os parametros la
+    /// de cima. A diferenca e o que se perde: sem 'VelX' o personagem
+    /// desliza pelo chao sem animacao nenhuma, e e melhor derrubar o
+    /// componente do que entregar isso; sem a reacao ele so deixa de dar
+    /// um tranco no torso quando leva dano. Derrubar a locomocao inteira
+    /// por causa de um detalhe de acabamento seria pior que o detalhe.
+    ///
+    /// Isso importa na pratica porque o menu Vermins/Player/Montar
+    /// Animator ainda nao monta esta camada - ele so mexe na camada 0.
+    /// Num clone novo do repo em que alguem rode o menu, o controller sai
+    /// sem a Reacao, e eu prefiro que o jogo ande a que ele nem comece.
+    /// </summary>
+    private void AcharACamadaDaReacao()
+    {
+        camadaDaReacao = animator.GetLayerIndex(CamadaDaReacao);
+
+        bool temTrigger = TemParametro(ApanharId, AnimatorControllerParameterType.Trigger);
+
+        podeReagir = camadaDaReacao >= 0 && temTrigger;
+
+        if (podeReagir)
+            return;
+
+        Debug.LogWarning($"[{name}] Sem reacao a dano: " +
+                         (camadaDaReacao < 0 ? $"falta a camada '{CamadaDaReacao}' " : "") +
+                         (!temTrigger ? "falta o trigger 'Apanhar' " : "") +
+                         "no Animator Controller. O resto da animacao continua.", this);
     }
 
     /// <summary>
@@ -195,12 +245,49 @@ public class PlayerAnimator : MonoBehaviour
     {
         if (combate != null)
             combate.OnAttack += Golpear;
+
+        if (health != null)
+            health.OnDamaged += Apanhar;
     }
 
     private void OnDisable()
     {
         if (combate != null)
             combate.OnAttack -= Golpear;
+
+        if (health != null)
+            health.OnDamaged -= Apanhar;
+    }
+
+    /// <summary>
+    /// O Health avisa todo dano recebido, e aqui vira um tranco no torso.
+    ///
+    /// Assino o OnDamaged e nao o OnChanged de proposito: o OnChanged
+    /// dispara tambem em cura e quando a build reescreve a vida maxima no
+    /// Start, e o personagem daria um tranco ao nascer e outro ao tomar
+    /// pocao.
+    ///
+    /// Ignoro dano zero porque um dia vai existir armadura que reduz o
+    /// golpe a nada, e reagir a um golpe que nao doeu conta a mentira
+    /// errada pro jogador.
+    ///
+    /// Ignoro tambem se ja morreu. O clipe de morte toca na camada de
+    /// baixo e pega o corpo inteiro; deixar a reacao entrar por cima
+    /// faria o cadaver levantar o tronco. O golpe que mata chega aqui com
+    /// a vida ja em zero, entao esta condicao pega justamente ele.
+    /// </summary>
+    private void Apanhar(float dano, GameObject quemBateu)
+    {
+        if (!podeReagir)
+            return;
+
+        if (dano <= 0f)
+            return;
+
+        if (health != null && health.IsDead)
+            return;
+
+        animator.SetTrigger(ApanharId);
     }
 
     /// <summary>
@@ -233,10 +320,24 @@ public class PlayerAnimator : MonoBehaviour
 
     private void Update()
     {
+        bool morto = health != null && health.IsDead;
+
         // Bool e nao trigger de proposito: assim o Revive desliga isto
         // sozinho e o corpo levanta, sem ninguem precisar lembrar de
         // mandar um aviso separado no respawn.
-        animator.SetBool(MortoId, health != null && health.IsDead);
+        animator.SetBool(MortoId, morto);
+
+        // Zero o peso da reacao enquanto morto pra que a camada de baixo
+        // fique com o corpo inteiro.
+        //
+        // O Apanhar ja se recusa a disparar depois da morte, mas isso nao
+        // basta: se o golpe que matou chegar no meio de uma reacao que ja
+        // estava tocando, ela continua ate o fim e o tronco fica de pe em
+        // cima do clipe de morte. Aqui e o unico lugar que corta isso no
+        // mesmo frame. E como e o peso da camada, o Revive devolve ao
+        // normal sozinho.
+        if (camadaDaReacao >= 0)
+            animator.SetLayerWeight(camadaDaReacao, morto ? 0f : 1f);
 
         Vector3 velocidade = VelocidadeNoChao();
 
