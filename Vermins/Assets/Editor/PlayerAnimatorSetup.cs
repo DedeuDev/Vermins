@@ -119,6 +119,18 @@ public static class PlayerAnimatorSetup
     private const float SaidaDaReacao = 0.85f;
 
     /// <summary>
+    /// A camada nasce pesando zero, e quem levanta o peso e o
+    /// PlayerAnimator enquanto a reacao esta em cena.
+    ///
+    /// Deixei em 1 primeiro, achando que o estado Vazio bastava pra
+    /// camada nao interferir. Nao basta: camada Override com peso 1
+    /// parada num estado sem motion escreve a pose de bind nos ossos da
+    /// mascara, e o personagem anda com o tronco travado. Peso zero e o
+    /// unico jeito de a camada realmente sumir quando nao esta em uso.
+    /// </summary>
+    private const float PesoDaReacao = 0f;
+
+    /// <summary>
     /// Em que ponto do clipe de ataque ele ja pode comecar a voltar pra
     /// locomocao. E fracao e nao segundo de proposito: o estado inteiro
     /// e esticado ou encurtado pelo ParamVelAtaque conforme o cooldown,
@@ -486,6 +498,10 @@ public static class PlayerAnimatorSetup
     /// jogador por 1,2 s a cada golpe recebido vira stun-lock com dois
     /// inimigos em cima.
     ///
+    /// A camada sai daqui pesando ZERO. Ela so pesa enquanto a reacao
+    /// esta tocando, e quem faz essa rampa e o PlayerAnimator - ver o
+    /// comentario do PesoDaReacao logo acima.
+    ///
     /// A entrada sai do Any State, e nao do Vazio, pra que um segundo
     /// golpe REINICIE a reacao no meio dela. Saindo do Vazio, apanhar
     /// duas vezes seguidas mostraria um tranco so.
@@ -512,7 +528,7 @@ public static class PlayerAnimatorSetup
             controller.AddLayer(new AnimatorControllerLayer
             {
                 name = CamadaDaReacao,
-                defaultWeight = 1f,
+                defaultWeight = PesoDaReacao,
                 blendingMode = AnimatorLayerBlendingMode.Override,
                 stateMachine = maquina,
                 avatarMask = GarantirMascara(),
@@ -529,7 +545,7 @@ public static class PlayerAnimatorSetup
                 if (camadas[i].name != CamadaDaReacao)
                     continue;
 
-                camadas[i].defaultWeight = 1f;
+                camadas[i].defaultWeight = PesoDaReacao;
                 camadas[i].blendingMode = AnimatorLayerBlendingMode.Override;
                 camadas[i].avatarMask = GarantirMascara();
             }

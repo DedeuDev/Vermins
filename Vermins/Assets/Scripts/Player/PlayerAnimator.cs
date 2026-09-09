@@ -44,6 +44,16 @@ public class PlayerAnimator : MonoBehaviour
              "tremendo entre parado e andando.")]
     [SerializeField] private float velocidadeMinima = 0.1f;
 
+    [Header("Reacao a dano")]
+    [Tooltip("Segundos pra camada da reacao entrar. Tem que casar com a " +
+             "duracao da transicao pro estado Reagir la no controller, " +
+             "senao uma rampa termina antes da outra e aparece um degrau.")]
+    [SerializeField] private float entradaDaReacao = 0.08f;
+
+    [Tooltip("Segundos pra camada da reacao sair. Casa com a duracao da " +
+             "transicao de volta pro Vazio pelo mesmo motivo.")]
+    [SerializeField] private float saidaDaReacao = 0.15f;
+
     private static readonly int SpeedId = Animator.StringToHash("Speed");
     private static readonly int VelXId = Animator.StringToHash("VelX");
     private static readonly int VelZId = Animator.StringToHash("VelZ");
@@ -52,6 +62,10 @@ public class PlayerAnimator : MonoBehaviour
     private static readonly int VariacaoId = Animator.StringToHash("Variacao");
     private static readonly int VelAtaqueId = Animator.StringToHash("VelAtaque");
     private static readonly int ApanharId = Animator.StringToHash("Apanhar");
+
+    // Hash do ESTADO, nao de parametro. Uso pra saber se a reacao esta
+    // em cena neste frame, que e o que decide o peso da camada.
+    private static readonly int EstadoReagirId = Animator.StringToHash("Reagir");
 
     /// <summary>
     /// Nome da camada que toca a reacao a dano. Ela tem uma AvatarMask do
@@ -80,6 +94,11 @@ public class PlayerAnimator : MonoBehaviour
     // Indice da camada da reacao, resolvido uma vez. Guardo porque
     // GetLayerIndex faz busca por nome e eu leio isto todo frame.
     private int camadaDaReacao = -1;
+
+    // Peso atual da camada da reacao. Guardo em vez de ler do Animator
+    // todo frame porque eu preciso do valor de ONTEM pra saber se estou
+    // subindo ou descendo, e e isso que escolhe qual das duas rampas usar.
+    private float pesoDaReacao;
 
     // So reajo se o controller tiver as duas pecas: o trigger e a camada.
     // Sem elas o personagem apanha calado, e esta certo assim - ver o
@@ -327,17 +346,7 @@ public class PlayerAnimator : MonoBehaviour
         // mandar um aviso separado no respawn.
         animator.SetBool(MortoId, morto);
 
-        // Zero o peso da reacao enquanto morto pra que a camada de baixo
-        // fique com o corpo inteiro.
-        //
-        // O Apanhar ja se recusa a disparar depois da morte, mas isso nao
-        // basta: se o golpe que matou chegar no meio de uma reacao que ja
-        // estava tocando, ela continua ate o fim e o tronco fica de pe em
-        // cima do clipe de morte. Aqui e o unico lugar que corta isso no
-        // mesmo frame. E como e o peso da camada, o Revive devolve ao
-        // normal sozinho.
-        if (camadaDaReacao >= 0)
-            animator.SetLayerWeight(camadaDaReacao, morto ? 0f : 1f);
+        AtualizarPesoDaReacao(morto);
 
         Vector3 velocidade = VelocidadeNoChao();
 
@@ -363,6 +372,72 @@ public class PlayerAnimator : MonoBehaviour
         // juntos. Quando entrar o estado de ataque, e por aqui que ele vai
         // saber se o personagem esta parado.
         animator.SetFloat(SpeedId, moduloSuave);
+    }
+
+    /// <summary>
+    /// O peso da camada da reacao, frame a frame.
+    ///
+    /// Comecei com peso fixo em 1, deixando o estado Vazio cuidar de nao
+    /// tocar nada. Nao funciona: camada Override com peso 1 parada num
+    /// estado sem motion ESCREVE a pose de bind nos ossos da mascara, em
+    /// vez de deixar a camada de baixo passar. Na tela o personagem
+    /// andava o tempo todo com o tronco travado e os cotovelos dobrados,
+    /// tipo um T mal feito. Foi o Ian que viu.
+    ///
+    /// Entao o peso nasce em 0 e so sobe enquanto a reacao esta em cena.
+    /// Fora dela a camada nao pesa nada e o torso volta a vir inteiro da
+    /// locomocao.
+    ///
+    /// O detalhe que nao e obvio: eu miro em 0 tambem durante a transicao
+    /// DE VOLTA pro Vazio. E justamente nela que o Animator mistura o
+    /// clipe da reacao com a pose de bind do Vazio; se o peso so caisse
+    /// depois, a travada voltaria a aparecer por 0,15 s a cada golpe. Do
+    /// jeito que esta, as duas rampas correm juntas e a pose de bind
+    /// chega multiplicada por um peso que ja esta indo pra zero.
+    /// </summary>
+    private void AtualizarPesoDaReacao(bool morto)
+    {
+        if (camadaDaReacao < 0)
+            return;
+
+        // Morto zera na hora, sem rampa. O Apanhar ja se recusa a
+        // disparar depois da morte, mas isso nao basta: se o golpe que
+        // matou chegar no meio de uma reacao que ja estava tocando, ela
+        // continuaria ate o fim e o tronco ficaria de pe em cima do
+        // clipe de morte. E como e peso, o Revive devolve sozinho.
+        if (morto)
+        {
+            pesoDaReacao = 0f;
+            animator.SetLayerWeight(camadaDaReacao, 0f);
+            return;
+        }
+
+        float alvo = ReagindoAgora() ? 1f : 0f;
+        float tempo = alvo > pesoDaReacao ? entradaDaReacao : saidaDaReacao;
+
+        pesoDaReacao = tempo <= 0f
+            ? alvo
+            : Mathf.MoveTowards(pesoDaReacao, alvo, Time.deltaTime / tempo);
+
+        animator.SetLayerWeight(camadaDaReacao, pesoDaReacao);
+    }
+
+    /// <summary>
+    /// Se a reacao e o que a camada vai mostrar neste frame.
+    ///
+    /// Durante uma transicao eu olho pro estado de DESTINO e nao pro
+    /// atual. Isso resolve os dois lados de uma vez: entrando, o destino
+    /// ja e o Reagir e o peso comeca a subir junto com a transicao;
+    /// saindo, o destino e o Vazio e o peso comeca a cair mesmo com o
+    /// clipe da reacao ainda tocando.
+    /// </summary>
+    private bool ReagindoAgora()
+    {
+        AnimatorStateInfo info = animator.IsInTransition(camadaDaReacao)
+            ? animator.GetNextAnimatorStateInfo(camadaDaReacao)
+            : animator.GetCurrentAnimatorStateInfo(camadaDaReacao);
+
+        return info.shortNameHash == EstadoReagirId;
     }
 
     private Vector3 VelocidadeNoChao()
