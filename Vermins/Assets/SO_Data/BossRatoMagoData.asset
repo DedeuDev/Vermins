@@ -1,0 +1,31 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 138b2555b658a432394c105c60322635, type: 3}
+  m_Name: BossRatoMagoData
+  m_EditorClassIdentifier: Assembly-CSharp::BossDataSO
+  nomeBoss: Rato Mago Transmorfo
+  vidaMaxima: 1000
+  velocidadeMago: 3.5
+  velocidadeBesta: 5.5
+  distanciaSeguraMago: 6
+  alcanceProjetil: 12
+  cooldownProjetil: 2
+  prefabProjetil: {fileID: 0}
+  pontoDisparo: {fileID: 0}
+  cooldownTeleporte: 3
+  raioTeleporte: 5
+  cooldownInvocacao: 15
+  prefabMinion: {fileID: 0}
+  quantidadeMinions: 3
+  alcanceAtaqueBesta: 2
+  cooldownAtaqueBesta: 1.2
+  danoAtaqueBesta: 25
