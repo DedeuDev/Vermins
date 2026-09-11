@@ -15,14 +15,104 @@ using UnityEngine;
 /// do cooldown, e o cooldown virou atributo que muda em runtime - entao
 /// agora sai por parametro e quem calcula e o PlayerAnimator.
 ///
-/// Menu: Vermins > Player > Montar Animator
+/// Monta dois controllers com a MESMA estrutura, um por perfil: o da
+/// magia (Vampire) e o do Paladino, com espada. Troquei o combate pra
+/// corpo a corpo, mas quis guardar o da magia inteiro em vez de apagar -
+/// ele continua saindo daqui igualzinho, e se a magia voltar como
+/// habilidade o controller esta pronto. Os parametros, estados e camadas
+/// tem os mesmos nomes nos dois, entao o PlayerAnimator serve pra
+/// qualquer um.
+///
+/// Menu: Vermins > Player > Montar Animator            (magia)
+///       Vermins > Player > Montar Animator do Paladino
 /// </summary>
 public static class PlayerAnimatorSetup
 {
-    private const string ControllerPath =
-        "Assets/Animation/Player/PlayerLocomotion.controller";
+    /// <summary>
+    /// De onde vem cada clipe e pra onde vai o controller. E so isso que
+    /// muda de um personagem pro outro; o resto do menu e igual.
+    /// </summary>
+    private sealed class Perfil
+    {
+        public string nome;
+        public string controllerPath;
+        public string pastaClipes;
 
-    private const string PastaClipes = "Assets/Placeholders/Player";
+        /// <summary>
+        /// Os clipes que entram na roseta. Idle fica no centro e e
+        /// obrigatorio: o Freeform Directional precisa de alguem em (0,0)
+        /// pra ter o que tocar quando o player para.
+        /// </summary>
+        public string[] locomocao;
+        public string[] ataques;
+        public string clipeDeMorte;
+        public string clipeDeReacao;
+
+        /// <summary>
+        /// Se a posicao de cada clipe na roseta sai do pe (AnaliseDeClipe)
+        /// em vez do root motion. Ver PosicaoDoClipe.
+        /// </summary>
+        public bool posicaoPeloPe;
+    }
+
+    /// <summary>
+    /// O da magia, guardado. Nao tem sprint pros lados nem pra tras
+    /// porque o pack nao tem. Na pratica quase nao aparece: o corpo vira
+    /// pra onde anda, entao andar de lado so acontece durante a virada.
+    ///
+    /// As duas magias se alternam. Duas e o minimo pra nao parecer
+    /// bonequinho: repetir o mesmo gesto e o que mais denuncia
+    /// placeholder, e a segunda custa um arquivo.
+    /// </summary>
+    private static readonly Perfil Magia = new Perfil
+    {
+        nome = "magia",
+        controllerPath = "Assets/Animation/Player/PlayerLocomotion.controller",
+        pastaClipes = "Assets/Placeholders/Player",
+        locomocao = new[]
+        {
+            "Idle",
+            "WalkForward", "RunForward", "SprintForward",
+            "WalkBack",    "RunBack",
+            "WalkLeft",    "RunLeft",
+            "WalkRight",   "RunRight",
+        },
+        ataques = new[] { "1HMagicAttack01", "1HMagicAttack02" },
+        clipeDeMorte = "ReactDeathBackward",
+        clipeDeReacao = "ReactSmallFromFront",
+        posicaoPeloPe = false,
+    };
+
+    /// <summary>
+    /// O Paladino, com a espada de duas maos. O pack dele nao tem sprint,
+    /// entao a ponta da roseta pra frente e o RunForward.
+    ///
+    /// Os dois ataques sao os unicos golpes do pack que nao saem do lugar.
+    /// Quem manda na posicao e o NavMeshAgent, e um golpe que avanca 3 m
+    /// tiraria o corpo de dentro do collider.
+    ///
+    /// A reacao e o unico impacto do pack que fica em pe. Ela toca so no
+    /// torso, e um impacto agachado em cima de pernas andando vira boneco
+    /// quebrado.
+    /// </summary>
+    private static readonly Perfil Paladino = new Perfil
+    {
+        nome = "Paladino",
+        controllerPath = "Assets/Animation/Player/PaladinoLocomotion.controller",
+        pastaClipes = "Assets/Placeholders/Paladino/Animacoes",
+        locomocao = new[]
+        {
+            "Idle",
+            "WalkForward", "RunForward",
+            "WalkBack",    "RunBack",
+            "WalkLeft",    "RunLeft",
+            "WalkRight",   "RunRight",
+        },
+        ataques = new[] { "GreatSwordAttack01", "GreatSwordAttack02" },
+        clipeDeMorte = "GreatSwordDeathBackward",
+        clipeDeReacao = "GreatSwordImpact",
+        posicaoPeloPe = true,
+    };
 
     public const string ParamX = "VelX";
     public const string ParamZ = "VelZ";
@@ -50,42 +140,11 @@ public static class PlayerAnimatorSetup
     private const string EstadoAtaque = "Ataque";
     private const string EstadoMorte = "Morte";
 
-    /// <summary>
-    /// Os clipes que entram na roseta. Idle fica no centro e e
-    /// obrigatorio: o Freeform Directional precisa de alguem em (0,0) pra
-    /// ter o que tocar quando o player para.
-    ///
-    /// Nao tem sprint pros lados nem pra tras porque o pack nao tem. Na
-    /// pratica quase nao aparece: o corpo vira pra onde anda, entao andar
-    /// de lado so acontece durante a virada.
-    /// </summary>
-    private static readonly string[] Locomocao =
-    {
-        "Idle",
-        "WalkForward", "RunForward", "SprintForward",
-        "WalkBack",    "RunBack",
-        "WalkLeft",    "RunLeft",
-        "WalkRight",   "RunRight",
-    };
-
-    /// <summary>
-    /// As duas magias, alternadas. Duas e o minimo pra nao parecer
-    /// bonequinho: repetir o mesmo gesto e o que mais denuncia
-    /// placeholder, e a segunda custa um arquivo.
-    /// </summary>
-    private static readonly string[] Ataques =
-    {
-        "1HMagicAttack01", "1HMagicAttack02",
-    };
-
-    private const string ClipeDeMorte = "ReactDeathBackward";
-
     public const string ParamApanhar = "Apanhar";
 
     private const string CamadaDaReacao = "Reacao";
     private const string EstadoVazio = "Vazio";
     private const string EstadoReagir = "Reagir";
-    private const string ClipeDeReacao = "ReactSmallFromFront";
 
     private const string MascaraPath =
         "Assets/Animation/Player/TorsoParaCima.mask";
@@ -143,13 +202,24 @@ public static class PlayerAnimatorSetup
     [MenuItem("Vermins/Player/Montar Animator")]
     public static void Montar()
     {
-        var controller = AssetDatabase.LoadAssetAtPath<AnimatorController>(ControllerPath);
+        Montar(Magia);
+    }
 
+    [MenuItem("Vermins/Player/Montar Animator do Paladino")]
+    public static void MontarPaladino()
+    {
+        Montar(Paladino);
+    }
+
+    private static void Montar(Perfil perfil)
+    {
+        var controller = AssetDatabase.LoadAssetAtPath<AnimatorController>(perfil.controllerPath);
+
+        // Controller que nao existe eu crio: num arquivo novo nao tem nada
+        // pra apagar. O cuidado de nao recriar e so com o que ja existe,
+        // mais abaixo.
         if (controller == null)
-        {
-            Debug.LogError($"[Animator] Nao achei o controller em {ControllerPath}.");
-            return;
-        }
+            controller = AnimatorController.CreateAnimatorControllerAtPath(perfil.controllerPath);
 
         foreach (string p in new[] { ParamX, ParamZ, ParamSpeed, ParamVariacao })
             GarantirParametro(controller, p, AnimatorControllerParameterType.Float);
@@ -165,7 +235,7 @@ public static class PlayerAnimatorSetup
         GarantirParametro(controller, ParamVelAtaque, AnimatorControllerParameterType.Float);
         DefinirPadraoFloat(controller, ParamVelAtaque, 1f);
 
-        Dictionary<string, AnimationClip> porNome = IndexarClipes();
+        Dictionary<string, AnimationClip> porNome = IndexarClipes(perfil.pastaClipes);
         AnimatorStateMachine maquina = controller.layers[0].stateMachine;
 
         // Limpo o que eu mesmo montei antes, senao rodar duas vezes
@@ -173,8 +243,19 @@ public static class PlayerAnimatorSetup
         LimparTransicoesDoAnyState(maquina);
 
         AnimatorState locomocao = AcharEstado(maquina, EstadoLocomocao);
+        BlendTree arvore;
 
-        if (locomocao == null || !(locomocao.motion is BlendTree arvore))
+        if (locomocao == null)
+        {
+            // Mesmo metodo do ataque: estado e arvore nascem juntos como
+            // sub-asset do controller, senao a arvore fica orfa.
+            locomocao = controller.CreateBlendTreeInController(EstadoLocomocao, out arvore, 0);
+        }
+        else if (locomocao.motion is BlendTree existente)
+        {
+            arvore = existente;
+        }
+        else
         {
             Debug.LogError($"[Animator] O estado {EstadoLocomocao} nao tem blend " +
                            "tree dentro. Nao vou criar um do zero pra nao apagar " +
@@ -184,15 +265,15 @@ public static class PlayerAnimatorSetup
 
         var faltando = new List<string>();
 
-        if (!MontarLocomocao(arvore, porNome, faltando))
+        if (!MontarLocomocao(perfil, arvore, porNome, faltando))
         {
             Reclamar(faltando);
             return;
         }
 
-        AnimatorState ataque = MontarAtaque(controller, maquina, porNome, faltando);
-        AnimatorState morte = MontarMorte(maquina, porNome, faltando);
-        AnimatorState reacao = MontarReacao(controller, porNome, faltando);
+        AnimatorState ataque = MontarAtaque(perfil, controller, maquina, porNome, faltando);
+        AnimatorState morte = MontarMorte(perfil, maquina, porNome, faltando);
+        AnimatorState reacao = MontarReacao(perfil, controller, porNome, faltando);
 
         if (faltando.Count > 0)
         {
@@ -207,7 +288,7 @@ public static class PlayerAnimatorSetup
         EditorUtility.SetDirty(controller);
         AssetDatabase.SaveAssets();
 
-        Debug.Log(Resumo(arvore, ataque, morte, reacao));
+        Debug.Log(Resumo(perfil, arvore, ataque, morte, reacao));
     }
 
     private static void Reclamar(List<string> faltando)
@@ -217,35 +298,39 @@ public static class PlayerAnimatorSetup
     }
 
     private static bool MontarLocomocao(
+        Perfil perfil,
         BlendTree arvore,
         Dictionary<string, AnimationClip> porNome,
         List<string> faltando)
     {
         var filhos = new List<ChildMotion>();
 
-        foreach (string nome in Locomocao)
+        using (var analise = perfil.posicaoPeloPe ? new AnaliseDeClipe() : null)
         {
-            if (!porNome.TryGetValue(nome, out AnimationClip clipe))
+            foreach (string nome in perfil.locomocao)
             {
-                faltando.Add(nome);
-                continue;
-            }
+                if (!porNome.TryGetValue(nome, out AnimationClip clipe))
+                {
+                    faltando.Add(nome);
+                    continue;
+                }
 
-            filhos.Add(new ChildMotion
-            {
-                motion = clipe,
-                position = PosicaoDoClipe(nome, clipe),
-                timeScale = 1f,
-                directBlendParameter = ParamX,
-            });
+                filhos.Add(new ChildMotion
+                {
+                    motion = clipe,
+                    position = PosicaoDoClipe(nome, clipe, analise),
+                    timeScale = 1f,
+                    directBlendParameter = ParamX,
+                });
+            }
         }
 
         if (faltando.Count > 0)
             return false;
 
         // Freeform Directional e nao Simple Directional. Simple aceita um
-        // clipe so por direcao, e eu tenho tres pra frente (andar, correr,
-        // esprintar) e dois pra cada outro lado. Cartesian ignoraria que o
+        // clipe so por direcao, e eu tenho dois ou tres pra frente (andar,
+        // correr e, na magia, esprintar). Cartesian ignoraria que o
         // que organiza isto aqui e a direcao.
         arvore.blendType = BlendTreeType.FreeformDirectional2D;
         arvore.blendParameter = ParamX;
@@ -259,11 +344,13 @@ public static class PlayerAnimatorSetup
     }
 
     private static AnimatorState MontarAtaque(
+        Perfil perfil,
         AnimatorController controller,
         AnimatorStateMachine maquina,
         Dictionary<string, AnimationClip> porNome,
         List<string> faltando)
     {
+        string[] ataques = perfil.ataques;
         AnimatorState estado = AcharEstado(maquina, EstadoAtaque);
         BlendTree arvore = estado?.motion as BlendTree;
 
@@ -277,11 +364,11 @@ public static class PlayerAnimatorSetup
 
         var filhos = new List<ChildMotion>();
 
-        for (int i = 0; i < Ataques.Length; i++)
+        for (int i = 0; i < ataques.Length; i++)
         {
-            if (!porNome.TryGetValue(Ataques[i], out AnimationClip clipe))
+            if (!porNome.TryGetValue(ataques[i], out AnimationClip clipe))
             {
-                faltando.Add(Ataques[i]);
+                faltando.Add(ataques[i]);
                 continue;
             }
 
@@ -316,7 +403,7 @@ public static class PlayerAnimatorSetup
         estado.speedParameter = ParamVelAtaque;
 
         estado.writeDefaultValues = true;
-        estado.transitions = new AnimatorStateTransition[0];
+        LimparTransicoes(estado);
 
         EditorUtility.SetDirty(arvore);
 
@@ -324,6 +411,7 @@ public static class PlayerAnimatorSetup
     }
 
     private static AnimatorState MontarMorte(
+        Perfil perfil,
         AnimatorStateMachine maquina,
         Dictionary<string, AnimationClip> porNome,
         List<string> faltando)
@@ -331,15 +419,15 @@ public static class PlayerAnimatorSetup
         AnimatorState estado = AcharEstado(maquina, EstadoMorte)
                                ?? maquina.AddState(EstadoMorte, new Vector3(60f, 250f, 0f));
 
-        if (!porNome.TryGetValue(ClipeDeMorte, out AnimationClip clipe))
+        if (!porNome.TryGetValue(perfil.clipeDeMorte, out AnimationClip clipe))
         {
-            faltando.Add(ClipeDeMorte);
+            faltando.Add(perfil.clipeDeMorte);
             return estado;
         }
 
         estado.motion = clipe;
         estado.writeDefaultValues = true;
-        estado.transitions = new AnimatorStateTransition[0];
+        LimparTransicoes(estado);
 
         return estado;
     }
@@ -402,15 +490,38 @@ public static class PlayerAnimatorSetup
     /// e o RunLeft 3,25 contra 3,27. Um por cento.
     ///
     /// So o Idle e forcado em (0,0).
+    ///
+    /// No Paladino o tamanho sai do PE, e nao do root motion. Aquele um
+    /// por cento era do pack antigo; no da espada os dois discordam feio:
+    /// RunForward 3,22 m/s de root contra 2,58 no pe, RunLeft 2,18 contra
+    /// 1,52. Como o root motion e jogado fora (quem anda e o
+    /// NavMeshAgent), o numero que importa e a velocidade em que o pe
+    /// fica parado no chao - e esse e o do AnaliseDeClipe. Com o root
+    /// motion na roseta, o agente a 2,58 cairia entre andar e correr e
+    /// tocaria uma mistura dos dois com o pe patinando.
+    ///
+    /// A magia continua pelo root motion pra sair igual a antes.
     /// </summary>
-    private static Vector2 PosicaoDoClipe(string nome, AnimationClip clipe)
+    private static Vector2 PosicaoDoClipe(string nome, AnimationClip clipe, AnaliseDeClipe analise)
     {
         if (nome == "Idle")
             return Vector2.zero;
 
         Vector3 v = clipe.averageSpeed;
+        float tamanho = new Vector2(v.x, v.z).magnitude;
 
-        return DirecaoDoNome(nome) * new Vector2(v.x, v.z).magnitude;
+        if (analise != null)
+        {
+            AnaliseDeClipe.Medida m = analise.Medir(clipe);
+
+            if (m.valido && m.amostrasNoChao > 0)
+                tamanho = m.velocidade;
+            else
+                Debug.LogWarning($"[Animator] Nao consegui medir o pe no {nome}; " +
+                                 "usei o root motion, que neste pack erra.");
+        }
+
+        return DirecaoDoNome(nome) * tamanho;
     }
 
     private static Vector2 DirecaoDoNome(string nome)
@@ -440,6 +551,23 @@ public static class PlayerAnimatorSetup
     {
         foreach (AnimatorStateTransition t in maquina.anyStateTransitions)
             maquina.RemoveAnyStateTransition(t);
+    }
+
+    /// <summary>
+    /// Tira as transicoes de saida de um estado APAGANDO cada uma.
+    ///
+    /// Antes eu fazia estado.transitions = vazio, e isso so tira da
+    /// lista: a transicao continua gravada dentro do .controller, solta,
+    /// sem ninguem apontar pra ela. Cada vez que o menu rodava sobravam
+    /// tres. Achei quando montei o controller do Paladino e o da magia ja
+    /// tinha 21 transicoes no arquivo pra 6 em uso. Nao muda nada no
+    /// jogo, mas o arquivo so crescia e o diff de toda rodada vinha cheio
+    /// de lixo. O RemoveTransition apaga o objeto junto.
+    /// </summary>
+    private static void LimparTransicoes(AnimatorState estado)
+    {
+        foreach (AnimatorStateTransition t in estado.transitions)
+            estado.RemoveTransition(t);
     }
 
     private static void GarantirParametro(
@@ -507,6 +635,7 @@ public static class PlayerAnimatorSetup
     /// duas vezes seguidas mostraria um tranco so.
     /// </summary>
     private static AnimatorState MontarReacao(
+        Perfil perfil,
         AnimatorController controller,
         Dictionary<string, AnimationClip> porNome,
         List<string> faltando)
@@ -562,21 +691,21 @@ public static class PlayerAnimatorSetup
 
         vazio.motion = null;
         vazio.writeDefaultValues = false;
-        vazio.transitions = new AnimatorStateTransition[0];
+        LimparTransicoes(vazio);
 
         AnimatorState reagir = AcharEstado(maquina, EstadoReagir)
                                ?? maquina.AddState(EstadoReagir, new Vector3(260f, 170f, 0f));
 
         reagir.writeDefaultValues = false;
-        reagir.transitions = new AnimatorStateTransition[0];
+        LimparTransicoes(reagir);
 
         maquina.defaultState = vazio;
 
         LimparTransicoesDoAnyState(maquina);
 
-        if (!porNome.TryGetValue(ClipeDeReacao, out AnimationClip clipe))
+        if (!porNome.TryGetValue(perfil.clipeDeReacao, out AnimationClip clipe))
         {
-            faltando.Add(ClipeDeReacao);
+            faltando.Add(perfil.clipeDeReacao);
             return reagir;
         }
 
@@ -638,11 +767,11 @@ public static class PlayerAnimatorSetup
         return null;
     }
 
-    private static Dictionary<string, AnimationClip> IndexarClipes()
+    private static Dictionary<string, AnimationClip> IndexarClipes(string pasta)
     {
         var mapa = new Dictionary<string, AnimationClip>();
 
-        foreach (string guid in AssetDatabase.FindAssets("t:Model", new[] { PastaClipes }))
+        foreach (string guid in AssetDatabase.FindAssets("t:Model", new[] { pasta }))
         {
             string path = AssetDatabase.GUIDToAssetPath(guid);
 
@@ -660,6 +789,7 @@ public static class PlayerAnimatorSetup
     }
 
     private static string Resumo(
+        Perfil perfil,
         BlendTree arvore,
         AnimatorState ataque,
         AnimatorState morte,
@@ -668,8 +798,9 @@ public static class PlayerAnimatorSetup
         var ci = System.Globalization.CultureInfo.InvariantCulture;
         var sb = new System.Text.StringBuilder();
 
-        sb.AppendLine($"[Animator] Pronto: {arvore.children.Length} clipes na " +
-                      "locomocao, mais ataque e morte.");
+        sb.AppendLine($"[Animator] Pronto ({perfil.nome}): {arvore.children.Length} " +
+                      "clipes na locomocao, mais ataque e morte. Posicoes pelo " +
+                      (perfil.posicaoPeloPe ? "pe." : "root motion."));
 
         foreach (ChildMotion c in arvore.children)
         {
