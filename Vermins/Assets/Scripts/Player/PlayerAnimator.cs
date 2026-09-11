@@ -81,7 +81,7 @@ public class PlayerAnimator : MonoBehaviour
     /// </summary>
     private const float FolgaDoGolpe = 0.95f;
 
-    // Duracao do clipe de magia mais longo, lida do controller uma vez.
+    // Duracao do clipe de ataque mais longo, lida do controller uma vez.
     // Leio em vez de deixar campo serializado porque este numero muda
     // sozinho quando alguem recorta o clipe, e um campo ficaria mentindo
     // sem ninguem notar.
@@ -203,11 +203,18 @@ public class PlayerAnimator : MonoBehaviour
     }
 
     /// <summary>
-    /// Acha a duracao do clipe de magia mais longo dentro do controller.
+    /// Acha a duracao do clipe de ataque mais longo dentro do controller.
     ///
     /// Pego o mais longo e nao o primeiro porque a velocidade tem que
     /// caber os DOIS ataques no cooldown; dimensionando pelo curto, o
     /// longo estouraria.
+    ///
+    /// Procuro "Attack" no nome, e nao "MagicAttack" como era antes, pra
+    /// servir nos dois controllers: as magias sao 1HMagicAttack01/02 e os
+    /// golpes de espada sao GreatSwordAttack01/02. O runtimeAnimatorController
+    /// so me da a lista de clipes, sem dizer de qual estado cada um e, entao
+    /// o nome e o unico jeito. Nenhum clipe de locomocao, reacao ou morte
+    /// tem "Attack" no nome.
     ///
     /// Se nao achar, aviso mas nao desligo o componente. Sem este numero
     /// o ataque toca na velocidade natural - fica feio se o cooldown for
@@ -222,16 +229,16 @@ public class PlayerAnimator : MonoBehaviour
         {
             foreach (AnimationClip c in rac.animationClips)
             {
-                if (c != null && c.name.Contains("MagicAttack") && c.length > duracaoDoAtaque)
+                if (c != null && c.name.Contains("Attack") && c.length > duracaoDoAtaque)
                     duracaoDoAtaque = c.length;
             }
         }
 
         if (duracaoDoAtaque <= 0f)
         {
-            Debug.LogWarning($"[{name}] Nao achei clipe de magia no controller, " +
+            Debug.LogWarning($"[{name}] Nao achei clipe de ataque no controller, " +
                              "entao nao sei encurtar o golpe pra caber no cooldown. " +
-                             "Rode Vermins/Player/Montar Animator.", this);
+                             "Rode o menu Vermins/Player/Montar Animator do personagem.", this);
         }
     }
 
