@@ -87,9 +87,24 @@ public static class PlayerAnimatorSetup
     /// O Paladino, com a espada de duas maos. O pack dele nao tem sprint,
     /// entao a ponta da roseta pra frente e o RunForward.
     ///
-    /// Os dois ataques sao os unicos golpes do pack que nao saem do lugar.
-    /// Quem manda na posicao e o NavMeshAgent, e um golpe que avanca 3 m
-    /// tiraria o corpo de dentro do collider.
+    /// Os ataques foram escolhidos medindo a ponta da espada, quadro a
+    /// quadro: tem que haver uma pancada rapida NA FRENTE do corpo, a uns
+    /// 2 m. O 01 (great sword slash) desce de cima pra baixo aos 51%, reto
+    /// na frente, a 1,89 m. O 02 e o great sword slash (5), um golpe baixo
+    /// que varre a frente aos 37%, a 2,31 m.
+    ///
+    /// O 02 ja foi o great sword attack, e estava errado: a lamina ia pra
+    /// tras do ombro direito e nunca descia na frente. Na tela parecia
+    /// "ia bater num lugar e bateu em outro". Eu tinha escolhido so pela
+    /// duracao e por nao sair do lugar, sem olhar onde a lamina caia.
+    ///
+    /// Entre os que caem na frente, o slash (5) ganhou pela duracao. Os
+    /// dois golpes dividem o estado Ataque, e o PlayerAnimator acelera o
+    /// estado pelo clipe MAIS LONGO pra caber no cooldown: com o slash (5),
+    /// de 1,43 s, os dois tocam a 1,25x; com o slash (3), de 1,83 s,
+    /// tocariam a 1,61x e o 01 ficaria corrido. Ficaram de fora os que
+    /// avancam demais - o slash (4) leva o quadril 1,07 m pra frente, pra
+    /// fora do collider, e quem manda na posicao e o NavMeshAgent.
     ///
     /// A reacao e o unico impacto do pack que fica em pe. Ela toca so no
     /// torso, e um impacto agachado em cima de pernas andando vira boneco

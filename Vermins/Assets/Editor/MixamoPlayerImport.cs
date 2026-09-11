@@ -40,6 +40,29 @@ public static class MixamoPlayerImport
     };
 
     /// <summary>
+    /// Em que ponto de cada golpe de espada a lamina bate, como fracao do
+    /// clipe. Vira um Animation Event AcertarGolpe, e e nele que o
+    /// PlayerCombat tira a vida.
+    ///
+    /// Nao e chute: medi a ponta da espada quadro a quadro e peguei o
+    /// pico de velocidade que cai na frente do corpo. Conferi em jogo,
+    /// com a velocidade do estado aplicada: 0,51 s e 0,42 s depois do
+    /// comeco do golpe, que e isto aqui dividido pelo VelAtaque de 1,257.
+    ///
+    /// Fica aqui e nao na mao, pelo Inspector, porque o "Reconfigurar
+    /// Tudo do Zero" reconstroi o clipe a partir do arquivo e apagaria um
+    /// evento posto na mao. Daqui ele volta sozinho.
+    /// </summary>
+    private static readonly Dictionary<string, float> MomentoDaPancada =
+        new Dictionary<string, float>
+        {
+            { "GreatSwordAttack01", 0.51f },   // de cima pra baixo, reto na frente
+            { "GreatSwordAttack02", 0.37f },   // rasteiro, varrendo da direita pra esquerda
+        };
+
+    private const string EventoDaPancada = "AcertarGolpe";
+
+    /// <summary>
     /// Prepara os FBX que ainda nao foram preparados. Nao encosta em
     /// clipe que ja tem ajuste salvo.
     /// </summary>
@@ -191,10 +214,33 @@ public static class MixamoPlayerImport
             clipes[i].lockRootHeightY = true;
             clipes[i].heightFromFeet = false;
 
-            // So os ciclos assam a rotacao na pose. Nas de uma vez so
-            // isso seria errado: a de virar 90 graus giraria e voltaria
-            // de tranco.
-            clipes[i].lockRootRotation = ciclo;
+            // A rotacao vai na pose em tudo, menos nos giros. Nos giros
+            // seria errado: a de virar 90 graus giraria o corpo e
+            // voltaria de tranco no fim.
+            //
+            // Antes so os ciclos assavam, e os golpes do Paladino saiam
+            // pro lado. O golpe gira o corpo pra dentro da pancada e
+            // depois volta; sem assar, esse giro virava root motion, o
+            // Player jogava fora, e a lamina varria pro lado em vez da
+            // frente. Medi a ponta da espada em jogo: o slash (5) caia a
+            // 100 graus pra direita e o slash a 32; assando, 19 pra
+            // esquerda e 2, igual ao clipe. O averageAngularSpeed do
+            // clipe dizia zero nos dois - ele so compara o comeco com o
+            // fim, e um golpe que gira e volta da zero. Nao confie nele
+            // pra isso.
+            clipes[i].lockRootRotation = !EhGiro(nome);
+
+            // O time do evento aqui e FRACAO do clipe (0 a 1), e nao
+            // segundo - e o contrario do AnimationClip.events em runtime.
+            // Por isso a tabela guarda fracao: ela continua certa se
+            // alguem recortar o comeco ou o fim do clipe.
+            if (i == 0 && MomentoDaPancada.TryGetValue(nome, out float pancada))
+            {
+                clipes[i].events = new[]
+                {
+                    new AnimationEvent { functionName = EventoDaPancada, time = pancada },
+                };
+            }
 
             // "Original" e nao "Body Orientation". Body Orientation tira
             // a referencia da postura media do corpo, e nesse rig ela sai
@@ -263,6 +309,11 @@ public static class MixamoPlayerImport
         string m = nome.ToLowerInvariant();
 
         return !m.Contains("jump") && !m.Contains("land");
+    }
+
+    private static bool EhGiro(string nome)
+    {
+        return nome.ToLowerInvariant().Contains("turn");
     }
 
     private static bool EhCiclo(string nome)

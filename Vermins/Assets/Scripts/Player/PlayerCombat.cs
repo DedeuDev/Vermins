@@ -19,13 +19,26 @@ using UnityEngine.AI;
 /// chama SoltarProjetil. Isso consertou de quebra um defeito antigo: o
 /// dano era aplicado ANTES da animacao comecar, entao a magia acertava
 /// com o braco ainda abaixado.
+///
+/// Hoje tem dois jeitos de bater, e quem escolhe e o campo projetil:
+///   - com projetil: magia. Alcance da build, a bola nasce no evento
+///     SoltarMagia. E o PlayerMagia.prefab, guardado.
+///   - sem projetil: corpo a corpo. Alcance da arma, o dano sai no evento
+///     AcertarGolpe, no quadro da pancada. E o Paladino.
+/// Escolhi o campo e nao uma flag nova porque os dois andam juntos: uma
+/// flag "corpo a corpo" com projetil ligado nao teria sentido nenhum, e
+/// alguem ia acabar deixando os dois brigando.
 /// </summary>
 [RequireComponent(typeof(PlayerMotor))]
 [RequireComponent(typeof(MeleeAttack))]
 public class PlayerCombat : MonoBehaviour
 {
     [Header("Ataque")]
-    [Tooltip("Distancia de centro a centro. Era 2, de corpo a corpo, e " +
+    [Tooltip("SO VALE COM PROJETIL (magia). No corpo a corpo quem manda e o " +
+             "alcanceDaArma, la embaixo. E a build sobrescreve este numero " +
+             "no Start, pelo AtributosDoPersonagem - mexer aqui na cena so " +
+             "tem efeito sem build ligada. " +
+             "Distancia de centro a centro. Era 2, de corpo a corpo, e " +
              "subiu pra 9 porque o jogador lanca magia e nao bate de " +
              "perto. O inimigo alcanca 1,5 m, entao o jogador tem uns " +
              "tres golpes antes do bicho encostar - e isso que faz valer " +
@@ -52,10 +65,25 @@ public class PlayerCombat : MonoBehaviour
              "quem gira e este script.")]
     [SerializeField] private float turnSpeed = 720f;
 
+    [Header("Corpo a corpo")]
+    [Tooltip("De quao perto o golpe de espada sai, de centro a centro. " +
+             "Nao vem da build de proposito: o alcance do golpe e fisico. " +
+             "Medi a ponta da espada em jogo e a pancada cai entre 1,73 m " +
+             "(o golpe de cima) e 2,23 m (o rasteiro) do centro do corpo. " +
+             "Com 2,2 aqui e o inimigo com raio de ~0,5, a lamina sempre " +
+             "atravessa o corpo dele. Um atributo que empurrasse isto pra " +
+             "3 m faria o dano sair no ar, longe da lamina.")]
+    [SerializeField] private float alcanceDaArma = 2.2f;
+
+    [Tooltip("Quanto o alvo pode se afastar entre o comeco do golpe e a " +
+             "pancada (0,4 a 0,5 s) e ainda levar o dano. E mais ou menos o " +
+             "raio do inimigo: generoso de proposito, porque errar um golpe " +
+             "que visivelmente passou no bicho parece injusto.")]
+    [SerializeField] private float folgaDaPancada = 0.5f;
+
     [Header("Magia")]
-    [Tooltip("A bola que sai da mao. Sem prefab aqui o ataque volta a " +
-             "tirar vida na hora, de longe e sem nada aparecer - " +
-             "funciona, mas e o comportamento antigo.")]
+    [Tooltip("A bola que sai da mao. Vazio = corpo a corpo: o dano sai " +
+             "no evento AcertarGolpe e o alcance passa a ser o da arma.")]
     [SerializeField] private Projetil projetil;
 
     [Tooltip("Contra o que testar se a visao esta limpa. Deixei so o " +
@@ -125,14 +153,23 @@ public class PlayerCombat : MonoBehaviour
     }
 
     /// <summary>
-    /// De quao longe o golpe sai. Tem setter pelo mesmo motivo: e o que
-    /// o atributo Alcance mexe.
+    /// De quao longe a MAGIA sai. Tem setter pelo mesmo motivo: e o que
+    /// o atributo Alcance mexe. No corpo a corpo este numero e ignorado -
+    /// ver AlcanceEfetivo.
     /// </summary>
     public float AttackRange
     {
         get => attackRange;
         set => attackRange = Mathf.Max(0.5f, value);
     }
+
+    public bool CorpoACorpo => projetil == null;
+
+    /// <summary>
+    /// O alcance que vale agora: o da build na magia, o da arma no corpo
+    /// a corpo. Tudo que decide perseguir ou bater passa por aqui.
+    /// </summary>
+    private float AlcanceEfetivo => CorpoACorpo ? alcanceDaArma : attackRange;
 
     /// <summary>
     /// Disparado quando o golpe COMECA, e nao quando acerta.
@@ -199,6 +236,15 @@ public class PlayerCombat : MonoBehaviour
     /// </summary>
     public void SoltarProjetil()
     {
+        // Sem bola e corpo a corpo. Um clipe de magia tocando num
+        // personagem de espada cai aqui e passa pelo mesmo teste de
+        // alcance do golpe - antes ele tirava vida de 9 m, na hora.
+        if (CorpoACorpo)
+        {
+            AcertarGolpe();
+            return;
+        }
+
         esperandoOEvento = false;
 
         if (ownHealth != null && ownHealth.IsDead)
@@ -215,35 +261,68 @@ public class PlayerCombat : MonoBehaviour
             ? alvoDoCast.transform.position
             : origem + transform.forward;
 
-        if (projetil == null)
-        {
-            AvisarSemProjetil();
-
-            // Sem prefab volto pro comportamento antigo, de tirar vida
-            // na hora. Feio, mas melhor que o ataque simplesmente nao
-            // funcionar pra quem abrir a cena sem o prefab ligado.
-            if (alvoVivo)
-                weapon.TryHit(alvoDoCast);
-
-            return;
-        }
-
         Projetil bola = Instantiate(projetil, origem, Quaternion.identity);
         bola.Lancar(mira - origem, weapon.Damage, gameObject);
     }
 
-    private bool jaReclameiDoPrefab;
-
-    private void AvisarSemProjetil()
+    /// <summary>
+    /// O quadro da pancada. Quem chama e o Animation Event AcertarGolpe dos
+    /// clipes de espada, que o MixamoPlayerImport grava no ponto medido de
+    /// cada golpe (51% e 37%).
+    ///
+    /// O alvo e o travado no comeco do golpe, como na magia: clicar em
+    /// outro bicho no meio do movimento nao desvia a espada.
+    ///
+    /// Aqui eu SO aceito o evento se um golpe estiver esperando por ele.
+    /// Na magia nao precisava, mas o golpe de espada pode reiniciar em
+    /// cima de si mesmo (Any State com transicao pro proprio estado), e
+    /// durante essa transicao o clipe velho e o novo tocam juntos - dois
+    /// eventos pro mesmo golpe seriam dano em dobro.
+    /// </summary>
+    public void AcertarGolpe()
     {
-        if (jaReclameiDoPrefab)
+        if (!esperandoOEvento)
             return;
 
-        jaReclameiDoPrefab = true;
-        Debug.LogWarning(
-            $"[{name}] Nao tem prefab de projetil ligado no PlayerCombat. " +
-            "O ataque volta a tirar vida na hora, de 9 m, sem nada sair " +
-            "da mao.", this);
+        esperandoOEvento = false;
+
+        if (ownHealth != null && ownHealth.IsDead)
+            return;
+
+        if (alvoDoCast == null || alvoDoCast.IsDead)
+            return;
+
+        // Golpe que nao alcanca e golpe no ar: o gesto ja foi feito, so
+        // nao tira vida.
+        if (LaminaAlcanca(alvoDoCast))
+            weapon.TryHit(alvoDoCast);
+    }
+
+    /// <summary>
+    /// Se, no quadro da pancada, a espada chega no alvo.
+    ///
+    /// O golpe comeca com o alvo dentro do alcanceDaArma, mas a pancada
+    /// so vem 0,4 a 0,5 s depois. Nesse meio tempo o bicho pode ter
+    /// andado, e a pergunta aqui e se ainda e justo contar como acerto.
+    /// </summary>
+    private bool LaminaAlcanca(Health alvo)
+    {
+        // So no plano do chao: um inimigo num degrau nao pode escapar do
+        // golpe por estar 30 cm mais alto.
+        Vector3 ate = alvo.transform.position - transform.position;
+        ate.y = 0f;
+
+        // Generoso de proposito. Um bicho que recuou 10 cm durante o
+        // golpe e "a espada passou nele e nao tirou vida", que e o que
+        // o jogador mais sente como injusto. A folga e mais ou menos o
+        // raio do inimigo.
+        if (ate.magnitude > alcanceDaArma + folgaDaPancada)
+            return false;
+
+        // Metade da frente. O Player gira pro alvo o golpe inteiro, entao
+        // isto quase nunca barra - so pega o bicho que contornou por tras,
+        // onde a lamina nunca passa em nenhum dos dois golpes.
+        return Vector3.Dot(ate, transform.forward) > 0f;
     }
 
     /// <summary>
@@ -271,11 +350,24 @@ public class PlayerCombat : MonoBehaviour
         if (!jaReclameiDoEvento)
         {
             jaReclameiDoEvento = true;
-            Debug.LogWarning(
-                $"[{name}] O golpe comecou e o Animation Event nunca chegou. " +
-                "Falta o evento 'SoltarMagia' no clipe de magia: abre o FBX, " +
-                "aba Animation, poe o evento no frame em que a mao solta. " +
-                "Enquanto isso a bola sai atrasada, no fim do cooldown.", this);
+
+            if (CorpoACorpo)
+            {
+                Debug.LogWarning(
+                    $"[{name}] O golpe comecou e o Animation Event nunca chegou. " +
+                    "Falta o evento 'AcertarGolpe' no clipe de espada. Ele e " +
+                    "gravado pelo Vermins/Player/Configurar FBX do Mixamo, na " +
+                    "tabela MomentoDaPancada. Enquanto isso o dano sai " +
+                    "atrasado, no fim do cooldown.", this);
+            }
+            else
+            {
+                Debug.LogWarning(
+                    $"[{name}] O golpe comecou e o Animation Event nunca chegou. " +
+                    "Falta o evento 'SoltarMagia' no clipe de magia: abre o FBX, " +
+                    "aba Animation, poe o evento no frame em que a mao solta. " +
+                    "Enquanto isso a bola sai atrasada, no fim do cooldown.", this);
+            }
         }
 
         SoltarProjetil();
@@ -308,9 +400,11 @@ public class PlayerCombat : MonoBehaviour
         Vector3 alvo = target.transform.position;
         float distancia = Vector3.Distance(transform.position, alvo);
 
-        if (distancia > attackRange)
+        float alcance = AlcanceEfetivo;
+
+        if (distancia > alcance)
         {
-            Chase(alvo, attackRange * 0.8f);
+            Chase(alvo, alcance * 0.8f);
             return;
         }
 
@@ -320,7 +414,7 @@ public class PlayerCombat : MonoBehaviour
         // fazendo gesto pro muro no ritmo do cooldown.
         if (!VisaoLimpa(target))
         {
-            Chase(alvo, attackRange * 0.3f);
+            Chase(alvo, alcance * 0.3f);
             return;
         }
 
@@ -438,7 +532,7 @@ public class PlayerCombat : MonoBehaviour
     private void OnDrawGizmosSelected()
     {
         Gizmos.color = Color.red;
-        Gizmos.DrawWireSphere(transform.position, attackRange);
+        Gizmos.DrawWireSphere(transform.position, AlcanceEfetivo);
 
         if (target != null)
         {

@@ -670,7 +670,8 @@ MonoBehaviour:
   attackRange: 9
   attackCooldown: 1.2
   turnSpeed: 720
-  projetil: {fileID: 9151330617227145017, guid: 97ef60d97bd87f146bcd17db235ff6c5, type: 3}
+  alcanceDaArma: 2.2
+  projetil: {fileID: 0}
   oQueBloqueiaVisao:
     serializedVersion: 2
     m_Bits: 8

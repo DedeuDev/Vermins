@@ -46,4 +46,15 @@ public class EventoDeAnimacao : MonoBehaviour
         if (combate != null)
             combate.SoltarProjetil();
     }
+
+    /// <summary>
+    /// Chamado pelo Animation Event dos clipes de espada, no quadro da
+    /// pancada. Este NAO precisa ser posto na mao: o MixamoPlayerImport
+    /// grava ele sozinho nos clipes da tabela MomentoDaPancada.
+    /// </summary>
+    public void AcertarGolpe()
+    {
+        if (combate != null)
+            combate.AcertarGolpe();
+    }
 }
