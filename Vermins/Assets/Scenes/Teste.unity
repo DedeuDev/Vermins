@@ -187,10 +187,10 @@ MonoBehaviour:
   - {fileID: 8547013069835180014, guid: b4f9dbcc06a33924cbd50feaa8f1228b, type: 3}
   - {fileID: 9202728413640393550, guid: 92b5476f2472ac14a839d16c106c164b, type: 3}
   socketBlockerPrefab: {fileID: 1535053994835432617, guid: c15d27500cec6af45847e373ec0cb455, type: 3}
-  targetRoomCount: 15
+  targetRoomCount: 20
   attemptsPerSocket: 30
-  mainPathRoomCount: 5
-  maxActiveBranches: 3
+  mainPathRoomCount: 10
+  maxActiveBranches: 4
   minFinalRoomDepth: 8
   validateAfterGeneration: 1
   verboseValidationLog: 1
