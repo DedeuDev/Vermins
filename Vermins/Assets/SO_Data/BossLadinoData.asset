@@ -10,22 +10,20 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 138b2555b658a432394c105c60322635, type: 3}
-  m_Name: BossRatoMagoData
+  m_Name: BossLadinoData
   m_EditorClassIdentifier: Assembly-CSharp::BossDataSO
-  nomeBoss: Rato Mago Transmorfo
+  nomeBoss: Ladino Sombrio
   vidaMaxima: 1000
-  velocidadeMago: 3.5
-  velocidadeBesta: 5.5
-  distanciaSeguraMago: 6
-  alcanceProjetil: 12
-  cooldownProjetil: 2
-  prefabProjetil: {fileID: 0}
+  velocidadeNativo: 4.5
+  velocidadeFurtivo: 6.5
+  distanciaSegura: 7
+  alcanceBesta: 10
+  cooldownFlechaFase1: 1.8
+  cooldownFlechaFase2: 1
+  prefabFlecha: {fileID: 0}
   pontoDisparo: {fileID: 0}
-  cooldownTeleporte: 3
-  raioTeleporte: 5
-  cooldownInvocacao: 15
-  prefabMinion: {fileID: 0}
-  quantidadeMinions: 3
-  alcanceAtaqueBesta: 2
-  cooldownAtaqueBesta: 1.2
-  danoAtaqueBesta: 25
+  cooldownVeneno: 8
+  prefabPocaVeneno: {fileID: 0}
+  tempoInvisivel: 2.5
+  cooldownInvisibilidadeFase2: 12
+  prefabEfeitoFumaca: {fileID: 0}
