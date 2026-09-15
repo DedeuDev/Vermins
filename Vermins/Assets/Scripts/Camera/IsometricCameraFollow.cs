@@ -39,8 +39,17 @@ public class IsometricCameraFollow : MonoBehaviour
     [Tooltip("Distancia da camera ate o alvo.\n\n" +
              "Anda junto com o campo de visao: os dois decidem o tamanho " +
              "do personagem na tela. Longe + campo estreito achata a " +
-             "perspectiva e e o que faz parecer isometrico.")]
-    [SerializeField] private float distance = 29.5f;
+             "perspectiva e e o que faz parecer isometrico.\n\n" +
+             "24,3 poe o Paladino no mesmo tamanho de tela que o Vampire " +
+             "tinha a 29,5. Medi os dois parados no Idle, com pitch 55 e " +
+             "campo 30: 109 px de altura em 1080p no Vampire, 108 no " +
+             "Paladino. A conta pela altura do corpo nao serve: de pe o " +
+             "Paladino tem 94% da altura do Vampire, mas na tela ficava " +
+             "com 83%, porque a 55 graus o fundo do corpo tambem vira " +
+             "altura, e a capa do Vampire tem 1,42 m de fundo contra 0,69. " +
+             "O preco e ver menos chao: a altura visivel na distancia do " +
+             "alvo cai de 15,8 pra 13,0 m.")]
+    [SerializeField] private float distance = 24.3f;
 
     [Tooltip("Campo de visao vertical. Quanto menor, menos as coisas da " +
              "borda da tela aparecem tortas - e o que da a cara de ARPG. " +
