@@ -151,6 +151,22 @@ public static class PlayerAnimatorSetup
     /// </summary>
     public const string ParamVelAtaque = "VelAtaque";
 
+    /// <summary>
+    /// Multiplicador de velocidade da locomocao.
+    ///
+    /// O blend tree so sabe tocar cada clipe na velocidade em que o pe
+    /// dele pisa. Acima da corrida mais rapida nao tem clipe mais longe
+    /// pra onde ir, entao o blend fica parado na borda e o corpo anda mais
+    /// rapido que o pe: patina. No Paladino a corrida pra frente pisa a
+    /// 2,58 m/s e eu quero o jogador a 3,2.
+    ///
+    /// Mesma solucao do VelAtaque: parametro no speed do estado, e quem
+    /// calcula e o PlayerAnimator, porque a velocidade do agente so existe
+    /// rodando. Abaixo da corrida ele manda 1 e o blend faz o trabalho
+    /// sozinho, como sempre fez.
+    /// </summary>
+    public const string ParamVelLocomocao = "VelLocomocao";
+
     private const string EstadoLocomocao = "Locomocao";
     private const string EstadoAtaque = "Ataque";
     private const string EstadoMorte = "Morte";
@@ -250,6 +266,10 @@ public static class PlayerAnimatorSetup
         GarantirParametro(controller, ParamVelAtaque, AnimatorControllerParameterType.Float);
         DefinirPadraoFloat(controller, ParamVelAtaque, 1f);
 
+        // Mesmo motivo do de cima: em zero a locomocao congelaria.
+        GarantirParametro(controller, ParamVelLocomocao, AnimatorControllerParameterType.Float);
+        DefinirPadraoFloat(controller, ParamVelLocomocao, 1f);
+
         Dictionary<string, AnimationClip> porNome = IndexarClipes(perfil.pastaClipes);
         AnimatorStateMachine maquina = controller.layers[0].stateMachine;
 
@@ -277,6 +297,9 @@ public static class PlayerAnimatorSetup
                            "o que ja estiver la.");
             return;
         }
+
+        locomocao.speedParameterActive = true;
+        locomocao.speedParameter = ParamVelLocomocao;
 
         var faltando = new List<string>();
 
@@ -817,11 +840,23 @@ public static class PlayerAnimatorSetup
                       "clipes na locomocao, mais ataque e morte. Posicoes pelo " +
                       (perfil.posicaoPeloPe ? "pe." : "root motion."));
 
+        float corridaPraFrente = 0f;
+
         foreach (ChildMotion c in arvore.children)
         {
             sb.AppendLine(string.Format(ci, "  {0,-14} x={1,6:F2}  z={2,6:F2}",
                 c.motion.name, c.position.x, c.position.y));
+
+            if (c.position.y > corridaPraFrente)
+                corridaPraFrente = c.position.y;
         }
+
+        // O ponto mais longe pra frente e o que o PlayerAnimator usa pra
+        // acelerar a locomocao acima dele. Imprimo porque la em runtime
+        // nao da pra ler a posicao do blend.
+        sb.AppendLine(string.Format(ci,
+            "  corrida pra frente: {0:F2} m/s -> copie no 'Velocidade Da Corrida' do PlayerAnimator",
+            corridaPraFrente));
 
         if (ataque.motion is BlendTree arvoreAtaque)
         {

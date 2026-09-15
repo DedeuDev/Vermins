@@ -12,16 +12,14 @@ using UnityEngine.AI;
 public class PlayerMotor : MonoBehaviour
 {
     [Header("Movimento")]
-    [Tooltip("Casado com a velocidade do clipe de SprintForward, que e o " +
-             "ponto mais longe do blend tree 2D. Se alguem trocar o clipe " +
-             "de sprint, rode 'Vermins/Player/Montar Animator' e " +
-             "copie pra ca o numero que sair no log. " +
-             "Aviso pra quem for mexer: nao adianta cacar o ponto em que o " +
-             "pe para de deslizar, ele nao existe. Varri de 2,5 a 6,0 m/s " +
-             "medindo a velocidade do pe no chao e ela nunca desce de " +
-             "1,4 m/s - estes clipes do Mixamo ja vem com o pe patinando. " +
-             "Isso so sai com clipe melhor, nao com numero melhor.")]
-    [SerializeField] private float moveSpeed = 4.13f;
+    [Tooltip("O Vampire andava a 4,13, casado com o SprintForward dele, " +
+             "mas o Paladino nao tem sprint: a corrida mais rapida dele " +
+             "pisa a 2,58. Pra andar a 4,13 a animacao teria que tocar a " +
+             "1,6x, e parado em 2,58 o jogador ficaria 38% mais lento que " +
+             "antes. 3,2 e o meio-termo: o PlayerAnimator acelera a " +
+             "corrida pra 1,24x (3,2 / 2,58). Pode mexer aqui a vontade, " +
+             "a animacao acompanha sozinha.")]
+    [SerializeField] private float moveSpeed = 3.2f;
 
     [Tooltip("Alto de proposito. O caso que decide isto nao e a " +
              "arrancada, e a inversao no meio da corrida: clicar pra " +

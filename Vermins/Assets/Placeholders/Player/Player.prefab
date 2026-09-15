@@ -99,7 +99,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 359d780d83e4813409b1409f6b994544, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerMotor
-  moveSpeed: 4.130416
+  moveSpeed: 3.2
   acceleration: 80
   angularSpeed: 900
   tempoDeGiro: 0.08
@@ -192,6 +192,7 @@ MonoBehaviour:
   animator: {fileID: 1270685491868519785}
   suavizacao: 0.06
   velocidadeMinima: 0.1
+  velocidadeDaCorrida: 2.58
   entradaDaReacao: 0.08
   saidaDaReacao: 0.15
 --- !u!114 &986444102126284620

@@ -44,6 +44,14 @@ public class PlayerAnimator : MonoBehaviour
              "tremendo entre parado e andando.")]
     [SerializeField] private float velocidadeMinima = 0.1f;
 
+    [Tooltip("Velocidade em que o pe da corrida pra frente pisa, em m/s. " +
+             "Acima dela o blend tree nao tem clipe mais rapido, entao eu " +
+             "acelero a locomocao inteira na mesma proporcao: a 3,2 m/s " +
+             "com 2,58 aqui, ela toca a 1,24x. O numero sai no log do menu " +
+             "Vermins/Player/Montar Animator do Paladino - se trocar o " +
+             "clipe de corrida, copie de la.")]
+    [SerializeField] private float velocidadeDaCorrida = 2.58f;
+
     [Header("Reacao a dano")]
     [Tooltip("Segundos pra camada da reacao entrar. Tem que casar com a " +
              "duracao da transicao pro estado Reagir la no controller, " +
@@ -61,6 +69,7 @@ public class PlayerAnimator : MonoBehaviour
     private static readonly int MortoId = Animator.StringToHash("Morto");
     private static readonly int VariacaoId = Animator.StringToHash("Variacao");
     private static readonly int VelAtaqueId = Animator.StringToHash("VelAtaque");
+    private static readonly int VelLocomocaoId = Animator.StringToHash("VelLocomocao");
     private static readonly int ApanharId = Animator.StringToHash("Apanhar");
 
     // Hash do ESTADO, nao de parametro. Uso pra saber se a reacao esta
@@ -168,6 +177,11 @@ public class PlayerAnimator : MonoBehaviour
 
         MedirOClipeDeAtaque();
         AcharACamadaDaReacao();
+
+        // Sem aviso quando falta. O controller da magia nao tem este
+        // parametro e nao precisa: o SprintForward dele pisa a 4,13, mais
+        // rapido que o jogador anda. So o Paladino corre mais que o clipe.
+        temVelLocomocao = TemParametro(VelLocomocaoId, AnimatorControllerParameterType.Float);
     }
 
     /// <summary>
@@ -379,6 +393,37 @@ public class PlayerAnimator : MonoBehaviour
         // juntos. Quando entrar o estado de ataque, e por aqui que ele vai
         // saber se o personagem esta parado.
         animator.SetFloat(SpeedId, moduloSuave);
+
+        if (temVelLocomocao)
+            animator.SetFloat(VelLocomocaoId, VelocidadeDaLocomocao());
+    }
+
+    // Se o controller tem o VelLocomocao. Resolvido uma vez no Awake.
+    private bool temVelLocomocao;
+
+    /// <summary>
+    /// Quantas vezes mais rapido a locomocao tem que tocar pro pe
+    /// acompanhar o chao.
+    ///
+    /// Divido pela corrida PRA FRENTE e nao pela borda do blend na direcao
+    /// em que ele anda, mesmo sabendo que as bordas do Paladino nao sao
+    /// um circulo: frente 2,58, direita 2,40, tras 2,16 e esquerda so
+    /// 1,52. Olhar a direcao exigiria as quatro posicoes, e posicao de
+    /// blend tree so existe no Editor. Nao compensa, porque o corpo quase
+    /// sempre corre pra frente dele mesmo - o PlayerMotor gira o corpo pra
+    /// onde ele anda em 0,08 s, e numa curva de 90 o desvio medio e 4,3
+    /// graus. A 3,2 m/s isso da 0,24 m/s de lado.
+    ///
+    /// Nunca menos que 1, pelo mesmo motivo do golpe: andando devagar
+    /// quem acompanha o pe e o blend, e desacelerar o clipe por cima
+    /// deixaria o passo em camera lenta.
+    /// </summary>
+    private float VelocidadeDaLocomocao()
+    {
+        if (velocidadeDaCorrida <= 0f)
+            return 1f;
+
+        return Mathf.Max(1f, moduloSuave / velocidadeDaCorrida);
     }
 
     /// <summary>
