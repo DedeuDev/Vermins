@@ -108,6 +108,11 @@ MonoBehaviour:
   baseOffset: 0.9167
   sampleDistance: 1
   raioDeBuscaDoAlvo: 2
+  modelo: {fileID: 5134751653310568211}
+  mascaraDoChao:
+    serializedVersion: 2
+    m_Bits: 384
+  correcaoMaxima: 0.25
 --- !u!114 &740039248088454938
 MonoBehaviour:
   m_ObjectHideFlags: 0

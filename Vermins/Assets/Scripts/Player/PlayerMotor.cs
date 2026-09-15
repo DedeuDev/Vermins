@@ -56,13 +56,13 @@ public class PlayerMotor : MonoBehaviour
     [SerializeField] private float tempoDeGiro = 0.08f;
 
     [Header("NavMesh")]
-    [Tooltip("Altura do pivo do personagem acima dos pes dele. " +
-             "Nao e 1 de proposito. O NavMesh bakeado nao fica colado no " +
-             "chao: ele nasce meio voxel acima, e o voxel padrao e o raio " +
-             "do agente dividido por 3. Com raio 0,5 da 0,083 m. Se eu " +
-             "deixasse 1 aqui, o personagem andaria flutuando 8 cm - da " +
-             "pra ver, ainda mais com sombra. Medi na cena: chao em 0, " +
-             "NavMesh em 0,0833.")]
+    [Tooltip("Altura do pivo do personagem acima do NavMesh. O 0,9167 " +
+             "veio da IA_Test_Scene, onde o NavMesh nasceu 8,3 cm acima " +
+             "do chao. So que essa folga muda de bake pra bake: medi 2 cm " +
+             "na NewPlayer e 3 cm na dungeon, e com este numero fixo o pe " +
+             "afundava 6,5 e 5,4 cm. Quem poe o pe no chao agora e o " +
+             "EncostarNoChao(); este numero so deixa o pivo e o collider " +
+             "mais ou menos na altura certa.")]
     [SerializeField] private float baseOffset = 0.9167f;
 
     [Tooltip("Distancia maxima entre o ponto pedido e o NavMesh pra " +
@@ -77,7 +77,26 @@ public class PlayerMotor : MonoBehaviour
              "sampleDistance ai de cima, que procura embaixo do mouse.")]
     [SerializeField] private float raioDeBuscaDoAlvo = 2f;
 
+    [Header("Pes no chao")]
+    [Tooltip("O filho com o modelo e o Animator. So ele sobe e desce " +
+             "pra encostar no chao - o agente e o collider ficam onde " +
+             "estao.")]
+    [SerializeField] private Transform modelo;
+
+    [Tooltip("Layers do chao visivel. Mesma do clique no PlayerController.")]
+    [SerializeField] private LayerMask mascaraDoChao = (1 << 7) | (1 << 8);
+
+    [Tooltip("Quanto o modelo pode sair da altura original, pra cima ou " +
+             "pra baixo. A maior correcao que eu medi foi 6,5 cm. O teto e " +
+             "pra um degrau ou uma quina nao puxarem o modelo pra longe do " +
+             "agente.")]
+    [SerializeField] private float correcaoMaxima = 0.25f;
+
     private NavMeshAgent agent;
+
+    // Altura local do modelo como veio no prefab. E dela que a correcao
+    // parte, e pra ela que o modelo volta se o raio nao achar chao.
+    private float alturaDoModelo;
 
     // Embalo do giro. O SmoothDampAngle guarda a velocidade
     // angular aqui entre um frame e outro - e ela que faz o
@@ -111,11 +130,67 @@ public class PlayerMotor : MonoBehaviour
         // do tempo mais de 10 graus torto em relacao a pra onde andava.
         // Girando eu mesmo pela desiredVelocity, cai pra 1%.
         agent.updateRotation = false;
+
+        if (modelo != null)
+            alturaDoModelo = modelo.localPosition.y;
     }
 
     private void Update()
     {
         Girar();
+    }
+
+    // LateUpdate pra medir o chao depois de tudo que mexe no personagem
+    // durante o frame, inclusive o giro do Update ai de cima.
+    private void LateUpdate()
+    {
+        EncostarNoChao();
+    }
+
+    /// <summary>
+    /// Poe a sola do modelo no chao visivel com um raio de cima pra baixo.
+    ///
+    /// O NavMesh nao fica colado no chao, e a folga depende do bake de
+    /// cada cena, entao nenhum baseOffset fixo acerta em todas. Medir o
+    /// chao de verdade todo frame acerta em qualquer cena e em rampa, sem
+    /// calibrar de novo. Custa um raycast por frame, so do jogador.
+    /// </summary>
+    private void EncostarNoChao()
+    {
+        if (modelo == null)
+            return;
+
+        float altura = alturaDoModelo;
+
+        // Comeca 0,5 m acima do pivo pra achar o chao mesmo quando o
+        // modelo esta abaixo dele, e vai ate a correcao maxima abaixo
+        // dos pes.
+        Vector3 origem = transform.position + Vector3.up * 0.5f;
+        float distancia = 0.5f - alturaDoModelo + correcaoMaxima;
+
+        bool achouChao = Physics.Raycast(
+            origem,
+            Vector3.down,
+            out RaycastHit hit,
+            distancia,
+            mascaraDoChao,
+            QueryTriggerInteraction.Ignore
+        );
+
+        // O personagem so gira em Y e tem escala 1, entao diferenca de
+        // altura no mundo e a mesma coisa que altura local do filho.
+        if (achouChao)
+        {
+            altura = Mathf.Clamp(
+                hit.point.y - transform.position.y,
+                alturaDoModelo - correcaoMaxima,
+                alturaDoModelo + correcaoMaxima
+            );
+        }
+
+        Vector3 local = modelo.localPosition;
+        local.y = altura;
+        modelo.localPosition = local;
     }
 
     /// <summary>
