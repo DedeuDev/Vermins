@@ -5,7 +5,7 @@ public class SceneLoader : MonoBehaviour
 {
     public void LoadGame()
     {
-        SceneManager.LoadScene("NewPlayer");
+        SceneManager.LoadScene("DungeonComPlayer");
     }
 
     public void OpenOptions()
@@ -15,6 +15,7 @@ public class SceneLoader : MonoBehaviour
 
     public void BackToMenu()
     {
+        Time.timeScale = 1f;
         SceneManager.LoadScene("MainMenu");
     }
 
