@@ -120,7 +120,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::PlayerController
   groundMask:
     serializedVersion: 2
-    m_Bits: 256
+    m_Bits: 384
   maxRayDistance: 200
   attackMask:
     serializedVersion: 2
