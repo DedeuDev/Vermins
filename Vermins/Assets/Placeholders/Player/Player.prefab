@@ -20,6 +20,7 @@ GameObject:
   - component: {fileID: 986444102126284620}
   - component: {fileID: 215669824228392395}
   - component: {fileID: 7438796906429670652}
+  - component: {fileID: 2607160341806432445}
   m_Layer: 0
   m_Name: Player
   m_TagString: Player
@@ -243,6 +244,20 @@ MonoBehaviour:
   mensagem: "Voc\xEA morreu"
   corDoTexto: {r: 0.62, g: 0.1, b: 0.08, a: 1}
   escuroMaximo: 0.8
+--- !u!114 &2607160341806432445
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7457194079543536127}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d612ee28f1bd9b945931ef148eb75562, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PlayerDebugHUD
+  visivel: 1
+  teclaParaEsconder: 94
 --- !u!1001 &9095150474061651368
 PrefabInstance:
   m_ObjectHideFlags: 0
