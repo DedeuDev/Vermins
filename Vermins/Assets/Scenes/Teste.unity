@@ -132,6 +132,7 @@ GameObject:
   - component: {fileID: 79518023}
   - component: {fileID: 79518024}
   - component: {fileID: 79518025}
+  - component: {fileID: 79518026}
   m_Layer: 0
   m_Name: DungeonGenerator
   m_TagString: Untagged
@@ -267,6 +268,23 @@ MonoBehaviour:
   populateAutomatically: 1
   framesToWait: 2
   enemyRootName: Generated Enemies
+  logResult: 1
+--- !u!114 &79518026
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 79518020}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ae64e95762a346f43b0668f73e2e81d5, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::BossSpawner
+  runtimeNavMesh: {fileID: 0}
+  spawnAutomatically: 1
+  maxFramesWaitingForNavMesh: 300
+  bossRootName: Generated Bosses
   logResult: 1
 --- !u!1 &2078270678
 GameObject:

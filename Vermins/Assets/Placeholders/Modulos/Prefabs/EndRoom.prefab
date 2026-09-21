@@ -98,6 +98,52 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 19.814354, y: 3, z: 20}
   m_Center: {x: -0.05717659, y: 1.5, z: 0}
+--- !u!1 &2324949001982217249
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 8278765079768818982}
+  - component: {fileID: 7121405224283704969}
+  m_Layer: 0
+  m_Name: BossSpawnPoint
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &8278765079768818982
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2324949001982217249}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: -6, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 2535887730579535004}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &7121405224283704969
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2324949001982217249}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8e7ead9b7ca596a429a24ed2b77ea2c1, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::BossSpawnPoint
+  showGizmo: 1
+  gizmoRadius: 0.5
 --- !u!1 &4149098822016336000
 GameObject:
   m_ObjectHideFlags: 0
@@ -110,6 +156,7 @@ GameObject:
   - component: {fileID: 1586583392326151664}
   - component: {fileID: 6627602280723457247}
   - component: {fileID: 1217910219277348022}
+  - component: {fileID: 6983686866087060766}
   m_Layer: 0
   m_Name: EndRoom
   m_TagString: Untagged
@@ -133,6 +180,7 @@ Transform:
   - {fileID: 6071583438352397064}
   - {fileID: 4389356865485133510}
   - {fileID: 7993078441532665388}
+  - {fileID: 8278765079768818982}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!33 &1586583392326151664
@@ -211,6 +259,21 @@ MonoBehaviour:
   allowedOnMainPath: 1
   allowedOnSideBranch: 1
   placementBounds: {fileID: 4001666391294324238}
+--- !u!114 &6983686866087060766
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4149098822016336000}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: efb69122175d36e4fa69a7beb58f5e61, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::BossSpawnData
+  allowBossSpawn: 1
+  bossPrefab: {fileID: 2439943171675175868, guid: 89910e7ea437b0c48af5a8605019a0d3, type: 3}
+  spawnPoint: {fileID: 7121405224283704969}
 --- !u!1 &5677629760534614827
 GameObject:
   m_ObjectHideFlags: 0
