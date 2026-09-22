@@ -8,6 +8,22 @@ public class SceneLoader : MonoBehaviour
         SceneManager.LoadScene("DungeonComPlayer");
     }
 
+    public void SaveGame()
+    {
+        if (SaveSystem.Instance != null)
+        {
+            SaveSystem.Instance.SaveGame();
+        }
+    }
+
+    public void LoadSavedGame()
+    {
+        if (SaveSystem.Instance != null)
+        {
+            SaveSystem.Instance.LoadGame();
+        }
+    }
+
     public void OpenOptions()
     {
         SceneManager.LoadScene("Options");
