@@ -39,6 +39,7 @@ public class PlayerController : MonoBehaviour
     private PlayerMotor motor;
     private Health health;
     private PlayerCombat combat;
+    private PotionBelt belt;
 
     /// <summary>
     /// Disparado toda vez que o jogador manda andar pra um ponto.
@@ -52,6 +53,7 @@ public class PlayerController : MonoBehaviour
         motor = GetComponent<PlayerMotor>();
         health = GetComponent<Health>();
         combat = GetComponent<PlayerCombat>();
+        belt = GetComponent<PotionBelt>();
         input = new InputSystem_Actions();
 
         if (viewCamera == null)
@@ -95,6 +97,19 @@ public class PlayerController : MonoBehaviour
         // volta sozinho sem ninguem precisar religar nada.
         if (health != null && health.IsDead)
             return;
+
+        // Pausado tambem nao. O menu de pausa so zera o timeScale, e o que
+        // e instantaneo, como beber pocao, continuaria funcionando com o
+        // jogo parado.
+        if (Time.timeScale == 0f)
+            return;
+
+        // Pocao e toque unico: WasPressedThisFrame, e nao IsPressed como o
+        // ataque. Segurando o Q, o IsPressed beberia uma pocao por frame
+        // ate a vida encher. Fica antes do filtro de clique porque e
+        // tecla - da pra beber andando, brigando ou com o mouse na UI.
+        if (belt != null && input.Player.DrinkPotion.WasPressedThisFrame())
+            belt.TryDrink();
 
         // Segurar o botao continua valendo, igual ARPG. Nao e so no
         // clique.

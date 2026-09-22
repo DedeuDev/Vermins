@@ -21,6 +21,7 @@ GameObject:
   - component: {fileID: 215669824228392395}
   - component: {fileID: 7438796906429670652}
   - component: {fileID: 2607160341806432445}
+  - component: {fileID: 6934464736222207046}
   m_Layer: 0
   m_Name: Player
   m_TagString: Player
@@ -263,6 +264,21 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::PlayerDebugHUD
   visivel: 1
   teclaParaEsconder: 94
+--- !u!114 &6934464736222207046
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7457194079543536127}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8122b40a52e2d0847a0f3ba74e46ea96, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PotionBelt
+  capacity: 5
+  healFraction: 0.4
+  startingCount: 0
 --- !u!1001 &9095150474061651368
 PrefabInstance:
   m_ObjectHideFlags: 0
