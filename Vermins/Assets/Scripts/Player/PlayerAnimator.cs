@@ -62,6 +62,11 @@ public class PlayerAnimator : MonoBehaviour
              "transicao de volta pro Vazio pelo mesmo motivo.")]
     [SerializeField] private float saidaDaReacao = 0.15f;
 
+    [Tooltip("Segundos do blend quando uma ordem de andar corta o golpe. " +
+             "Curto de proposito: e o tempo em que as pernas ainda estao " +
+             "no gesto enquanto o corpo ja anda.")]
+    [SerializeField] private float corteDoGolpe = 0.1f;
+
     private static readonly int SpeedId = Animator.StringToHash("Speed");
     private static readonly int VelXId = Animator.StringToHash("VelX");
     private static readonly int VelZId = Animator.StringToHash("VelZ");
@@ -75,6 +80,15 @@ public class PlayerAnimator : MonoBehaviour
     // Hash do ESTADO, nao de parametro. Uso pra saber se a reacao esta
     // em cena neste frame, que e o que decide o peso da camada.
     private static readonly int EstadoReagirId = Animator.StringToHash("Reagir");
+
+    // Tambem de estado. Os nomes tem que bater com o EstadoAtaque e o
+    // EstadoLocomocao do PlayerAnimatorSetup, que e quem cria os dois.
+    private static readonly int EstadoAtaqueId = Animator.StringToHash("Ataque");
+    private static readonly int EstadoLocomocaoId = Animator.StringToHash("Locomocao");
+
+    // O estado parado da camada da reacao. Mesmo nome do EstadoVazio do
+    // PlayerAnimatorSetup.
+    private static readonly int EstadoVazioId = Animator.StringToHash("Vazio");
 
     /// <summary>
     /// Nome da camada que toca a reacao a dano. Ela tem uma AvatarMask do
@@ -284,7 +298,10 @@ public class PlayerAnimator : MonoBehaviour
     private void OnEnable()
     {
         if (combate != null)
+        {
             combate.OnAttack += Golpear;
+            combate.OnGolpeInterrompido += CortarGolpe;
+        }
 
         if (health != null)
             health.OnDamaged += Apanhar;
@@ -293,7 +310,10 @@ public class PlayerAnimator : MonoBehaviour
     private void OnDisable()
     {
         if (combate != null)
+        {
             combate.OnAttack -= Golpear;
+            combate.OnGolpeInterrompido -= CortarGolpe;
+        }
 
         if (health != null)
             health.OnDamaged -= Apanhar;
@@ -315,6 +335,12 @@ public class PlayerAnimator : MonoBehaviour
     /// baixo e pega o corpo inteiro; deixar a reacao entrar por cima
     /// faria o cadaver levantar o tronco. O golpe que mata chega aqui com
     /// a vida ja em zero, entao esta condicao pega justamente ele.
+    ///
+    /// E ignoro durante o golpe. A camada da reacao substitui o tronco
+    /// inteiro, braco da espada incluido: as pernas seguiam no golpe, o
+    /// tronco virava tranco, e a espada acertava sem ter descido. Medi o
+    /// peso da camada chegando a 1,00 com o dano aos 20% do golpe. O
+    /// flash vermelho continua marcando que apanhou.
     /// </summary>
     private void Apanhar(float dano, GameObject quemBateu)
     {
@@ -325,6 +351,12 @@ public class PlayerAnimator : MonoBehaviour
             return;
 
         if (health != null && health.IsDead)
+            return;
+
+        // O Atacar armado conta como golpe: o PlayerCombat pode ter
+        // comecado o golpe neste mesmo frame, antes do dano chegar, e o
+        // Animator so entra no estado no frame seguinte.
+        if (NoGolpe() || animator.GetBool(AtacarId))
             return;
 
         animator.SetTrigger(ApanharId);
@@ -356,6 +388,58 @@ public class PlayerAnimator : MonoBehaviour
         animator.SetTrigger(AtacarId);
 
         variacao = 1 - variacao;
+
+        // O golpe manda no tronco. Uma reacao que estava tocando sai no
+        // tempo normal de saida em vez de ficar por cima do golpe - antes
+        // ela cobria 1,15 s, quase o golpe inteiro. E um Apanhar armado
+        // neste mesmo frame morre antes de entrar.
+        if (podeReagir)
+        {
+            animator.ResetTrigger(ApanharId);
+
+            if (ReagindoAgora())
+                animator.CrossFadeInFixedTime(EstadoVazioId, saidaDaReacao, camadaDaReacao);
+        }
+    }
+
+    /// <summary>
+    /// O PlayerCombat avisa que uma ordem de andar cortou o golpe, e aqui
+    /// o corpo sai do gesto na hora em vez de esperar os 80% do clipe.
+    ///
+    /// Faco por CrossFade no codigo e nao por uma transicao nova com
+    /// trigger no controller. Trigger que ninguem consome fica armado: um
+    /// "Interromper" disparado andando pela sala esperaria ali e cortaria
+    /// o PROXIMO golpe no primeiro frame. Aqui eu so corto se o gesto
+    /// estiver tocando de fato.
+    /// </summary>
+    private void CortarGolpe()
+    {
+        if (health != null && health.IsDead)
+            return;
+
+        // O Atacar pode ter sido armado neste mesmo frame, antes do
+        // clique de andar chegar. Limpo antes de olhar o estado: nesse
+        // caso o Animator ainda nem entrou no golpe, e sem limpar o
+        // trigger puxaria o golpe inteiro no frame seguinte, ja andando.
+        animator.ResetTrigger(AtacarId);
+
+        if (!NoGolpe())
+            return;
+
+        animator.CrossFadeInFixedTime(EstadoLocomocaoId, corteDoGolpe, 0);
+    }
+
+    /// <summary>
+    /// Se o corpo esta no golpe ou entrando nele. Saindo dele pra
+    /// locomocao (passou dos 80%) ou pra morte nao conta: o gesto que
+    /// importa ja acabou.
+    /// </summary>
+    private bool NoGolpe()
+    {
+        if (animator.IsInTransition(0))
+            return animator.GetNextAnimatorStateInfo(0).shortNameHash == EstadoAtaqueId;
+
+        return animator.GetCurrentAnimatorStateInfo(0).shortNameHash == EstadoAtaqueId;
     }
 
     private void Update()

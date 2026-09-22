@@ -158,9 +158,13 @@ public class PlayerController : MonoBehaviour
 
         // Mandar andar desiste do alvo. Sem isso o PlayerCombat
         // sobrescreveria o destino no frame seguinte e o jogador nao
-        // conseguiria fugir de uma briga.
+        // conseguiria fugir de uma briga. E corta o golpe que estiver no
+        // meio, senao as pernas terminam o gesto com o corpo deslizando.
         if (combat != null)
+        {
             combat.ClearTarget();
+            combat.InterromperGolpe();
+        }
 
         OnMoveOrdered?.Invoke(hit.point);
     }

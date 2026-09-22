@@ -134,6 +134,12 @@ public class PlayerCombat : MonoBehaviour
     private float prazoDoEvento;
     private bool jaReclameiDoEvento;
 
+    // Se tem um gesto de golpe tocando que uma ordem de andar possa
+    // cortar. Liga no comeco do golpe e desliga no corte; depois do
+    // cooldown ele nao conta mais, porque o PlayerAnimator acelera o
+    // clipe pra caber dentro do cooldown.
+    private bool gestoEmCurso;
+
     public Health Target => target;
     public bool HasTarget => target != null && !target.IsDead;
 
@@ -182,6 +188,13 @@ public class PlayerCombat : MonoBehaviour
     /// </summary>
     public event System.Action<Health> OnAttack;
 
+    /// <summary>
+    /// Disparado quando uma ordem de andar corta um golpe no meio. So
+    /// dispara se tinha gesto pra cortar, entao segurar o botao de andar
+    /// nao repete o aviso a cada frame.
+    /// </summary>
+    public event System.Action OnGolpeInterrompido;
+
     private void Awake()
     {
         motor = GetComponent<PlayerMotor>();
@@ -225,6 +238,37 @@ public class PlayerCombat : MonoBehaviour
     }
 
     /// <summary>
+    /// Corta o golpe que esta no meio. Quem chama e o clique de andar.
+    ///
+    /// Sem isto o gesto ia ate o fim com as pernas plantadas enquanto o
+    /// agent levava o corpo embora: medi 2,0 a 2,3 m deslizando quando a
+    /// ordem de andar chegava no comeco do golpe. Se a lamina ainda nao
+    /// tinha descido, o dano nao sai. E o que o Path of Exile faz, e e o
+    /// preco de poder fugir de uma briga na hora.
+    ///
+    /// Fica separado do ClearTarget de proposito. O ClearTarget tambem
+    /// roda quando o alvo morre, e ai o golpe que matou tem que terminar
+    /// o gesto normalmente.
+    ///
+    /// O cooldown continua correndo: cortar e clicar de novo no bicho nao
+    /// adianta o proximo golpe.
+    /// </summary>
+    public void InterromperGolpe()
+    {
+        if (!gestoEmCurso || Time.time >= nextAttackTime)
+            return;
+
+        gestoEmCurso = false;
+
+        // Sem esta linha o VigiarOEvento entregaria o dano do golpe
+        // cortado no fim do prazo, e ainda reclamaria que falta o evento
+        // no clipe.
+        esperandoOEvento = false;
+
+        OnGolpeInterrompido?.Invoke();
+    }
+
+    /// <summary>
     /// Faz a bola nascer. Quem chama e o Animation Event do clipe de
     /// magia, atraves do EventoDeAnimacao que mora no modelo - o Mecanim
     /// so alcanca componente que esteja no mesmo objeto do Animator.
@@ -244,6 +288,11 @@ public class PlayerCombat : MonoBehaviour
             AcertarGolpe();
             return;
         }
+
+        // Golpe cortado nao solta a bola. O evento ainda pode chegar
+        // depois do corte, do clipe que esta saindo durante o blend.
+        if (!esperandoOEvento)
+            return;
 
         esperandoOEvento = false;
 
@@ -428,6 +477,7 @@ public class PlayerCombat : MonoBehaviour
 
         alvoDoCast = target;
         esperandoOEvento = true;
+        gestoEmCurso = true;
 
         // Dou o cooldown inteiro de prazo pro evento chegar. E folgado
         // de proposito: o clipe cabe dentro do cooldown, entao se
