@@ -307,8 +307,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a5864e76a894954438816efbdc16c5a4, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::DungeonPopulator
-  enemyPrefab: {fileID: 8170550986371315361, guid: 9804b7b6912243547805df1ea614df61, type: 3}
-  populateAutomatically: 0
+  enemyPrefab: {fileID: 1009709278538960850, guid: ade3c895bbe3bd84eb9c52e8d01e307c, type: 3}
+  populateAutomatically: 1
   framesToWait: 2
   enemyRootName: Generated Enemies
   logResult: 1
@@ -342,6 +342,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PauseMenu
   pauseMenu: {fileID: 747498257}
+  optionsMenu: {fileID: 0}
 --- !u!4 &93206137
 Transform:
   m_ObjectHideFlags: 0

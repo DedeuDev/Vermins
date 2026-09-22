@@ -34,6 +34,16 @@ public class InimigoSeguir : MonoBehaviour
         agent = GetComponent<NavMeshAgent>();
         ataque = GetComponent<MeleeAttack>();
 
+        // Ian: o inimigo que a dungeon spawna vem de prefab, e prefab nao guarda
+        // referencia pra objeto da cena. Entao o player chega vazio e o Update
+        // estoura logo na primeira linha. Se ninguem arrastou o player, eu procuro
+        // pela tag, do mesmo jeito que o BossRogue ja faz.
+        if (player == null)
+        {
+            GameObject p = GameObject.FindGameObjectWithTag("Player");
+            if (p != null) player = p.transform;
+        }
+
         if (dados != null)
         {
             agent.speed = dados.velocidade;
