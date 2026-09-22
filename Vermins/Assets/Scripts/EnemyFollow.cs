@@ -29,10 +29,15 @@ public class InimigoSeguir : MonoBehaviour
     // aqui funciona exatamente como antes.
     private MeleeAttack ataque;
 
+    // Ian: opcional tambem. Sem Health o inimigo nao morre, e o Update
+    // segue igual.
+    private Health vida;
+
     void Start()
     {
         agent = GetComponent<NavMeshAgent>();
         ataque = GetComponent<MeleeAttack>();
+        vida = GetComponent<Health>();
 
         // Ian: o inimigo que a dungeon spawna vem de prefab, e prefab nao guarda
         // referencia pra objeto da cena. Entao o player chega vazio e o Update
@@ -56,6 +61,17 @@ public class InimigoSeguir : MonoBehaviour
 
     void Update()
     {
+        // Ian: morto nao persegue nem bate. O Health so destroi o inimigo
+        // 2 s depois de morrer (o destroyDelay, que fica pra animacao de
+        // morte), e nesse meio tempo este Update continuava rodando: medi
+        // um golpe de 12 saindo 1,4 s depois da morte. Paro o agent junto,
+        // senao o corpo segue andando ate o ultimo destino que recebeu.
+        if (vida != null && vida.IsDead)
+        {
+            agent.isStopped = true;
+            return;
+        }
+
         if (player == null || dados == null) return;
 
         float distanciaPlayer = Vector3.Distance(transform.position, player.position);
