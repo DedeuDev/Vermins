@@ -11,8 +11,6 @@ public class SaveSystem : MonoBehaviour
     private string savePath;
     private SaveData pendingLoadData;
 
-    [SerializeField] private float playerHealth = 100f;
-
     private void Awake()
     {
         if (Instance == null)
@@ -34,11 +32,21 @@ public class SaveSystem : MonoBehaviour
 
     public void SaveGame()
     {
+        Debug.Log("SAVE FOI CHAMADO!");
+
         GameObject player = GameObject.FindGameObjectWithTag("Player");
 
         if (player == null)
         {
             Debug.LogError("Player não encontrado.");
+            return;
+        }
+
+        Health health = player.GetComponent<Health>();
+
+        if (health == null)
+        {
+            Debug.LogError("Componente Health não encontrado no Player.");
             return;
         }
 
@@ -54,13 +62,14 @@ public class SaveSystem : MonoBehaviour
         data.playerRotY = player.transform.eulerAngles.y;
         data.playerRotZ = player.transform.eulerAngles.z;
 
-        data.playerHealth = playerHealth;
+        data.playerHealth = health.Current;
 
         string json = JsonUtility.ToJson(data, true);
 
         File.WriteAllText(savePath, json);
 
         Debug.Log("Jogo salvo.");
+        Debug.Log("Vida salva: " + data.playerHealth);
     }
 
     public void LoadGame()
@@ -76,6 +85,8 @@ public class SaveSystem : MonoBehaviour
         string json = File.ReadAllText(savePath);
 
         pendingLoadData = JsonUtility.FromJson<SaveData>(json);
+
+        Debug.Log("Vida encontrada no save: " + pendingLoadData.playerHealth);
 
         SceneManager.sceneLoaded -= OnSceneLoaded;
         SceneManager.sceneLoaded += OnSceneLoaded;
@@ -132,15 +143,13 @@ public class SaveSystem : MonoBehaviour
                             continue;
                         }
 
-                        if (agent.isOnNavMesh)
-                        {
-                            agent.Warp(navMeshHit.position);
-                        }
-                        else
+                        if (!agent.isOnNavMesh)
                         {
                             yield return null;
                             continue;
                         }
+
+                        agent.Warp(navMeshHit.position);
                     }
                     else
                     {
@@ -152,6 +161,23 @@ public class SaveSystem : MonoBehaviour
                         pendingLoadData.playerRotY,
                         pendingLoadData.playerRotZ
                     );
+
+                    Health health = player.GetComponent<Health>();
+
+                    if (health != null)
+                    {
+                        health.Revive(pendingLoadData.playerHealth);
+
+                        Debug.Log(
+                            "Vida restaurada: " + health.Current
+                        );
+                    }
+                    else
+                    {
+                        Debug.LogError(
+                            "Componente Health não encontrado no Player."
+                        );
+                    }
 
                     Debug.Log("Jogo carregado com sucesso.");
 
@@ -169,16 +195,6 @@ public class SaveSystem : MonoBehaviour
         );
 
         pendingLoadData = null;
-    }
-
-    public void DeleteSave()
-    {
-        if (File.Exists(savePath))
-        {
-            File.Delete(savePath);
-        }
-
-        Debug.Log("Save apagado.");
     }
 
     public bool HasSave()
