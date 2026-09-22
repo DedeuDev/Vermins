@@ -3,7 +3,7 @@ using UnityEngine.AI;
 using UnityEngine.InputSystem;
 
 /// <summary>
-/// HUD de debug do jogador: vida, pocoes, ouro, alvo e velocidade num canto da tela.
+/// HUD de debug do jogador: vida, pocoes, ouro, joias, alvo e velocidade num canto da tela.
 ///
 /// E TEMPORARIO. A UI de verdade e do Rogger - isto aqui existe so pra
 /// gente testar combate enxergando os numeros ate a barra dele ficar
@@ -28,6 +28,7 @@ public class PlayerDebugHUD : MonoBehaviour
     private Health health;
     private PotionBelt belt;
     private GoldWallet wallet;
+    private JewelPouch pouch;
     private PlayerCombat combat;
     private NavMeshAgent agent;
     private GUIStyle estilo;
@@ -39,6 +40,7 @@ public class PlayerDebugHUD : MonoBehaviour
         agent = GetComponent<NavMeshAgent>();
         belt = GetComponent<PotionBelt>();
         wallet = GetComponent<GoldWallet>();
+        pouch = GetComponent<JewelPouch>();
     }
 
     private void Update()
@@ -67,7 +69,7 @@ public class PlayerDebugHUD : MonoBehaviour
         // fora do OnGUI.
         estilo ??= new GUIStyle(GUI.skin.label) { fontSize = 20, richText = true };
 
-        GUILayout.BeginArea(new Rect(16f, 16f, 380f, 250f), GUI.skin.box);
+        GUILayout.BeginArea(new Rect(16f, 16f, 380f, 280f), GUI.skin.box);
 
         GUILayout.Label($"<b>DEBUG</b>   ({teclaParaEsconder} esconde)", estilo);
 
@@ -80,6 +82,9 @@ public class PlayerDebugHUD : MonoBehaviour
 
         if (wallet != null)
             GUILayout.Label($"Ouro   {wallet.Amount}", estilo);
+
+        if (pouch != null)
+            GUILayout.Label($"Joias   {pouch.Count}  (valem {pouch.TotalValue})", estilo);
 
         GUILayout.Label($"Alvo   {DescreverAlvo()}", estilo);
 
