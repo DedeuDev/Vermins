@@ -20,7 +20,7 @@ MonoBehaviour:
   alcanceBesta: 10
   cooldownFlechaFase1: 1.8
   cooldownFlechaFase2: 1
-  prefabFlecha: {fileID: 3427725487484287423, guid: 5b9cf94d394f34080b68ac2950c3263c, type: 3}
+  prefabFlecha: {fileID: 1915107117989429583, guid: 5b9cf94d394f34080b68ac2950c3263c, type: 3}
   pontoDisparo: {fileID: 0}
   cooldownVeneno: 8
   prefabPocaVeneno: {fileID: 0}

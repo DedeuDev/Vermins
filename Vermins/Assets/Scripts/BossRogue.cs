@@ -133,24 +133,27 @@ public class BossRogue : MonoBehaviour
     #region Habilidades
 
     private void AtirarFlecha()
-{
-    timerFlecha = 0f;
-
-    // 1. Garante que o Boss gire imediatamente para o Player antes de disparar
-    LookAtPlayer();
-
-    if (dados != null && dados.prefabFlecha != null && pontoDisparoBesta != null)
     {
-        // 2. Calcula a direção exata do ponto de disparo até a posição do Player (na altura do peito/centro)
-        Vector3 direcaoParaPlayer = (player.position + Vector3.up * 1.0f) - pontoDisparoBesta.position;
-        Quaternion rotacaoTiro = Quaternion.LookRotation(direcaoParaPlayer);
+        timerFlecha = 0f;
 
-        // 3. Instancia a flecha já virada na direção exata do Player
-        Instantiate(dados.prefabFlecha, pontoDisparoBesta.position, rotacaoTiro);
+        if (dados != null && dados.prefabFlecha != null && pontoDisparoBesta != null && player != null)
+        {
+            // 1. Força o Boss a virar para o jogador PRIMEIRO
+            LookAtPlayer();
 
-        Debug.Log("Boss mirou e atirou no Player!");
+            // 2. Calcula a direção exata até o peito/centro do Player
+            Vector3 direcao = (player.position + Vector3.up * 1.0f) - pontoDisparoBesta.position;
+
+            if (direcao != Vector3.zero)
+            {
+                // 3. Trava a rotação final no instante do disparo
+                Quaternion rotacaoDisparo = Quaternion.LookRotation(direcao);
+
+                // 4. Instancia a flecha sem vínculo de hierarquia
+                Instantiate(dados.prefabFlecha, pontoDisparoBesta.position, rotacaoDisparo);
+            }
+        }
     }
-}
 
     private void ArremessarVeneno()
     {
