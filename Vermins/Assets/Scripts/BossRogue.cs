@@ -158,10 +158,32 @@ public class BossRogue : MonoBehaviour
     private void ArremessarVeneno()
     {
         timerVeneno = 0f;
-        if (dados.prefabPocaVeneno != null && player != null)
+
+        if (dados != null && dados.prefabPocaVeneno != null && player != null)
         {
-            // Cria a poça de veneno diretamente aos pés do jogador
-            Instantiate(dados.prefabPocaVeneno, player.position, Quaternion.identity);
+            LookAtPlayer();
+
+            // Origem do arremesso (mão/besta do Boss)
+            Vector3 pontoOrigem = pontoDisparoBesta != null ? pontoDisparoBesta.position : transform.position + Vector3.up * 1.5f;
+
+            // Cria a esfera visual do frasco
+            GameObject frascoObjeto = GameObject.CreatePrimitive(PrimitiveType.Sphere);
+            frascoObjeto.transform.position = pontoOrigem;
+            frascoObjeto.transform.localScale = new Vector3(0.35f, 0.35f, 0.35f);
+
+            // Remove o collider para não colidir com a cabeça/corpo do Player no ar
+            Destroy(frascoObjeto.GetComponent<SphereCollider>());
+
+            // Aplica a cor verde ao frasco
+            Renderer rend = frascoObjeto.GetComponent<Renderer>();
+            if (rend != null)
+            {
+                rend.material.color = Color.green;
+            }
+
+            // Adiciona e inicializa o script de trajetória em arco
+            FrascoVenenoProjetil scriptFrasco = frascoObjeto.AddComponent<FrascoVenenoProjetil>();
+            scriptFrasco.Inicializar(pontoOrigem, player.position, dados.prefabPocaVeneno);
         }
     }
 
