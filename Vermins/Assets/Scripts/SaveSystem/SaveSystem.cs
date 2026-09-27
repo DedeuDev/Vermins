@@ -64,6 +64,31 @@ public class SaveSystem : MonoBehaviour
 
         data.playerHealth = health.Current;
 
+        // Ian: o inventario do Player. Sem isto o load devolvia a vida mas
+        // zerava pocao, ouro e joia. Componente que faltar fica zerado no
+        // save, sem travar o resto.
+        PotionBelt belt = player.GetComponent<PotionBelt>();
+
+        if (belt != null)
+        {
+            data.playerPotions = belt.Count;
+        }
+
+        GoldWallet wallet = player.GetComponent<GoldWallet>();
+
+        if (wallet != null)
+        {
+            data.playerGold = wallet.Amount;
+        }
+
+        JewelPouch pouch = player.GetComponent<JewelPouch>();
+
+        if (pouch != null)
+        {
+            data.playerJewels = pouch.Count;
+            data.playerJewelsValue = pouch.TotalValue;
+        }
+
         string json = JsonUtility.ToJson(data, true);
 
         File.WriteAllText(savePath, json);
@@ -176,6 +201,33 @@ public class SaveSystem : MonoBehaviour
                     {
                         Debug.LogError(
                             "Componente Health não encontrado no Player."
+                        );
+                    }
+
+                    // Ian: devolve o inventario. Tem que ser aqui, depois
+                    // que a cena abriu: o Player nasce de novo no reload e
+                    // o Awake de cada componente volta ao valor inicial.
+                    PotionBelt belt = player.GetComponent<PotionBelt>();
+
+                    if (belt != null)
+                    {
+                        belt.Restore(pendingLoadData.playerPotions);
+                    }
+
+                    GoldWallet wallet = player.GetComponent<GoldWallet>();
+
+                    if (wallet != null)
+                    {
+                        wallet.Restore(pendingLoadData.playerGold);
+                    }
+
+                    JewelPouch pouch = player.GetComponent<JewelPouch>();
+
+                    if (pouch != null)
+                    {
+                        pouch.Restore(
+                            pendingLoadData.playerJewels,
+                            pendingLoadData.playerJewelsValue
                         );
                     }
 

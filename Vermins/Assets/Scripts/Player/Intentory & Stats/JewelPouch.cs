@@ -36,4 +36,14 @@ public class JewelPouch : MonoBehaviour
         TotalValue += valor;
         OnChanged?.Invoke(Count, TotalValue);
     }
+
+    /// <summary>
+    /// Troca as joias pelo que veio do save. So o SaveSystem chama isto.
+    /// </summary>
+    public void Restore(int quantas, int valorTotal)
+    {
+        Count = Mathf.Max(0, quantas);
+        TotalValue = Mathf.Max(0, valorTotal);
+        OnChanged?.Invoke(Count, TotalValue);
+    }
 }

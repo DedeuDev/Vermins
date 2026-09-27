@@ -10,8 +10,8 @@ using UnityEngine;
 /// </summary>
 public class GoldWallet : MonoBehaviour
 {
-    [Tooltip("Com quanto o jogador comeca. Pra teste; o save do Rogger " +
-             "e que vai preencher isso de verdade.")]
+    [Tooltip("Com quanto o jogador comeca num jogo novo. O save nao mexe " +
+             "aqui: ele chama o Restore depois que a cena abre.")]
     [SerializeField, Min(0)] private int startingAmount = 0;
 
     public int Amount { get; private set; }
@@ -37,5 +37,17 @@ public class GoldWallet : MonoBehaviour
 
         Amount += quantia;
         OnChanged?.Invoke(Amount, quantia);
+    }
+
+    /// <summary>
+    /// Troca o ouro pelo que veio do save. So o SaveSystem chama isto.
+    ///
+    /// Dispara o OnChanged com 0 no "quanto entrou": esse ouro nao foi
+    /// pego agora, entao a UI nao deve mostrar "+X" como se tivesse sido.
+    /// </summary>
+    public void Restore(int quantia)
+    {
+        Amount = Mathf.Max(0, quantia);
+        OnChanged?.Invoke(Amount, 0);
     }
 }
