@@ -83,4 +83,18 @@ public class PotionBelt : MonoBehaviour
         OnChanged?.Invoke(Count, capacity);
         return true;
     }
+
+    /// <summary>
+    /// Poe no cinto a quantidade que veio do save. So o SaveSystem chama
+    /// isto: no jogo, pocao entra pelo TryStore e sai pelo TryDrink.
+    ///
+    /// Dispara o OnChanged porque a UI ja leu o cinto vazio quando a cena
+    /// abriu, e sem o aviso ficaria mostrando zero. Se a capacidade tiver
+    /// diminuido desde o save, o que passar fica de fora.
+    /// </summary>
+    public void Restore(int count)
+    {
+        Count = Mathf.Clamp(count, 0, capacity);
+        OnChanged?.Invoke(Count, capacity);
+    }
 }

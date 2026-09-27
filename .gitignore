@@ -11,6 +11,10 @@
 [Oo]bj/
 [Bb]uild/
 [Bb]uilds/
+# Excecao: a regra de cima pega qualquer pasta chamada Builds, ate a
+# dos assets de build do Player, que por isso nunca subiram pro GitHub.
+# Essa pasta e parte do jogo, nao saida de build.
+!Vermins/Assets/Scripts/Player/Builds/
 [Ll]ogs/
 [Uu]ser[Ss]ettings/
 *.log

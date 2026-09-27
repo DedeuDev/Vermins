@@ -14,4 +14,11 @@ public class SaveData
     public float playerRotZ;
 
     public float playerHealth;
+
+    // Ian: o que o Player carrega. Save de antes destes campos abre com
+    // tudo zerado, que e o mesmo que um jogo novo.
+    public int playerPotions;
+    public int playerGold;
+    public int playerJewels;
+    public int playerJewelsValue;
 }
