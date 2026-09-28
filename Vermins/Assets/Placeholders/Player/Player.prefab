@@ -24,6 +24,7 @@ GameObject:
   - component: {fileID: 6934464736222207046}
   - component: {fileID: 6444289761028526826}
   - component: {fileID: 6280237011513826658}
+  - component: {fileID: 5887505890075826926}
   m_Layer: 0
   m_Name: Player
   m_TagString: Player
@@ -205,6 +206,7 @@ MonoBehaviour:
   velocidadeDaCorrida: 2.58
   entradaDaReacao: 0.08
   saidaDaReacao: 0.15
+  corteDoGolpe: 0.1
 --- !u!114 &986444102126284620
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -306,6 +308,25 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 00bced004ccc24549b3a499a09bc50e3, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::JewelPouch
+--- !u!114 &5887505890075826926
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7457194079543536127}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: aa2db8908100504488740aa6ec8dd184, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PlayerInteractor
+  interactionKey: 101
+  interactionRange: 2.5
+  interactionLayers:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  showInteractionRange: 1
+  logInteraction: 0
 --- !u!1001 &9095150474061651368
 PrefabInstance:
   m_ObjectHideFlags: 0
