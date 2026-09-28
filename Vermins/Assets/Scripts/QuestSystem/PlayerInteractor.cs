@@ -1,5 +1,6 @@
 using UnityEngine;
 using UnityEngine.EventSystems;
+using UnityEngine.InputSystem;
 
 public class PlayerInteractor : MonoBehaviour
 {
@@ -9,12 +10,20 @@ public class PlayerInteractor : MonoBehaviour
 
     [Header("Interaction")]
     [Tooltip(
-        "Distância máxima para poder interagir " +
-        "com o objeto clicado."
+        "Distância máxima entre o Player e " +
+        "o objeto para permitir interação."
     )]
     [Min(0.1f)]
     [SerializeField]
     private float interactionDistance = 4f;
+
+    [Tooltip(
+        "Distância máxima que o Raycast da câmera " +
+        "pode percorrer."
+    )]
+    [Min(1f)]
+    [SerializeField]
+    private float raycastDistance = 500f;
 
     [SerializeField]
     private LayerMask interactionLayers = ~0;
@@ -38,12 +47,22 @@ public class PlayerInteractor : MonoBehaviour
 
     private void Update()
     {
-        if (!Input.GetMouseButtonDown(0))
+        /*
+         * New Input System.
+         *
+         * Verifica se existe um mouse conectado
+         * e se o botão esquerdo foi pressionado
+         * neste frame.
+         */
+        if (Mouse.current == null)
+            return;
+
+        if (!Mouse.current.leftButton.wasPressedThisFrame)
             return;
 
         /*
          * Evita interagir com objetos do mundo
-         * quando o jogador estiver clicando em UI.
+         * quando o clique estiver sobre uma UI.
          */
         if (
             EventSystem.current != null &&
@@ -87,12 +106,20 @@ public class PlayerInteractor : MonoBehaviour
         }
 
         // ========================================
-        // RAY A PARTIR DO CURSOR
+        // POSIÇÃO DO MOUSE
+        // NEW INPUT SYSTEM
+        // ========================================
+
+        Vector2 mousePosition =
+            Mouse.current.position.ReadValue();
+
+        // ========================================
+        // RAY DA CAMERA ATÉ O CURSOR
         // ========================================
 
         Ray ray =
             interactionCamera.ScreenPointToRay(
-                Input.mousePosition
+                mousePosition
             );
 
         RaycastHit hit;
@@ -101,13 +128,40 @@ public class PlayerInteractor : MonoBehaviour
             Physics.Raycast(
                 ray,
                 out hit,
-                interactionDistance,
+                raycastDistance,
                 interactionLayers,
                 QueryTriggerInteraction.Collide
             );
 
         if (!foundObject)
             return;
+
+        // ========================================
+        // DISTÂNCIA DO PLAYER AO OBJETO
+        // ========================================
+
+        float distanceFromPlayer =
+            Vector3.Distance(
+                transform.position,
+                hit.point
+            );
+
+        if (
+            distanceFromPlayer >
+            interactionDistance
+        )
+        {
+            if (logInteraction)
+            {
+                Debug.Log(
+                    "Objeto interativo está longe demais. " +
+                    $"Distância: {distanceFromPlayer:F2}",
+                    hit.collider.gameObject
+                );
+            }
+
+            return;
+        }
 
         // ========================================
         // PROCURA IINTERACTABLE
@@ -118,7 +172,10 @@ public class PlayerInteractor : MonoBehaviour
                 true
             );
 
-        foreach (MonoBehaviour behaviour in behaviours)
+        foreach (
+            MonoBehaviour behaviour
+            in behaviours
+        )
         {
             if (behaviour == null)
                 continue;
@@ -142,5 +199,17 @@ public class PlayerInteractor : MonoBehaviour
 
             return;
         }
+    }
+
+    // ==================================================
+    // DEBUG
+    // ==================================================
+
+    private void OnDrawGizmosSelected()
+    {
+        Gizmos.DrawWireSphere(
+            transform.position,
+            interactionDistance
+        );
     }
 }
