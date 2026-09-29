@@ -200,9 +200,10 @@ public class PlayerController : MonoBehaviour
     /// testes do DecidirOrdem e na mesma ordem, entao o cursor nunca
     /// promete uma coisa e o clique faz outra.
     /// </summary>
-    public AlvoDoCursor OQueEstaNoCursor(out Ray ray)
+    public AlvoDoCursor OQueEstaNoCursor(out Ray ray, out Health inimigo)
     {
         ray = default;
+        inimigo = null;
 
         if (viewCamera == null || IsPointerOverUI())
             return AlvoDoCursor.Nada;
@@ -212,7 +213,7 @@ public class PlayerController : MonoBehaviour
         if (interactor != null && interactor.TemInteragivel(ray))
             return AlvoDoCursor.Interagivel;
 
-        if (combat != null && AcharInimigo(ray, out _))
+        if (combat != null && AcharInimigo(ray, out inimigo))
             return AlvoDoCursor.Inimigo;
 
         return AlvoDoCursor.Chao;

@@ -28,6 +28,12 @@ public class CursorContextual : MonoBehaviour
 
     [SerializeField] private float alcanceDoRaio = 200f;
 
+    /// <summary>
+    /// O inimigo que esta embaixo do mouse neste frame, ou null. O
+    /// DestaqueDeAlvo le daqui pra nao refazer os mesmos raios.
+    /// </summary>
+    public Health InimigoSobOMouse { get; private set; }
+
     private PlayerController controller;
     private Health health;
     private Tipo atual = Tipo.Normal;
@@ -57,6 +63,8 @@ public class CursorContextual : MonoBehaviour
 
     private Tipo Classificar()
     {
+        InimigoSobOMouse = null;
+
         // Mesmos cortes do Update do PlayerController: morto ou pausado
         // o clique nao faz nada, entao o cursor tambem nao promete nada.
         if (health != null && health.IsDead)
@@ -65,12 +73,13 @@ public class CursorContextual : MonoBehaviour
         if (Time.timeScale == 0f)
             return Tipo.Normal;
 
-        switch (controller.OQueEstaNoCursor(out Ray ray))
+        switch (controller.OQueEstaNoCursor(out Ray ray, out Health inimigo))
         {
             case PlayerController.AlvoDoCursor.Interagivel:
                 return Tipo.Conversa;
 
             case PlayerController.AlvoDoCursor.Inimigo:
+                InimigoSobOMouse = inimigo;
                 return Tipo.Ataque;
 
             case PlayerController.AlvoDoCursor.Chao:

@@ -27,6 +27,7 @@ GameObject:
   - component: {fileID: 5887505890075826926}
   - component: {fileID: 2798567150478751981}
   - component: {fileID: 8270852290185748641}
+  - component: {fileID: 6956095987245603093}
   m_Layer: 0
   m_Name: Player
   m_TagString: Player
@@ -368,6 +369,30 @@ MonoBehaviour:
   cursorDePegar: {fileID: 2800000, guid: 293de78beb5d76c439a0d5b7c0af97d7, type: 3}
   pontaDoPegar: {x: 12, y: 4}
   alcanceDoRaio: 200
+--- !u!114 &6956095987245603093
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7457194079543536127}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f764958491f772745b362ed4f1815545, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::DestaqueDeAlvo
+  contorno: {fileID: 2100000, guid: deec79217cb8c1a469e016ca9ee7f276, type: 2}
+  materialDoAnel: {fileID: 2100000, guid: 00be738bd4525bd4fb78dd56f43e258a, type: 2}
+  corDoAnel: {r: 0.9, g: 0.15, b: 0.1, a: 0.9}
+  espessuraDoAnel: 0.06
+  folgaDoRaio: 0.25
+  pulso: 0.06
+  velocidadeDoPulso: 4
+  segmentos: 48
+  mascaraDoChao:
+    serializedVersion: 2
+    m_Bits: 384
+  alturaAcimaDoChao: 0.03
 --- !u!1001 &9095150474061651368
 PrefabInstance:
   m_ObjectHideFlags: 0
