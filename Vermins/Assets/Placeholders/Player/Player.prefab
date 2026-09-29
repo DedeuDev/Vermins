@@ -25,6 +25,7 @@ GameObject:
   - component: {fileID: 6444289761028526826}
   - component: {fileID: 6280237011513826658}
   - component: {fileID: 5887505890075826926}
+  - component: {fileID: 2798567150478751981}
   m_Layer: 0
   m_Name: Player
   m_TagString: Player
@@ -117,6 +118,7 @@ MonoBehaviour:
     serializedVersion: 2
     m_Bits: 384
   correcaoMaxima: 0.25
+  tempoDeAssentar: 0.1
 --- !u!114 &740039248088454938
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -320,13 +322,32 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: aa2db8908100504488740aa6ec8dd184, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerInteractor
-  interactionKey: 101
-  interactionRange: 2.5
+  interactionDistance: 4
+  raycastDistance: 500
   interactionLayers:
     serializedVersion: 2
     m_Bits: 4294967295
-  showInteractionRange: 1
   logInteraction: 0
+--- !u!114 &2798567150478751981
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7457194079543536127}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7e09d8f85a15b3a459af67224d35d956, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::MarcadorDeDestino
+  material: {fileID: 2100000, guid: 00be738bd4525bd4fb78dd56f43e258a, type: 2}
+  cor: {r: 1, g: 0.85, b: 0.55, a: 0.9}
+  raioInicial: 0.55
+  raioFinal: 0.2
+  duracao: 0.4
+  espessura: 0.05
+  segmentos: 40
+  alturaAcimaDoChao: 0.03
 --- !u!1001 &9095150474061651368
 PrefabInstance:
   m_ObjectHideFlags: 0
