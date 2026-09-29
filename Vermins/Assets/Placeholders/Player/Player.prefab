@@ -29,6 +29,8 @@ GameObject:
   - component: {fileID: 8270852290185748641}
   - component: {fileID: 6956095987245603093}
   - component: {fileID: 7548626110140675603}
+  - component: {fileID: 2915273612807663881}
+  - component: {fileID: 3937551716568081162}
   m_Layer: 0
   m_Name: Player
   m_TagString: Player
@@ -411,6 +413,46 @@ MonoBehaviour:
   tremorNoAcerto: 0.35
   tremorNaMorte: 0.55
   tremorAoApanhar: 0.5
+--- !u!114 &2915273612807663881
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7457194079543536127}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 23e88996bc4c7cb45bedd013cbe116ff, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ParticulaDeImpacto
+  material: {fileID: 2100000, guid: a7a5588b56480b8488214d8b9d93de9a, type: 2}
+  corEscura: {r: 0.6, g: 0.03, b: 0.03, a: 1}
+  corClara: {r: 0.95, g: 0.12, b: 0.06, a: 1}
+  particulasNoAcerto: 14
+  particulasNaMorte: 26
+  particulasAoApanhar: 10
+  alturaDoPeito: 1.1
+--- !u!114 &3937551716568081162
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7457194079543536127}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 66b22329ef5cfe7479ca9396c82f1cbf, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::NumerosDeDano
+  corNormal: {r: 1, g: 0.97, b: 0.9, a: 1}
+  corDaMorte: {r: 1, g: 0.6, b: 0.15, a: 1}
+  tamanho: 5
+  escalaDaMorte: 1.4
+  duracao: 0.8
+  subida: 0.9
+  folgaAcimaDaCabeca: 0.2
+  espalhamento: 0.35
+  quantosTextos: 12
 --- !u!1001 &9095150474061651368
 PrefabInstance:
   m_ObjectHideFlags: 0

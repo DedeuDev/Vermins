@@ -65,7 +65,7 @@ public class ImpactoDoGolpe : MonoBehaviour
         Descongelar();
     }
 
-    private void Acertou(Health alvo)
+    private void Acertou(Health alvo, float dano)
     {
         bool matou = alvo.IsDead;
 
