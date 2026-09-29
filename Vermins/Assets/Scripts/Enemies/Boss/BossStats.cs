@@ -11,6 +11,16 @@ public class BossStats : MonoBehaviour
 
     public int FaseAtual { get; private set; } = 1;
 
+    // Ian: o PlayerCombat so mira quem tem Health. O VidaDoBoss poe um
+    // Health aqui e repassa cada dano pro TomarDano, entao as fases e a
+    // morte continuam contigo. Crio ele sozinho pra ninguem precisar
+    // lembrar de adicionar no boss.
+    void Awake()
+    {
+        if (GetComponent<VidaDoBoss>() == null)
+            gameObject.AddComponent<VidaDoBoss>();
+    }
+
     void Start()
     {
         if (dadosBoss != null)
