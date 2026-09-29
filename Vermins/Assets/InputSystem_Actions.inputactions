@@ -77,7 +77,7 @@
                     "priority": 0
                 },
                 {
-                    "name": "Jump",
+                    "name": "Esquiva",
                     "type": "Button",
                     "id": "f1ba0d36-48eb-4cd5-b651-1c94a6531f70",
                     "expectedControlType": "Button",
@@ -432,7 +432,7 @@
                     "interactions": "",
                     "processors": "",
                     "groups": "Keyboard&Mouse",
-                    "action": "Jump",
+                    "action": "Esquiva",
                     "isComposite": false,
                     "isPartOfComposite": false
                 },
@@ -443,7 +443,7 @@
                     "interactions": "",
                     "processors": "",
                     "groups": "Gamepad",
-                    "action": "Jump",
+                    "action": "Esquiva",
                     "isComposite": false,
                     "isPartOfComposite": false
                 },
@@ -454,7 +454,7 @@
                     "interactions": "",
                     "processors": "",
                     "groups": "XR",
-                    "action": "Jump",
+                    "action": "Esquiva",
                     "isComposite": false,
                     "isPartOfComposite": false
                 },

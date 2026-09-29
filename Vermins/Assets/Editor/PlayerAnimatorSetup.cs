@@ -49,6 +49,12 @@ public static class PlayerAnimatorSetup
         public string clipeDeReacao;
 
         /// <summary>
+        /// Rolamento da esquiva. Vazio no perfil que nao tem: ai o estado
+        /// nem e montado.
+        /// </summary>
+        public string clipeDeEsquiva;
+
+        /// <summary>
         /// Se a posicao de cada clipe na roseta sai do pe (AnaliseDeClipe)
         /// em vez do root motion. Ver PosicaoDoClipe.
         /// </summary>
@@ -126,6 +132,7 @@ public static class PlayerAnimatorSetup
         ataques = new[] { "GreatSwordAttack01", "GreatSwordAttack02" },
         clipeDeMorte = "GreatSwordDeathBackward",
         clipeDeReacao = "GreatSwordImpact",
+        clipeDeEsquiva = "DiveForward",
         posicaoPeloPe = true,
     };
 
@@ -170,6 +177,24 @@ public static class PlayerAnimatorSetup
     private const string EstadoLocomocao = "Locomocao";
     private const string EstadoAtaque = "Ataque";
     private const string EstadoMorte = "Morte";
+    private const string EstadoEsquiva = "Esquiva";
+
+    public const string ParamEsquivar = "Esquivar";
+
+    /// <summary>
+    /// Multiplicador de velocidade da esquiva. O rolamento do Mixamo dura
+    /// 1,63 s, longo demais pra desviar de golpe, e quem decide quanto a
+    /// esquiva dura e o componente Esquiva. Entao, igual ao golpe, a
+    /// velocidade vem por parametro e o PlayerAnimator calcula.
+    /// </summary>
+    public const string ParamVelEsquiva = "VelEsquiva";
+
+    /// <summary>
+    /// Em que ponto do rolamento ele comeca a voltar pra locomocao. O fim
+    /// do clipe e o personagem terminando de levantar, e ai ja pode
+    /// misturar com o andar.
+    /// </summary>
+    private const float SaidaDaEsquiva = 0.85f;
 
     public const string ParamApanhar = "Apanhar";
 
@@ -270,6 +295,13 @@ public static class PlayerAnimatorSetup
         GarantirParametro(controller, ParamVelLocomocao, AnimatorControllerParameterType.Float);
         DefinirPadraoFloat(controller, ParamVelLocomocao, 1f);
 
+        if (!string.IsNullOrEmpty(perfil.clipeDeEsquiva))
+        {
+            GarantirParametro(controller, ParamEsquivar, AnimatorControllerParameterType.Trigger);
+            GarantirParametro(controller, ParamVelEsquiva, AnimatorControllerParameterType.Float);
+            DefinirPadraoFloat(controller, ParamVelEsquiva, 1f);
+        }
+
         Dictionary<string, AnimationClip> porNome = IndexarClipes(perfil.pastaClipes);
         AnimatorStateMachine maquina = controller.layers[0].stateMachine;
 
@@ -312,6 +344,7 @@ public static class PlayerAnimatorSetup
         AnimatorState ataque = MontarAtaque(perfil, controller, maquina, porNome, faltando);
         AnimatorState morte = MontarMorte(perfil, maquina, porNome, faltando);
         AnimatorState reacao = MontarReacao(perfil, controller, porNome, faltando);
+        AnimatorState esquiva = MontarEsquiva(perfil, maquina, porNome, faltando);
 
         if (faltando.Count > 0)
         {
@@ -321,7 +354,7 @@ public static class PlayerAnimatorSetup
 
         maquina.defaultState = locomocao;
 
-        LigarTudo(maquina, locomocao, ataque, morte);
+        LigarTudo(maquina, locomocao, ataque, morte, esquiva);
 
         EditorUtility.SetDirty(controller);
         AssetDatabase.SaveAssets();
@@ -471,6 +504,37 @@ public static class PlayerAnimatorSetup
     }
 
     /// <summary>
+    /// O rolamento da esquiva, ou null se o perfil nao tiver.
+    /// </summary>
+    private static AnimatorState MontarEsquiva(
+        Perfil perfil,
+        AnimatorStateMachine maquina,
+        Dictionary<string, AnimationClip> porNome,
+        List<string> faltando)
+    {
+        if (string.IsNullOrEmpty(perfil.clipeDeEsquiva))
+            return null;
+
+        AnimatorState estado = AcharEstado(maquina, EstadoEsquiva)
+                               ?? maquina.AddState(EstadoEsquiva, new Vector3(60f, 340f, 0f));
+
+        if (!porNome.TryGetValue(perfil.clipeDeEsquiva, out AnimationClip clipe))
+        {
+            faltando.Add(perfil.clipeDeEsquiva);
+            return estado;
+        }
+
+        estado.motion = clipe;
+        estado.speed = 1f;
+        estado.speedParameterActive = true;
+        estado.speedParameter = ParamVelEsquiva;
+        estado.writeDefaultValues = true;
+        LimparTransicoes(estado);
+
+        return estado;
+    }
+
+    /// <summary>
     /// As ligacoes.
     ///
     /// Ataque e morte saem do Any State de proposito. O ataque porque ele
@@ -482,7 +546,8 @@ public static class PlayerAnimatorSetup
         AnimatorStateMachine maquina,
         AnimatorState locomocao,
         AnimatorState ataque,
-        AnimatorState morte)
+        AnimatorState morte,
+        AnimatorState esquiva)
     {
         AnimatorStateTransition paraAtaque = maquina.AddAnyStateTransition(ataque);
         paraAtaque.hasExitTime = false;
@@ -516,6 +581,24 @@ public static class PlayerAnimatorSetup
         levanta.hasExitTime = false;
         levanta.duration = 0.25f;
         levanta.AddCondition(AnimatorConditionMode.IfNot, 0f, ParamMorto);
+
+        if (esquiva == null)
+            return;
+
+        // Do Any State pelo mesmo motivo do ataque: a esquiva corta
+        // qualquer coisa, inclusive um golpe no meio. Transicao curta
+        // porque esquiva que demora pra comecar nao desvia de nada.
+        AnimatorStateTransition paraEsquiva = maquina.AddAnyStateTransition(esquiva);
+        paraEsquiva.hasExitTime = false;
+        paraEsquiva.duration = 0.05f;
+        paraEsquiva.canTransitionToSelf = false;
+        paraEsquiva.AddCondition(AnimatorConditionMode.If, 0f, ParamEsquivar);
+        paraEsquiva.AddCondition(AnimatorConditionMode.IfNot, 0f, ParamMorto);
+
+        AnimatorStateTransition voltaDaEsquiva = esquiva.AddTransition(locomocao);
+        voltaDaEsquiva.hasExitTime = true;
+        voltaDaEsquiva.exitTime = SaidaDaEsquiva;
+        voltaDaEsquiva.duration = 0.15f;
     }
 
     /// <summary>

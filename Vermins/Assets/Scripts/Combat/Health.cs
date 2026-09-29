@@ -33,6 +33,14 @@ public class Health : MonoBehaviour
     public bool IsDead => Current <= 0f;
 
     /// <summary>
+    /// Enquanto ligado, dano nenhum entra: nem vida, nem OnDamaged. A
+    /// esquiva do jogador liga isto durante o rolamento. Fica aqui e nao
+    /// em quem bate porque tem mais de um jeito de tomar dano (espada,
+    /// flecha, poca de veneno) e todos passam pelo TakeDamage.
+    /// </summary>
+    public bool Invulneravel { get; set; }
+
+    /// <summary>
     /// (vida atual, vida maxima). Dispara em dano, cura e revive.
     ///
     /// Pra quem for fazer a UI: assina esse evento E le Current/Max uma
@@ -60,6 +68,9 @@ public class Health : MonoBehaviour
         // de novo a cada golpe no corpo, e contagem de kill, drop e
         // quest sairiam todos dobrados.
         if (IsDead || amount <= 0f)
+            return;
+
+        if (Invulneravel)
             return;
 
         Current = Mathf.Max(0f, Current - amount);

@@ -76,6 +76,8 @@ public class PlayerAnimator : MonoBehaviour
     private static readonly int VelAtaqueId = Animator.StringToHash("VelAtaque");
     private static readonly int VelLocomocaoId = Animator.StringToHash("VelLocomocao");
     private static readonly int ApanharId = Animator.StringToHash("Apanhar");
+    private static readonly int EsquivarId = Animator.StringToHash("Esquivar");
+    private static readonly int VelEsquivaId = Animator.StringToHash("VelEsquiva");
 
     // Hash do ESTADO, nao de parametro. Uso pra saber se a reacao esta
     // em cena neste frame, que e o que decide o peso da camada.
@@ -110,9 +112,15 @@ public class PlayerAnimator : MonoBehaviour
     // sem ninguem notar.
     private float duracaoDoAtaque;
 
+    // Duracao do clipe da esquiva, lida do controller uma vez, pelo
+    // mesmo motivo do duracaoDoAtaque. Zero quando o controller nao tem
+    // esquiva: ai o rolamento anda sem animacao, na pose de corrida.
+    private float duracaoDaEsquiva;
+
     private NavMeshAgent agent;
     private Health health;
     private PlayerCombat combate;
+    private Esquiva esquiva;
 
     // Indice da camada da reacao, resolvido uma vez. Guardo porque
     // GetLayerIndex faz busca por nome e eu leio isto todo frame.
@@ -161,6 +169,7 @@ public class PlayerAnimator : MonoBehaviour
         agent = GetComponent<NavMeshAgent>();
         health = GetComponent<Health>();
         combate = GetComponent<PlayerCombat>();
+        esquiva = GetComponent<Esquiva>();
 
         if (animator == null)
             animator = GetComponentInChildren<Animator>();
@@ -190,6 +199,7 @@ public class PlayerAnimator : MonoBehaviour
         }
 
         MedirOClipeDeAtaque();
+        MedirOClipeDaEsquiva();
         AcharACamadaDaReacao();
 
         // Sem aviso quando falta. O controller da magia nao tem este
@@ -271,6 +281,34 @@ public class PlayerAnimator : MonoBehaviour
     }
 
     /// <summary>
+    /// Acha o rolamento no controller, pelo nome, igual ao ataque. Sem o
+    /// trigger ou sem o clipe, a esquiva funciona do mesmo jeito, so que
+    /// o corpo desliza na pose de corrida - aviso e sigo.
+    /// </summary>
+    private void MedirOClipeDaEsquiva()
+    {
+        if (esquiva == null)
+            return;
+
+        if (TemParametro(EsquivarId, AnimatorControllerParameterType.Trigger) &&
+            TemParametro(VelEsquivaId, AnimatorControllerParameterType.Float))
+        {
+            foreach (AnimationClip c in animator.runtimeAnimatorController.animationClips)
+            {
+                if (c != null && (c.name.Contains("Dive") || c.name.Contains("Roll")))
+                    duracaoDaEsquiva = Mathf.Max(duracaoDaEsquiva, c.length);
+            }
+        }
+
+        if (duracaoDaEsquiva <= 0f)
+        {
+            Debug.LogWarning($"[{name}] O controller nao tem a esquiva. Ela " +
+                             "funciona, mas sem o rolamento. Rode o menu " +
+                             "Vermins/Player/Montar Animator do Paladino.", this);
+        }
+    }
+
+    /// <summary>
     /// Quantas vezes mais rapido o estado de ataque tem que tocar pra
     /// caber entre um golpe e o proximo.
     ///
@@ -303,6 +341,9 @@ public class PlayerAnimator : MonoBehaviour
             combate.OnGolpeInterrompido += CortarGolpe;
         }
 
+        if (esquiva != null)
+            esquiva.OnEsquivou += Rolar;
+
         if (health != null)
             health.OnDamaged += Apanhar;
     }
@@ -314,6 +355,9 @@ public class PlayerAnimator : MonoBehaviour
             combate.OnAttack -= Golpear;
             combate.OnGolpeInterrompido -= CortarGolpe;
         }
+
+        if (esquiva != null)
+            esquiva.OnEsquivou -= Rolar;
 
         if (health != null)
             health.OnDamaged -= Apanhar;
@@ -393,6 +437,37 @@ public class PlayerAnimator : MonoBehaviour
         // tempo normal de saida em vez de ficar por cima do golpe - antes
         // ela cobria 1,15 s, quase o golpe inteiro. E um Apanhar armado
         // neste mesmo frame morre antes de entrar.
+        if (podeReagir)
+        {
+            animator.ResetTrigger(ApanharId);
+
+            if (ReagindoAgora())
+                animator.CrossFadeInFixedTime(EstadoVazioId, saidaDaReacao, camadaDaReacao);
+        }
+    }
+
+    /// <summary>
+    /// A Esquiva avisa o aperto, com quanto tempo o rolamento tem que
+    /// durar na tela. O clipe tem 1,63 s; a esquiva pede 0,8, entao ele
+    /// toca a ~2x.
+    ///
+    /// Desarmo o Atacar e o Apanhar antes: um golpe armado neste frame
+    /// sairia no meio do rolamento, e a reacao por cima do torso rolando
+    /// vira boneco quebrado. Pelo mesmo motivo tiro a reacao que estiver
+    /// tocando.
+    /// </summary>
+    private void Rolar(float duracao)
+    {
+        if (duracaoDaEsquiva <= 0f || duracao <= 0f)
+            return;
+
+        if (health != null && health.IsDead)
+            return;
+
+        animator.ResetTrigger(AtacarId);
+        animator.SetFloat(VelEsquivaId, duracaoDaEsquiva / duracao);
+        animator.SetTrigger(EsquivarId);
+
         if (podeReagir)
         {
             animator.ResetTrigger(ApanharId);

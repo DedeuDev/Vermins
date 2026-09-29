@@ -44,6 +44,7 @@ public class PlayerController : MonoBehaviour
     private PlayerCombat combat;
     private PotionBelt belt;
     private PlayerInteractor interactor;
+    private Esquiva esquiva;
 
     /// <summary>
     /// O que o clique decidiu quando o botao desceu. Segurar o botao
@@ -73,6 +74,7 @@ public class PlayerController : MonoBehaviour
         combat = GetComponent<PlayerCombat>();
         belt = GetComponent<PotionBelt>();
         interactor = GetComponent<PlayerInteractor>();
+        esquiva = GetComponent<Esquiva>();
         input = new InputSystem_Actions();
 
         if (viewCamera == null)
@@ -131,6 +133,17 @@ public class PlayerController : MonoBehaviour
             belt.TryDrink();
 
         if (viewCamera == null)
+            return;
+
+        // Esquiva vai pro lado do mouse, esteja ele no chao, num inimigo
+        // ou em cima da UI - e tecla, nao clique.
+        if (esquiva != null && input.Player.Esquiva.WasPressedThisFrame())
+            esquiva.TentarEsquivar(PontoDoCursorNoChao());
+
+        // Rolando, o clique espera. Nao zero a ordem: se o botao continua
+        // segurado, o jogador volta a andar ou a bater sozinho no fim do
+        // rolamento, que e o que se espera de quem rolou no meio da briga.
+        if (esquiva != null && esquiva.EmEsquiva)
             return;
 
         if (input.Player.Click.WasPressedThisFrame())
@@ -217,6 +230,25 @@ public class PlayerController : MonoBehaviour
             return AlvoDoCursor.Inimigo;
 
         return AlvoDoCursor.Chao;
+    }
+
+    /// <summary>
+    /// Onde o mouse esta no chao. Sem chao embaixo (mouse no ceu, fora do
+    /// mapa), um metro na frente do jogador.
+    /// </summary>
+    private Vector3 PontoDoCursorNoChao()
+    {
+        if (Physics.Raycast(
+                RaioDoCursor(),
+                out RaycastHit hit,
+                maxRayDistance,
+                groundMask,
+                QueryTriggerInteraction.Ignore))
+        {
+            return hit.point;
+        }
+
+        return transform.position + transform.forward;
     }
 
     private void TryMoveToPointer(Ray ray)
