@@ -4,6 +4,11 @@ public class CaptainGuardQuestNPC :
     MonoBehaviour,
     IInteractable
 {
+    [Header("NPC")]
+    [SerializeField]
+    private string npcName =
+        "Capitão da Guarda";
+
     [Header("Debug")]
     [SerializeField]
     private bool logInteraction = true;
@@ -32,19 +37,27 @@ public class CaptainGuardQuestNPC :
         switch (state)
         {
             case QuestState.NotStarted:
+
                 OfferQuest();
+
                 break;
 
             case QuestState.Active:
+
                 QuestStillActive();
+
                 break;
 
             case QuestState.ReadyToTurnIn:
+
                 TurnInQuest();
+
                 break;
 
             case QuestState.Completed:
+
                 QuestAlreadyCompleted();
+
                 break;
         }
     }
@@ -55,17 +68,27 @@ public class CaptainGuardQuestNPC :
 
     private void OfferQuest()
     {
-        if (logInteraction)
-        {
-            Debug.Log(
-                "Capitão: Alguns guardas desapareceram " +
-                "nos esgotos. Descubra o que aconteceu " +
-                "com eles e investigue o que está " +
-                "acontecendo lá embaixo.",
-                this
-            );
-        }
+        string message =
+            "Alguns guardas desapareceram nos esgotos. " +
+            "Eles foram enviados para investigar, mas " +
+            "ninguém voltou. Descubra o que aconteceu " +
+            "com eles e investigue o que está acontecendo " +
+            "lá embaixo.";
 
+        ShowDialogue(
+            message
+        );
+
+        /*
+         * POR ENQUANTO a missão começa
+         * automaticamente.
+         *
+         * No próximo passo vamos substituir
+         * isso por:
+         *
+         * [Aceitar missão]
+         * [Agora não]
+         */
         QuestManager.Instance.StartSewerQuest();
     }
 
@@ -75,45 +98,48 @@ public class CaptainGuardQuestNPC :
 
     private void QuestStillActive()
     {
-        if (!logInteraction)
-            return;
-
         bool foundGuard =
             QuestManager.Instance.FoundDeadGuard;
 
         bool defeatedBoss =
             QuestManager.Instance.DefeatedDungeonBoss;
 
-        if (!foundGuard && !defeatedBoss)
+        if (
+            !foundGuard &&
+            !defeatedBoss
+        )
         {
-            Debug.Log(
-                "Capitão: Ainda não descobriu nada? " +
-                "Continue investigando os esgotos.",
-                this
+            ShowDialogue(
+                "Ainda não descobriu nada? " +
+                "Continue investigando os esgotos."
             );
 
             return;
         }
 
-        if (foundGuard && !defeatedBoss)
+        if (
+            foundGuard &&
+            !defeatedBoss
+        )
         {
-            Debug.Log(
-                "Capitão: Então encontrou um dos guardas... " +
+            ShowDialogue(
+                "Então encontrou um dos guardas... " +
                 "Continue investigando. Precisamos saber " +
-                "o que está causando isso.",
-                this
+                "o que está causando isso."
             );
 
             return;
         }
 
-        if (!foundGuard && defeatedBoss)
+        if (
+            !foundGuard &&
+            defeatedBoss
+        )
         {
-            Debug.Log(
-                "Capitão: Você encontrou algo perigoso " +
-                "lá embaixo, mas ainda precisamos saber " +
-                "o que aconteceu com os guardas.",
-                this
+            ShowDialogue(
+                "Você encontrou algo perigoso lá embaixo, " +
+                "mas ainda precisamos saber o que aconteceu " +
+                "com os guardas."
             );
         }
     }
@@ -125,20 +151,17 @@ public class CaptainGuardQuestNPC :
     private void TurnInQuest()
     {
         bool completed =
-            QuestManager.Instance.TurnInSewerQuest();
+            QuestManager.Instance
+                .TurnInSewerQuest();
 
         if (!completed)
             return;
 
-        if (logInteraction)
-        {
-            Debug.Log(
-                "Capitão: Então era isso que estava " +
-                "acontecendo... Obrigado. Agora sabemos " +
-                "o que aconteceu com os homens que enviei.",
-                this
-            );
-        }
+        ShowDialogue(
+            "Então era isso que estava acontecendo... " +
+            "Obrigado. Agora sabemos o que aconteceu " +
+            "com os homens que enviei."
+        );
     }
 
     // ==================================================
@@ -147,12 +170,41 @@ public class CaptainGuardQuestNPC :
 
     private void QuestAlreadyCompleted()
     {
-        if (!logInteraction)
-            return;
-
-        Debug.Log(
-            "Capitão: Obrigado novamente pela ajuda.",
-            this
+        ShowDialogue(
+            "Obrigado novamente pela ajuda."
         );
+    }
+
+    // ==================================================
+    // MOSTRA DIÁLOGO
+    // ==================================================
+
+    private void ShowDialogue(
+        string message
+    )
+    {
+        if (DialogueUI.Instance != null)
+        {
+            DialogueUI.Instance.ShowDialogue(
+                npcName,
+                message
+            );
+        }
+        else
+        {
+            Debug.LogWarning(
+                "CaptainGuardQuestNPC: " +
+                "DialogueUI não encontrado.",
+                this
+            );
+        }
+
+        if (logInteraction)
+        {
+            Debug.Log(
+                $"{npcName}: {message}",
+                this
+            );
+        }
     }
 }
