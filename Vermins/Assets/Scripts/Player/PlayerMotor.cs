@@ -92,11 +92,20 @@ public class PlayerMotor : MonoBehaviour
              "agente.")]
     [SerializeField] private float correcaoMaxima = 0.25f;
 
+    [Tooltip("Tempo pro modelo chegar na altura nova do chao. Sem isso, " +
+             "na escada da HUBCity (degrau de 36 cm) o modelo ficava " +
+             "parado e pulava 26 a 40 cm num frame so a cada degrau. No " +
+             "chao plano nao muda nada, porque o alvo nao se mexe.")]
+    [SerializeField] private float tempoDeAssentar = 0.1f;
+
     private NavMeshAgent agent;
 
     // Altura local do modelo como veio no prefab. E dela que a correcao
     // parte, e pra ela que o modelo volta se o raio nao achar chao.
     private float alturaDoModelo;
+
+    // Embalo do SmoothDamp da altura do modelo, guardado entre frames.
+    private float velocidadeVertical;
 
     // Embalo do giro. O SmoothDampAngle guarda a velocidade
     // angular aqui entre um frame e outro - e ela que faz o
@@ -166,7 +175,7 @@ public class PlayerMotor : MonoBehaviour
         if (modelo == null)
             return;
 
-        float altura = alturaDoModelo;
+        float alvo = alturaDoModelo;
 
         // Comeca 0,5 m acima do pivo pra achar o chao mesmo quando o
         // modelo esta abaixo dele, e vai ate a correcao maxima abaixo
@@ -187,15 +196,21 @@ public class PlayerMotor : MonoBehaviour
         // altura no mundo e a mesma coisa que altura local do filho.
         if (achouChao)
         {
-            altura = Mathf.Clamp(
+            alvo = Mathf.Clamp(
                 hit.point.y - transform.position.y,
                 alturaDoModelo - correcaoMaxima,
                 alturaDoModelo + correcaoMaxima
             );
         }
 
+        // Suavizo a altura local, e nao a do mundo. O pivo ja sobe liso
+        // pela rampa do NavMesh, entao a altura local so oscila em volta
+        // do degrau e a suavizacao corta o pulo sem ficar pra tras. Testei
+        // no mundo primeiro: o modelo atrasava na subida e o pe passava
+        // mais de 10 cm dentro do degrau em metade do tempo.
         Vector3 local = modelo.localPosition;
-        local.y = altura;
+        local.y = Mathf.SmoothDamp(
+            local.y, alvo, ref velocidadeVertical, tempoDeAssentar);
         modelo.localPosition = local;
     }
 
