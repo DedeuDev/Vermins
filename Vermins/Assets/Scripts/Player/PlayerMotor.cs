@@ -103,11 +103,17 @@ public class PlayerMotor : MonoBehaviour
     // corpo desacelerar em vez de parar seco.
     private float velocidadeAngular;
 
-    /// <summary>Verdadeiro enquanto o jogador esta indo pra algum lugar.</summary>
-    public bool IsMoving =>
-        agent.hasPath && agent.remainingDistance > agent.stoppingDistance;
+    private bool AgentePronto =>
+        agent != null && agent.isActiveAndEnabled && agent.isOnNavMesh;
 
-    public Vector3 Destination => agent.destination;
+    /// <summary>Verdadeiro enquanto o jogador esta indo pra algum lugar.</summary>
+    // Conto a rota pendente para conseguir cancela-la antes que o agente
+    // comece a andar, inclusive quando paro para atacar no mesmo frame.
+    public bool IsMoving =>
+        AgentePronto && (agent.pathPending ||
+            (agent.hasPath && agent.remainingDistance > agent.stoppingDistance));
+
+    public Vector3 Destination => AgentePronto ? agent.destination : transform.position;
 
     private void Awake()
     {
@@ -203,6 +209,12 @@ public class PlayerMotor : MonoBehaviour
     /// </summary>
     private void Girar()
     {
+        if (!AgentePronto)
+        {
+            velocidadeAngular = 0f;
+            return;
+        }
+
         Vector3 direcao = agent.desiredVelocity;
         direcao.y = 0f;
 
@@ -241,6 +253,11 @@ public class PlayerMotor : MonoBehaviour
     /// </summary>
     public bool MoveTo(Vector3 worldPoint)
     {
+        // Espero o agente entrar na malha antes de aceitar uma ordem.
+        // Encontrar chao perto do destino nao garante que eu possa sair.
+        if (!AgentePronto)
+            return false;
+
         if (!NavMesh.SamplePosition(
                 worldPoint,
                 out NavMeshHit hit,
@@ -253,10 +270,11 @@ public class PlayerMotor : MonoBehaviour
         // Clique vai ate o fim. Quem perseguiu antes deixou uma
         // distancia de parada guardada no agente, e sem zerar aqui o
         // jogador pararia metros antes de onde a pessoa clicou.
+        if (!agent.SetDestination(hit.position))
+            return false;
+
         agent.stoppingDistance = 0f;
         agent.isStopped = false;
-        agent.SetDestination(hit.position);
-
         return true;
     }
 
@@ -279,6 +297,9 @@ public class PlayerMotor : MonoBehaviour
     /// </summary>
     public bool Perseguir(Vector3 pontoDoAlvo, float distanciaDeParada)
     {
+        if (!AgentePronto)
+            return false;
+
         if (!NavMesh.SamplePosition(
                 pontoDoAlvo,
                 out NavMeshHit hit,
@@ -288,17 +309,20 @@ public class PlayerMotor : MonoBehaviour
             return false;
         }
 
+        // So aviso que aceitei a perseguicao se o agente aceitou a rota.
+        // Assim o combate nao guarda no cache uma ordem que falhou.
+        if (!agent.SetDestination(hit.position))
+            return false;
+
         agent.stoppingDistance = distanciaDeParada;
         agent.isStopped = false;
-        agent.SetDestination(hit.position);
-
         return true;
     }
 
     /// <summary>Para na hora e esquece o caminho atual.</summary>
     public void Stop()
     {
-        if (!agent.isOnNavMesh)
+        if (!AgentePronto)
             return;
 
         agent.isStopped = true;

@@ -217,6 +217,11 @@ public class PlayerCombat : MonoBehaviour
         if (novoAlvo == null || novoAlvo.IsDead)
             return;
 
+        // Segurar o clique repete o alvo. Preservo a rota enquanto ele
+        // for o mesmo, para o repathThreshold continuar valendo.
+        if (novoAlvo == target)
+            return;
+
         target = novoAlvo;
 
         // Guardo o agente do alvo porque preciso da altura dele pra
@@ -341,9 +346,9 @@ public class PlayerCombat : MonoBehaviour
         if (alvoDoCast == null || alvoDoCast.IsDead)
             return;
 
-        // Golpe que nao alcanca e golpe no ar: o gesto ja foi feito, so
-        // nao tira vida.
-        if (LaminaAlcanca(alvoDoCast))
+        // Confiro a parede de novo na pancada: o alvo pode ter dobrado
+        // uma quina depois que comecei o gesto. Nesse caso deixo errar.
+        if (LaminaAlcanca(alvoDoCast) && VisaoLimpa(alvoDoCast))
             weapon.TryHit(alvoDoCast);
     }
 
@@ -443,6 +448,19 @@ public class PlayerCombat : MonoBehaviour
             // sentido continuar andando pra cima de um cadaver.
             ClearTarget();
             StopChasing();
+            return;
+        }
+
+        // Termino o gesto antes de perseguir automaticamente. Medi
+        // cerca de 1,17 m de deslocamento durante o ataque quando o alvo
+        // recuava. O clique de andar ainda corta o golpe na hora.
+        if (gestoEmCurso && Time.time < nextAttackTime)
+        {
+            StopChasing();
+
+            if (alvoDoCast != null && !alvoDoCast.IsDead)
+                FaceTarget(alvoDoCast.transform.position);
+
             return;
         }
 
@@ -562,6 +580,12 @@ public class PlayerCombat : MonoBehaviour
     {
         if (motor.IsMoving)
             motor.Stop();
+
+        // Esqueco o destino quando paro para atacar. O Stop apaga o
+        // caminho; se eu guardar o ponto, um recuo de menos de 0,25 m
+        // pode deixar o alvo fora do alcance sem eu voltar a persegui-lo.
+        lastChasePoint = Vector3.positiveInfinity;
+        ultimaDistanciaDeParada = -1f;
     }
 
     private void FaceTarget(Vector3 alvo)

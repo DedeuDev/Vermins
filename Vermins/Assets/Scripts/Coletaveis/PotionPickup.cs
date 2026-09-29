@@ -15,6 +15,8 @@ using UnityEngine;
 [RequireComponent(typeof(Rigidbody), typeof(SphereCollider))]
 public class PotionPickup : MonoBehaviour
 {
+    private bool coletada;
+
     // O Reset roda quando o componente e adicionado no editor. Deixo o
     // Rigidbody e a esfera prontos aqui pra ninguem precisar lembrar da
     // regra do trigger: e so adicionar este script.
@@ -35,14 +37,36 @@ public class PotionPickup : MonoBehaviour
 
     private void OnTriggerEnter(Collider other)
     {
+        TentarColetar(other);
+    }
+
+    private void OnTriggerStay(Collider other)
+    {
+        // Tento de novo se o jogador beber sem sair de cima da pocao.
+        TentarColetar(other);
+    }
+
+    private void TentarColetar(Collider other)
+    {
+        if (coletada)
+            return;
+
         // InParent porque o collider costuma estar num filho e o resto no
         // objeto raiz - o mesmo motivo do clique de ataque.
         PotionBelt cinto = other.GetComponentInParent<PotionBelt>();
 
-        // Cinto cheio: a pocao fica no chao, e o jogador pega quando
-        // passar por ela de novo.
-        if (cinto == null || !cinto.TryStore())
+        if (cinto == null)
             return;
+
+        // Marco antes de avisar o cinto, para outro collider ou uma
+        // reentrada pelo OnChanged nao entregar esta mesma pocao duas vezes.
+        coletada = true;
+
+        if (!cinto.TryStore())
+        {
+            coletada = false;
+            return;
+        }
 
         Destroy(gameObject);
     }
