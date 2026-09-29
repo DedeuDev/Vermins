@@ -1,13 +1,15 @@
 using UnityEngine;
-using UnityEngine.EventSystems;
-using UnityEngine.InputSystem;
 
+// Ian: quem le o clique agora e so o PlayerController. Os controles
+// seguem o esquema do Diablo 4: o botao esquerdo anda, ataca ou interage,
+// conforme o que estiver embaixo do cursor. Antes este script lia o
+// botao esquerdo por conta propria e o PlayerController tambem, entao o
+// mesmo clique no NPC falava com ele e dava espadada. Aqui ficou a regra
+// da interacao: o que conta como interagivel, a distancia e a ida ate o
+// NPC quando o clique vem de longe.
+[RequireComponent(typeof(PlayerMotor))]
 public class PlayerInteractor : MonoBehaviour
 {
-    [Header("References")]
-    [SerializeField]
-    private Camera interactionCamera;
-
     [Header("Interaction")]
     [Tooltip(
         "Distância máxima entre o Player e " +
@@ -32,95 +34,69 @@ public class PlayerInteractor : MonoBehaviour
     [SerializeField]
     private bool logInteraction = false;
 
+    // Ian: o que o jogador clicou de longe e ainda esta indo buscar.
+    private IInteractable pendente;
+    private Collider colliderDoPendente;
+
+    private PlayerMotor motor;
+
     // ==================================================
     // AWAKE
     // ==================================================
 
     private void Awake()
     {
-        FindCameraIfNeeded();
+        motor = GetComponent<PlayerMotor>();
     }
 
     // ==================================================
     // UPDATE
     // ==================================================
 
+    // Ian: so acompanha a ida ate o que foi clicado de longe. Interage
+    // quando chega: dentro da distancia E parado. Se interagisse assim
+    // que entrasse na distancia, o jogador frearia a 4 m e falaria com o
+    // NPC de longe.
     private void Update()
     {
-        /*
-         * New Input System.
-         *
-         * Verifica se existe um mouse conectado
-         * e se o botão esquerdo foi pressionado
-         * neste frame.
-         */
-        if (Mouse.current == null)
+        if (pendente == null)
             return;
 
-        if (!Mouse.current.leftButton.wasPressedThisFrame)
-            return;
-
-        /*
-         * Evita interagir com objetos do mundo
-         * quando o clique estiver sobre uma UI.
-         */
-        if (
-            EventSystem.current != null &&
-            EventSystem.current.IsPointerOverGameObject()
-        )
+        // O objeto pode ter sumido no caminho.
+        if (colliderDoPendente == null)
         {
+            ClearTarget();
             return;
         }
 
-        TryInteract();
-    }
+        if (motor.IsMoving)
+            return;
 
-    // ==================================================
-    // PROCURA CAMERA
-    // ==================================================
+        if (DistanceTo(colliderDoPendente) > interactionDistance)
+            return;
 
-    private bool FindCameraIfNeeded()
-    {
-        if (interactionCamera != null)
-            return true;
+        IInteractable alvo = pendente;
+        Collider colliderDoAlvo = colliderDoPendente;
 
-        interactionCamera = Camera.main;
-
-        return interactionCamera != null;
+        ClearTarget();
+        Interact(alvo, colliderDoAlvo);
     }
 
     // ==================================================
     // INTERAÇÃO
     // ==================================================
 
-    private void TryInteract()
+    /// <summary>
+    /// Ian: o PlayerController chama isto quando o botao esquerdo desce.
+    /// Devolve true se o clique pegou algo interagivel, e ai ele nao anda
+    /// nem ataca. Perto, interage na hora. Longe, manda o Player ir ate
+    /// la e o Update termina o servico.
+    /// </summary>
+    public bool TryInteract(Ray ray)
     {
-        if (!FindCameraIfNeeded())
-        {
-            Debug.LogError(
-                "PlayerInteractor: nenhuma câmera foi encontrada.",
-                this
-            );
-
-            return;
-        }
-
-        // ========================================
-        // POSIÇÃO DO MOUSE
-        // NEW INPUT SYSTEM
-        // ========================================
-
-        Vector2 mousePosition =
-            Mouse.current.position.ReadValue();
-
         // ========================================
         // RAY DA CAMERA ATÉ O CURSOR
         // ========================================
-
-        Ray ray =
-            interactionCamera.ScreenPointToRay(
-                mousePosition
-            );
 
         RaycastHit hit;
 
@@ -134,41 +110,88 @@ public class PlayerInteractor : MonoBehaviour
             );
 
         if (!foundObject)
-            return;
-
-        // ========================================
-        // DISTÂNCIA DO PLAYER AO OBJETO
-        // ========================================
-
-        float distanceFromPlayer =
-            Vector3.Distance(
-                transform.position,
-                hit.point
-            );
-
-        if (
-            distanceFromPlayer >
-            interactionDistance
-        )
-        {
-            if (logInteraction)
-            {
-                Debug.Log(
-                    "Objeto interativo está longe demais. " +
-                    $"Distância: {distanceFromPlayer:F2}",
-                    hit.collider.gameObject
-                );
-            }
-
-            return;
-        }
+            return false;
 
         // ========================================
         // PROCURA IINTERACTABLE
         // ========================================
 
+        IInteractable interactable =
+            FindInteractable(hit.collider);
+
+        if (interactable == null)
+            return false;
+
+        // ========================================
+        // DISTÂNCIA DO PLAYER AO OBJETO
+        // ========================================
+
+        // Ian: mede ate o corpo do objeto, e nao ate onde o clique bateu.
+        // O collider do CaptainGuard tem 3,6 m de altura: clicando na
+        // cabeca dele, o ponto do clique ficava longe mesmo com o Player
+        // encostado.
+        if (DistanceTo(hit.collider) <= interactionDistance)
+        {
+            ClearTarget();
+            motor.Stop();
+            Interact(interactable, hit.collider);
+
+            return true;
+        }
+
+        // Ian: longe demais. Antes o clique morria aqui; agora o Player
+        // vai ate la, igual no Diablo 4. Paro na metade da distancia de
+        // interacao: perto o bastante pra parecer conversa, e com folga
+        // pra continuar valendo com o NPC em cima de um degrau.
+        Transform corpo = ((Component)interactable).transform;
+
+        if (!motor.Perseguir(
+                corpo.position,
+                interactionDistance * 0.5f))
+        {
+            if (logInteraction)
+            {
+                Debug.Log(
+                    "Sem caminho até: " +
+                    hit.collider.gameObject.name,
+                    hit.collider.gameObject
+                );
+            }
+
+            // Mesmo sem caminho o clique foi no NPC, entao nao vira
+            // ataque nem passo.
+            return true;
+        }
+
+        pendente = interactable;
+        colliderDoPendente = hit.collider;
+
+        if (logInteraction)
+        {
+            Debug.Log(
+                "Indo até: " +
+                hit.collider.gameObject.name,
+                hit.collider.gameObject
+            );
+        }
+
+        return true;
+    }
+
+    /// <summary>
+    /// Ian: desiste de ir ate o NPC. O PlayerController chama quando o
+    /// jogador manda andar ou atacar no meio do caminho.
+    /// </summary>
+    public void ClearTarget()
+    {
+        pendente = null;
+        colliderDoPendente = null;
+    }
+
+    private IInteractable FindInteractable(Collider collider)
+    {
         MonoBehaviour[] behaviours =
-            hit.collider.GetComponentsInParent<MonoBehaviour>(
+            collider.GetComponentsInParent<MonoBehaviour>(
                 true
             );
 
@@ -183,22 +206,36 @@ public class PlayerInteractor : MonoBehaviour
             IInteractable interactable =
                 behaviour as IInteractable;
 
-            if (interactable == null)
-                continue;
-
-            if (logInteraction)
-            {
-                Debug.Log(
-                    "Interação com: " +
-                    hit.collider.gameObject.name,
-                    hit.collider.gameObject
-                );
-            }
-
-            interactable.Interact();
-
-            return;
+            if (interactable != null)
+                return interactable;
         }
+
+        return null;
+    }
+
+    private float DistanceTo(Collider collider)
+    {
+        return Vector3.Distance(
+            transform.position,
+            collider.ClosestPoint(transform.position)
+        );
+    }
+
+    private void Interact(
+        IInteractable interactable,
+        Collider collider
+    )
+    {
+        if (logInteraction)
+        {
+            Debug.Log(
+                "Interação com: " +
+                collider.gameObject.name,
+                collider.gameObject
+            );
+        }
+
+        interactable.Interact();
     }
 
     // ==================================================

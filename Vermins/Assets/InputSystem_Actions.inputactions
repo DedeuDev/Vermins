@@ -27,7 +27,7 @@
                     "priority": 0
                 },
                 {
-                    "name": "MoveTo",
+                    "name": "Click",
                     "type": "Button",
                     "id": "a1f4c2d0-3e7b-4c81-9f52-6d0b8e14a301",
                     "expectedControlType": "Button",
@@ -307,11 +307,11 @@
                 {
                     "name": "",
                     "id": "a1f4c2d0-3e7b-4c81-9f52-6d0b8e14a303",
-                    "path": "<Mouse>/rightButton",
+                    "path": "<Mouse>/leftButton",
                     "interactions": "",
                     "processors": "",
                     "groups": ";Keyboard&Mouse",
-                    "action": "MoveTo",
+                    "action": "Click",
                     "isComposite": false,
                     "isPartOfComposite": false
                 },
@@ -323,17 +323,6 @@
                     "processors": "",
                     "groups": ";Keyboard&Mouse",
                     "action": "Point",
-                    "isComposite": false,
-                    "isPartOfComposite": false
-                },
-                {
-                    "name": "",
-                    "id": "05f6913d-c316-48b2-a6bb-e225f14c7960",
-                    "path": "<Mouse>/leftButton",
-                    "interactions": "",
-                    "processors": "",
-                    "groups": ";Keyboard&Mouse",
-                    "action": "Attack",
                     "isComposite": false,
                     "isPartOfComposite": false
                 },

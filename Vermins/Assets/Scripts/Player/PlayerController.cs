@@ -10,8 +10,11 @@ using UnityEngine.InputSystem;
 /// precisar remapear tecla, ou ligar a tela de opcoes, ou travar o
 /// input durante um dialogo, ja vai estar no lugar certo.
 ///
-/// Botao direito move, porque o esquerdo ja esta reservado pro
-/// Attack no asset.
+/// Os controles seguem o Diablo 4 e o Path of Exile 2: o botao
+/// esquerdo faz tudo, e o que ele faz depende do que esta embaixo do
+/// cursor quando desce - NPC interage, inimigo ataca, chao anda. Antes
+/// era o direito que andava, herdado do Movement.cs antigo, e o
+/// esquerdo so atacava. O direito ficou livre pra quando existir skill.
 /// </summary>
 [RequireComponent(typeof(PlayerMotor))]
 public class PlayerController : MonoBehaviour
@@ -40,6 +43,18 @@ public class PlayerController : MonoBehaviour
     private Health health;
     private PlayerCombat combat;
     private PotionBelt belt;
+    private PlayerInteractor interactor;
+
+    /// <summary>
+    /// O que o clique decidiu quando o botao desceu. Segurar o botao
+    /// repete essa ordem em vez de olhar de novo o que esta embaixo do
+    /// cursor - se olhasse, andar segurando o botao por cima de um
+    /// inimigo virava ataque sem querer, e quem queria fugir parava pra
+    /// brigar.
+    /// </summary>
+    private enum Ordem { Nenhuma, Andar, Atacar }
+
+    private Ordem ordem;
 
     /// <summary>
     /// Disparado toda vez que o jogador manda andar pra um ponto.
@@ -54,6 +69,7 @@ public class PlayerController : MonoBehaviour
         health = GetComponent<Health>();
         combat = GetComponent<PlayerCombat>();
         belt = GetComponent<PotionBelt>();
+        interactor = GetComponent<PlayerInteractor>();
         input = new InputSystem_Actions();
 
         if (viewCamera == null)
@@ -105,38 +121,78 @@ public class PlayerController : MonoBehaviour
             return;
 
         // Pocao e toque unico: WasPressedThisFrame, e nao IsPressed como o
-        // ataque. Segurando o Q, o IsPressed beberia uma pocao por frame
+        // clique. Segurando o Q, o IsPressed beberia uma pocao por frame
         // ate a vida encher. Fica antes do filtro de clique porque e
         // tecla - da pra beber andando, brigando ou com o mouse na UI.
         if (belt != null && input.Player.DrinkPotion.WasPressedThisFrame())
             belt.TryDrink();
 
+        if (viewCamera == null)
+            return;
+
+        if (input.Player.Click.WasPressedThisFrame())
+        {
+            ordem = IsPointerOverUI() ? Ordem.Nenhuma : DecidirOrdem();
+            return;
+        }
+
         // Segurar o botao continua valendo, igual ARPG. Nao e so no
         // clique.
-        bool atacando = combat != null && input.Player.Attack.IsPressed();
-        bool andando = input.Player.MoveTo.IsPressed();
-
-        if (!atacando && !andando)
+        if (!input.Player.Click.IsPressed())
+        {
+            ordem = Ordem.Nenhuma;
             return;
+        }
 
         if (IsPointerOverUI())
             return;
 
-        if (atacando)
-            TryAttackAtPointer();
-
-        if (andando)
-            TryMoveToPointer();
+        if (ordem == Ordem.Andar)
+            TryMoveToPointer(RaioDoCursor());
+        else if (ordem == Ordem.Atacar)
+            TryAttackAtPointer(RaioDoCursor());
     }
 
-    private void TryMoveToPointer()
+    /// <summary>
+    /// Olha o que esta embaixo do cursor e da a ordem certa. A
+    /// prioridade e interagivel, depois inimigo, depois chao.
+    /// </summary>
+    private Ordem DecidirOrdem()
     {
-        if (viewCamera == null)
-            return;
+        Ray ray = RaioDoCursor();
 
+        // NPC primeiro. O collider do CaptainGuard e trigger, e os raios
+        // do ataque e do chao ignoram trigger: se o interactor nao olhasse
+        // antes, o clique no NPC atravessava ele e virava passo pro chao
+        // de tras.
+        if (interactor != null && interactor.TryInteract(ray))
+        {
+            if (combat != null)
+            {
+                combat.ClearTarget();
+                combat.InterromperGolpe();
+            }
+
+            return Ordem.Nenhuma;
+        }
+
+        if (TryAttackAtPointer(ray))
+            return Ordem.Atacar;
+
+        // Clique no vazio tambem vira Andar: se a pessoa arrastar o
+        // cursor pro chao segurando o botao, o jogador vai atras.
+        TryMoveToPointer(ray);
+        return Ordem.Andar;
+    }
+
+    private Ray RaioDoCursor()
+    {
         Vector2 screenPosition = input.Player.Point.ReadValue<Vector2>();
-        Ray ray = viewCamera.ScreenPointToRay(screenPosition);
+        return viewCamera.ScreenPointToRay(screenPosition);
+    }
 
+    private void TryMoveToPointer(Ray ray)
+    {
         // Trigger nunca e destino de clique. Hoje a groundMask sozinha
         // ja daria conta, porque ela so aceita a layer do chao - isso
         // aqui e pra quando alguem puser uma zona de agua ou de dano
@@ -166,20 +222,22 @@ public class PlayerController : MonoBehaviour
             combat.InterromperGolpe();
         }
 
+        // Mesma coisa com a ida ate um NPC.
+        if (interactor != null)
+            interactor.ClearTarget();
+
         OnMoveOrdered?.Invoke(hit.point);
     }
 
     /// <summary>
-    /// Botao esquerdo escolhe em quem bater. Quem persegue e da o golpe
-    /// e o PlayerCombat - aqui so traduzo o clique num alvo.
+    /// Escolhe em quem bater. Quem persegue e da o golpe e o
+    /// PlayerCombat - aqui so traduzo o clique num alvo. Devolve false
+    /// quando nao tinha inimigo embaixo do cursor.
     /// </summary>
-    private void TryAttackAtPointer()
+    private bool TryAttackAtPointer(Ray ray)
     {
-        if (viewCamera == null)
-            return;
-
-        Vector2 screenPosition = input.Player.Point.ReadValue<Vector2>();
-        Ray ray = viewCamera.ScreenPointToRay(screenPosition);
+        if (combat == null)
+            return false;
 
         // Sem isto o clique nao acha alvo nenhum dentro da dungeon. Os
         // modulos tem um BoxCollider "PlacementBounds" que e trigger,
@@ -195,16 +253,21 @@ public class PlayerController : MonoBehaviour
         );
 
         if (!acertouAlgo)
-            return;
+            return false;
 
         // InParent porque o collider costuma estar num filho e a vida
         // no objeto raiz.
         Health alvo = hit.collider.GetComponentInParent<Health>();
 
         if (alvo == null || alvo == health || alvo.IsDead)
-            return;
+            return false;
 
         combat.SetTarget(alvo);
+
+        if (interactor != null)
+            interactor.ClearTarget();
+
+        return true;
     }
 
     /// <summary>
@@ -214,6 +277,9 @@ public class PlayerController : MonoBehaviour
     private void HandleDied(Health _)
     {
         motor.Stop();
+
+        if (interactor != null)
+            interactor.ClearTarget();
     }
 
     /// <summary>
