@@ -28,6 +28,7 @@ GameObject:
   - component: {fileID: 2798567150478751981}
   - component: {fileID: 8270852290185748641}
   - component: {fileID: 6956095987245603093}
+  - component: {fileID: 7548626110140675603}
   m_Layer: 0
   m_Name: Player
   m_TagString: Player
@@ -393,6 +394,23 @@ MonoBehaviour:
     serializedVersion: 2
     m_Bits: 384
   alturaAcimaDoChao: 0.03
+--- !u!114 &7548626110140675603
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7457194079543536127}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 029e6ef4f07b3b648b0e2bf74ea73446, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ImpactoDoGolpe
+  pausaNoAcerto: 0.06
+  pausaNaMorte: 0.1
+  tremorNoAcerto: 0.35
+  tremorNaMorte: 0.55
+  tremorAoApanhar: 0.5
 --- !u!1001 &9095150474061651368
 PrefabInstance:
   m_ObjectHideFlags: 0

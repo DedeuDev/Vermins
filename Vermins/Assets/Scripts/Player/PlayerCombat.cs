@@ -195,6 +195,13 @@ public class PlayerCombat : MonoBehaviour
     /// </summary>
     public event System.Action OnGolpeInterrompido;
 
+    /// <summary>
+    /// Disparado quando a espada tira vida de alguem, no quadro da
+    /// pancada. Serve pra pausa no impacto e tremor de camera, que so
+    /// fazem sentido no acerto de verdade, nao no golpe que erra.
+    /// </summary>
+    public event System.Action<Health> OnGolpeAcertou;
+
     private void Awake()
     {
         motor = GetComponent<PlayerMotor>();
@@ -348,8 +355,11 @@ public class PlayerCombat : MonoBehaviour
 
         // Confiro a parede de novo na pancada: o alvo pode ter dobrado
         // uma quina depois que comecei o gesto. Nesse caso deixo errar.
-        if (LaminaAlcanca(alvoDoCast) && VisaoLimpa(alvoDoCast))
-            weapon.TryHit(alvoDoCast);
+        if (LaminaAlcanca(alvoDoCast) && VisaoLimpa(alvoDoCast) &&
+            weapon.TryHit(alvoDoCast))
+        {
+            OnGolpeAcertou?.Invoke(alvoDoCast);
+        }
     }
 
     /// <summary>

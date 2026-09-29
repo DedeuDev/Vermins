@@ -62,8 +62,34 @@ public class IsometricCameraFollow : MonoBehaviour
              "movimento mais macio, mas com mais atraso.")]
     [SerializeField] private float smoothTime = 0.15f;
 
+    [Header("Tremor")]
+    [Tooltip("Quanto a camera anda, em metros, com o tremor no maximo. " +
+             "Quem pede tremor manda um 'trauma' de 0 a 1 e o " +
+             "deslocamento e trauma ao quadrado vezes isto: tremor fraco " +
+             "fica bem fraco e so pancada forte sacode de verdade.")]
+    [SerializeField] private float tremorMaximo = 0.7f;
+
+    [Tooltip("Rapidez da sacudida. Alto parece impacto, baixo parece " +
+             "terremoto.")]
+    [SerializeField] private float frequenciaDoTremor = 25f;
+
+    [Tooltip("Quanto trauma some por segundo. Com 2, o maior tremor " +
+             "acaba em meio segundo.")]
+    [SerializeField] private float recuperacaoDoTremor = 2f;
+
     private Camera cam;
     private Vector3 followVelocity;
+
+    // So uma camera segue o jogador por cena. Guardo ela aqui pra quem
+    // quiser tremer nao precisar achar a camera.
+    private static IsometricCameraFollow ativa;
+
+    // A posicao que o seguir calcula, sem o tremor. O tremor entra por
+    // cima dela: se ele entrasse no transform.position, o SmoothDamp do
+    // proximo frame partiria do ponto tremido e a camera sairia do
+    // lugar.
+    private Vector3 posicaoSeguida;
+    private float trauma;
 
     /// <summary>Pra onde a camera olha. Calculada uma vez e nunca mais.</summary>
     private Quaternion Rotacao => Quaternion.Euler(pitch, yaw, 0f);
@@ -80,6 +106,27 @@ public class IsometricCameraFollow : MonoBehaviour
         target = newTarget;
     }
 
+    /// <summary>
+    /// Sacode a camera. O trauma soma com o que ja tinha, ate 1: dois
+    /// golpes seguidos tremem mais que um.
+    /// </summary>
+    public static void Tremer(float quanto)
+    {
+        if (ativa != null)
+            ativa.trauma = Mathf.Clamp01(ativa.trauma + quanto);
+    }
+
+    private void OnEnable()
+    {
+        ativa = this;
+    }
+
+    private void OnDisable()
+    {
+        if (ativa == this)
+            ativa = null;
+    }
+
     private void Awake()
     {
         cam = GetComponent<Camera>();
@@ -89,6 +136,8 @@ public class IsometricCameraFollow : MonoBehaviour
         // e passa o primeiro segundo voando ate o jogador.
         if (target != null)
             transform.position = PosicaoDesejada();
+
+        posicaoSeguida = transform.position;
     }
 
     private void LateUpdate()
@@ -96,12 +145,36 @@ public class IsometricCameraFollow : MonoBehaviour
         if (target == null)
             return;
 
-        transform.position = Vector3.SmoothDamp(
-            transform.position,
+        posicaoSeguida = Vector3.SmoothDamp(
+            posicaoSeguida,
             PosicaoDesejada(),
             ref followVelocity,
             smoothTime
         );
+
+        transform.position = posicaoSeguida + Tremor();
+    }
+
+    /// <summary>
+    /// Deslocamento do tremor neste frame. So de lado e pra cima no
+    /// plano da tela, nunca giro: a regra da camera nao girar vale pro
+    /// tremor tambem. Uso ruido de Perlin em vez de Random pra a
+    /// sacudida ser continua e nao pular de um canto pro outro.
+    /// </summary>
+    private Vector3 Tremor()
+    {
+        if (trauma <= 0f)
+            return Vector3.zero;
+
+        // Tempo sem escala: o tremor termina mesmo com o jogo pausado.
+        trauma = Mathf.Max(0f, trauma - recuperacaoDoTremor * Time.unscaledDeltaTime);
+
+        float forca = trauma * trauma * tremorMaximo;
+        float t = Time.unscaledTime * frequenciaDoTremor;
+        float x = Mathf.PerlinNoise(t, 0.5f) * 2f - 1f;
+        float y = Mathf.PerlinNoise(0.5f, t) * 2f - 1f;
+
+        return (transform.right * x + transform.up * y) * forca;
     }
 
     private Vector3 PosicaoDesejada()
