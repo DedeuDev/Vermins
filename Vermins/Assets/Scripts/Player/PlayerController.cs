@@ -54,6 +54,9 @@ public class PlayerController : MonoBehaviour
     /// </summary>
     private enum Ordem { Nenhuma, Andar, Atacar }
 
+    /// <summary>O que esta embaixo do mouse, pro cursor contextual.</summary>
+    public enum AlvoDoCursor { Nada, Chao, Inimigo, Interagivel }
+
     private Ordem ordem;
 
     /// <summary>
@@ -191,6 +194,30 @@ public class PlayerController : MonoBehaviour
         return viewCamera.ScreenPointToRay(screenPosition);
     }
 
+    /// <summary>
+    /// O que um clique faria agora, sem dar ordem nenhuma. O
+    /// CursorContextual usa isto pra trocar o cursor. Passa pelos mesmos
+    /// testes do DecidirOrdem e na mesma ordem, entao o cursor nunca
+    /// promete uma coisa e o clique faz outra.
+    /// </summary>
+    public AlvoDoCursor OQueEstaNoCursor(out Ray ray)
+    {
+        ray = default;
+
+        if (viewCamera == null || IsPointerOverUI())
+            return AlvoDoCursor.Nada;
+
+        ray = RaioDoCursor();
+
+        if (interactor != null && interactor.TemInteragivel(ray))
+            return AlvoDoCursor.Interagivel;
+
+        if (combat != null && AcharInimigo(ray, out _))
+            return AlvoDoCursor.Inimigo;
+
+        return AlvoDoCursor.Chao;
+    }
+
     private void TryMoveToPointer(Ray ray)
     {
         // Trigger nunca e destino de clique. Hoje a groundMask sozinha
@@ -239,6 +266,25 @@ public class PlayerController : MonoBehaviour
         if (combat == null)
             return false;
 
+        if (!AcharInimigo(ray, out Health alvo))
+            return false;
+
+        combat.SetTarget(alvo);
+
+        if (interactor != null)
+            interactor.ClearTarget();
+
+        return true;
+    }
+
+    /// <summary>
+    /// Acha um inimigo vivo embaixo do raio. Separado do
+    /// TryAttackAtPointer pra o cursor usar o mesmo teste do clique.
+    /// </summary>
+    private bool AcharInimigo(Ray ray, out Health alvo)
+    {
+        alvo = null;
+
         // Sem isto o clique nao acha alvo nenhum dentro da dungeon. Os
         // modulos tem um BoxCollider "PlacementBounds" que e trigger,
         // esta na layer Default e cobre a sala ate 3 m de altura - e a
@@ -257,16 +303,12 @@ public class PlayerController : MonoBehaviour
 
         // InParent porque o collider costuma estar num filho e a vida
         // no objeto raiz.
-        Health alvo = hit.collider.GetComponentInParent<Health>();
+        Health achado = hit.collider.GetComponentInParent<Health>();
 
-        if (alvo == null || alvo == health || alvo.IsDead)
+        if (achado == null || achado == health || achado.IsDead)
             return false;
 
-        combat.SetTarget(alvo);
-
-        if (interactor != null)
-            interactor.ClearTarget();
-
+        alvo = achado;
         return true;
     }
 

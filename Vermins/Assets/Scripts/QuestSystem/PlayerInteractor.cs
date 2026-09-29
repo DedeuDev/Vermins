@@ -179,6 +179,22 @@ public class PlayerInteractor : MonoBehaviour
     }
 
     /// <summary>
+    /// Ian: mesmo raio do TryInteract, so que sem interagir nem andar.
+    /// O cursor usa isto pra mostrar o balao em cima do NPC.
+    /// </summary>
+    public bool TemInteragivel(Ray ray)
+    {
+        return Physics.Raycast(
+                   ray,
+                   out RaycastHit hit,
+                   raycastDistance,
+                   interactionLayers,
+                   QueryTriggerInteraction.Collide
+               ) &&
+               FindInteractable(hit.collider) != null;
+    }
+
+    /// <summary>
     /// Ian: desiste de ir ate o NPC. O PlayerController chama quando o
     /// jogador manda andar ou atacar no meio do caminho.
     /// </summary>
