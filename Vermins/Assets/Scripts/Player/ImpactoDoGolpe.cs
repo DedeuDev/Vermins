@@ -67,9 +67,11 @@ public class ImpactoDoGolpe : MonoBehaviour
 
     private void Acertou(Health alvo, float dano)
     {
-        bool matou = alvo.IsDead;
+        // O golpe final do combo pesa igual ao que mata: e a recompensa
+        // de ter fechado a sequencia.
+        bool forte = alvo.IsDead || combat.GolpeFinal;
 
-        IsometricCameraFollow.Tremer(matou ? tremorNaMorte : tremorNoAcerto);
+        IsometricCameraFollow.Tremer(forte ? tremorNaMorte : tremorNoAcerto);
 
         Congelar(gameObject);
         Congelar(alvo.gameObject);
@@ -78,7 +80,7 @@ public class ImpactoDoGolpe : MonoBehaviour
         // nao podem virar uma travada longa.
         fimDaPausa = Mathf.Max(
             fimDaPausa,
-            Time.unscaledTime + (matou ? pausaNaMorte : pausaNoAcerto));
+            Time.unscaledTime + (forte ? pausaNaMorte : pausaNoAcerto));
     }
 
     private void Apanhou(float dano, GameObject quemBateu)

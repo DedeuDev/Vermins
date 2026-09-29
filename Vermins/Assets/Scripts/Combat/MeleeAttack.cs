@@ -26,10 +26,19 @@ public class MeleeAttack : MonoBehaviour
     /// <summary>Bate no alvo. Devolve false quando nao tinha em que bater.</summary>
     public bool TryHit(Health target)
     {
+        return TryHit(target, 1f);
+    }
+
+    /// <summary>
+    /// Bate com o dano da arma multiplicado. E o que o golpe final do
+    /// combo do jogador usa pra tirar mais sem mexer no dano da arma.
+    /// </summary>
+    public bool TryHit(Health target, float multiplicador)
+    {
         if (target == null || target.IsDead)
             return false;
 
-        target.TakeDamage(damage, gameObject);
+        target.TakeDamage(damage * multiplicador, gameObject);
         return true;
     }
 

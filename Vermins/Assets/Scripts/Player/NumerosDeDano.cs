@@ -26,6 +26,10 @@ public class NumerosDeDano : MonoBehaviour
     [Tooltip("Quanto o golpe que mata sai maior.")]
     [SerializeField] private float escalaDaMorte = 1.4f;
 
+    [Tooltip("Quanto o golpe final do combo sai maior. Fica na cor normal: " +
+             "o laranja e so de quem morreu.")]
+    [SerializeField] private float escalaDoFinal = 1.25f;
+
     [Tooltip("Quanto tempo o numero fica na tela.")]
     [SerializeField] private float duracao = 0.8f;
 
@@ -111,7 +115,7 @@ public class NumerosDeDano : MonoBehaviour
         n.texto.text = Mathf.RoundToInt(dano).ToString();
         n.texto.fontSize = tamanho;
         n.texto.color = matou ? corDaMorte : corNormal;
-        n.escala = matou ? escalaDaMorte : 1f;
+        n.escala = matou ? escalaDaMorte : combat.GolpeFinal ? escalaDoFinal : 1f;
 
         Vector3 lado = Random.insideUnitSphere * espalhamento;
         lado.y = 0f;

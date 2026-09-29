@@ -106,14 +106,15 @@ public class PlayerAnimator : MonoBehaviour
     /// </summary>
     private const float FolgaDoGolpe = 0.95f;
 
-    // Duracao do clipe de ataque mais longo, lida do controller uma vez.
-    // Leio em vez de deixar campo serializado porque este numero muda
-    // sozinho quando alguem recorta o clipe, e um campo ficaria mentindo
-    // sem ninguem notar.
-    private float duracaoDoAtaque;
+    // Duracao de cada clipe de ataque, na ordem do nome (01, 02, 03), que
+    // e a mesma ordem da Variacao no blend tree. Lida do controller uma
+    // vez. Leio em vez de deixar campo serializado porque este numero
+    // muda sozinho quando alguem recorta o clipe, e um campo ficaria
+    // mentindo sem ninguem notar.
+    private float[] duracoesDoAtaque = new float[0];
 
     // Duracao do clipe da esquiva, lida do controller uma vez, pelo
-    // mesmo motivo do duracaoDoAtaque. Zero quando o controller nao tem
+    // mesmo motivo do duracoesDoAtaque. Zero quando o controller nao tem
     // esquiva: ai o rolamento anda sem animacao, na pose de corrida.
     private float duracaoDaEsquiva;
 
@@ -135,10 +136,6 @@ public class PlayerAnimator : MonoBehaviour
     // Sem elas o personagem apanha calado, e esta certo assim - ver o
     // comentario no Awake.
     private bool podeReagir;
-
-    // Qual das duas magias vai sair no proximo golpe. Alterno porque
-    // repetir o mesmo gesto e o que mais faz parecer bonequinho.
-    private int variacao;
 
     // Amorteco o MODULO da velocidade, nunca a direcao.
     //
@@ -241,18 +238,21 @@ public class PlayerAnimator : MonoBehaviour
     }
 
     /// <summary>
-    /// Acha a duracao do clipe de ataque mais longo dentro do controller.
+    /// Acha a duracao de cada clipe de ataque dentro do controller.
     ///
-    /// Pego o mais longo e nao o primeiro porque a velocidade tem que
-    /// caber os DOIS ataques no cooldown; dimensionando pelo curto, o
-    /// longo estouraria.
+    /// Ja foi um numero so, o do clipe mais longo, e todos os golpes
+    /// tocavam na velocidade dele. Com o combo nao da: o golpe final e
+    /// mais longo e tem mais tempo, e dimensionar os outros por ele
+    /// deixaria os dois primeiros corridos. Agora cada clipe cabe no
+    /// tempo do proprio golpe.
     ///
     /// Procuro "Attack" no nome, e nao "MagicAttack" como era antes, pra
     /// servir nos dois controllers: as magias sao 1HMagicAttack01/02 e os
-    /// golpes de espada sao GreatSwordAttack01/02. O runtimeAnimatorController
-    /// so me da a lista de clipes, sem dizer de qual estado cada um e, entao
-    /// o nome e o unico jeito. Nenhum clipe de locomocao, reacao ou morte
-    /// tem "Attack" no nome.
+    /// golpes de espada sao GreatSwordAttack01/02/03. O
+    /// runtimeAnimatorController so me da a lista de clipes, sem dizer de
+    /// qual estado cada um e, entao o nome e o unico jeito. Nenhum clipe de
+    /// locomocao, reacao ou morte tem "Attack" no nome. A ordem pelo nome
+    /// e a mesma em que o PlayerAnimatorSetup poe os clipes no blend tree.
     ///
     /// Se nao achar, aviso mas nao desligo o componente. Sem este numero
     /// o ataque toca na velocidade natural - fica feio se o cooldown for
@@ -263,16 +263,24 @@ public class PlayerAnimator : MonoBehaviour
     {
         RuntimeAnimatorController rac = animator.runtimeAnimatorController;
 
+        // O mesmo clipe aparece uma vez por estado que usa ele, entao
+        // junto pelo nome antes de contar.
+        var porNome = new System.Collections.Generic.SortedDictionary<string, float>(
+            System.StringComparer.Ordinal);
+
         if (rac != null)
         {
             foreach (AnimationClip c in rac.animationClips)
             {
-                if (c != null && c.name.Contains("Attack") && c.length > duracaoDoAtaque)
-                    duracaoDoAtaque = c.length;
+                if (c != null && c.name.Contains("Attack"))
+                    porNome[c.name] = c.length;
             }
         }
 
-        if (duracaoDoAtaque <= 0f)
+        duracoesDoAtaque = new float[porNome.Count];
+        porNome.Values.CopyTo(duracoesDoAtaque, 0);
+
+        if (duracoesDoAtaque.Length == 0)
         {
             Debug.LogWarning($"[{name}] Nao achei clipe de ataque no controller, " +
                              "entao nao sei encurtar o golpe pra caber no cooldown. " +
@@ -309,8 +317,26 @@ public class PlayerAnimator : MonoBehaviour
     }
 
     /// <summary>
-    /// Quantas vezes mais rapido o estado de ataque tem que tocar pra
-    /// caber entre um golpe e o proximo.
+    /// Qual clipe toca em cada passo do combo. O final e sempre o ultimo
+    /// clipe; os outros vao rodando entre os que sobram. No Paladino da
+    /// 01, 02 e 03. Na magia, que so tem dois, da 01, 01 e 02.
+    /// </summary>
+    private int ClipeDoPasso()
+    {
+        int n = duracoesDoAtaque.Length;
+
+        if (combate == null || n <= 1)
+            return 0;
+
+        if (combate.GolpeFinal)
+            return n - 1;
+
+        return combate.PassoDoGolpe % (n - 1);
+    }
+
+    /// <summary>
+    /// Quantas vezes mais rapido o estado de ataque tem que tocar pra o
+    /// clipe caber entre um golpe e o proximo.
     ///
     /// Os clipes de magia tem 2,2 s e soltam perto do fim. Com cooldown
     /// menor que isso, o golpe seguinte reiniciaria a animacao antes dela
@@ -320,17 +346,17 @@ public class PlayerAnimator : MonoBehaviour
     /// que o clipe, o certo e o personagem esperar parado, nao se mexer
     /// em camera lenta como se estivesse na agua.
     /// </summary>
-    private float VelocidadeDoGolpe()
+    private float VelocidadeDoGolpe(int clipe)
     {
-        if (duracaoDoAtaque <= 0f || combate == null)
+        if (clipe >= duracoesDoAtaque.Length || combate == null)
             return 1f;
 
-        float cooldown = combate.AttackCooldown;
+        float tempo = combate.DuracaoDoGolpe;
 
-        if (cooldown <= 0f)
+        if (tempo <= 0f)
             return 1f;
 
-        return Mathf.Max(1f, duracaoDoAtaque / (cooldown * FolgaDoGolpe));
+        return Mathf.Max(1f, duracoesDoAtaque[clipe] / (tempo * FolgaDoGolpe));
     }
 
     private void OnEnable()
@@ -423,15 +449,15 @@ public class PlayerAnimator : MonoBehaviour
         if (health != null && health.IsDead)
             return;
 
+        int clipe = ClipeDoPasso();
+
         // Recalculo a cada golpe em vez de uma vez no Awake porque a
         // Celeridade da build mexe no cooldown, e um dia um buff vai
         // mexer no meio da luta. Uma divisao por golpe nao custa nada.
-        animator.SetFloat(VelAtaqueId, VelocidadeDoGolpe());
+        animator.SetFloat(VelAtaqueId, VelocidadeDoGolpe(clipe));
 
-        animator.SetFloat(VariacaoId, variacao);
+        animator.SetFloat(VariacaoId, clipe);
         animator.SetTrigger(AtacarId);
-
-        variacao = 1 - variacao;
 
         // O golpe manda no tronco. Uma reacao que estava tocando sai no
         // tempo normal de saida em vez de ficar por cima do golpe - antes

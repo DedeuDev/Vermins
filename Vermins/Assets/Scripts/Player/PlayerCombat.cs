@@ -81,6 +81,26 @@ public class PlayerCombat : MonoBehaviour
              "que visivelmente passou no bicho parece injusto.")]
     [SerializeField] private float folgaDaPancada = 0.5f;
 
+    [Header("Combo")]
+    [Tooltip("Quantos golpes tem a sequencia. O ultimo e o golpe final: " +
+             "demora mais e tira mais. Com 1 nao tem combo, todo golpe e " +
+             "igual.")]
+    [SerializeField] private int golpesNoCombo = 3;
+
+    [Tooltip("Quanto tempo depois de o golpe terminar o proximo ainda conta " +
+             "como sequencia. Passou disso, volta pro primeiro. Segurando o " +
+             "clique no bicho os golpes emendam na hora e o combo corre " +
+             "sozinho; a janela e pra trocar de alvo sem perder a conta.")]
+    [SerializeField] private float janelaDoCombo = 0.6f;
+
+    [Tooltip("Quanto o golpe final tira, em vezes o dano da arma.")]
+    [SerializeField] private float danoDoFinal = 2f;
+
+    [Tooltip("Quanto o golpe final demora, em vezes o cooldown. O clipe " +
+             "dele levanta a espada acima da cabeca antes de descer, e essa " +
+             "espera e o que faz ele pesar mais que os outros.")]
+    [SerializeField] private float tempoDoFinal = 1.3f;
+
     [Header("Magia")]
     [Tooltip("A bola que sai da mao. Vazio = corpo a corpo: o dano sai " +
              "no evento AcertarGolpe e o alcance passa a ser o da arma.")]
@@ -140,7 +160,33 @@ public class PlayerCombat : MonoBehaviour
     // clipe pra caber dentro do cooldown.
     private bool gestoEmCurso;
 
+    // O passo do combo que o PROXIMO golpe vai ser, e o do golpe que esta
+    // saindo agora. Sao dois porque a pancada chega meio segundo depois
+    // do comeco, e nesse meio tempo o proximo ja foi decidido.
+    private int proximoPasso;
+    private int passoDoCast;
+    private float duracaoDoCast;
+
     public Health Target => target;
+
+    /// <summary>
+    /// Em que passo do combo esta o golpe que esta saindo, contando do
+    /// zero. O PlayerAnimator le no OnAttack pra escolher o clipe.
+    /// </summary>
+    public int PassoDoGolpe => passoDoCast;
+
+    /// <summary>
+    /// Se o golpe que esta saindo e o final da sequencia. Quem escuta o
+    /// OnGolpeAcertou le isto pra pesar mais a pancada.
+    /// </summary>
+    public bool GolpeFinal => golpesNoCombo > 1 && passoDoCast == golpesNoCombo - 1;
+
+    /// <summary>
+    /// Quanto tempo o golpe que esta saindo tem ate o proximo, ja com o
+    /// tempoDoFinal. O PlayerAnimator usa pra acertar a velocidade do
+    /// clipe.
+    /// </summary>
+    public float DuracaoDoGolpe => duracaoDoCast;
     public bool HasTarget => target != null && !target.IsDead;
 
     /// <summary>
@@ -278,6 +324,9 @@ public class PlayerCombat : MonoBehaviour
         // no clipe.
         esperandoOEvento = false;
 
+        // Golpe cortado quebra a sequencia: o proximo volta pro primeiro.
+        proximoPasso = 0;
+
         OnGolpeInterrompido?.Invoke();
     }
 
@@ -363,7 +412,7 @@ public class PlayerCombat : MonoBehaviour
         // arma: no golpe que mata o inimigo com 5 de vida, sai 5.
         float vidaAntes = alvoDoCast.Current;
 
-        if (weapon.TryHit(alvoDoCast))
+        if (weapon.TryHit(alvoDoCast, GolpeFinal ? danoDoFinal : 1f))
             OnGolpeAcertou?.Invoke(alvoDoCast, vidaAntes - alvoDoCast.Current);
     }
 
@@ -506,16 +555,25 @@ public class PlayerCombat : MonoBehaviour
         if (Time.time < nextAttackTime)
             return;
 
-        nextAttackTime = Time.time + attackCooldown;
+        // Aqui o nextAttackTime ainda e o fim do golpe anterior. Se ja
+        // passou da janela, a sequencia esfriou e recomeca do primeiro.
+        if (Time.time > nextAttackTime + janelaDoCombo)
+            proximoPasso = 0;
+
+        passoDoCast = proximoPasso;
+        proximoPasso = (proximoPasso + 1) % Mathf.Max(1, golpesNoCombo);
+
+        duracaoDoCast = GolpeFinal ? attackCooldown * tempoDoFinal : attackCooldown;
+        nextAttackTime = Time.time + duracaoDoCast;
 
         alvoDoCast = target;
         esperandoOEvento = true;
         gestoEmCurso = true;
 
-        // Dou o cooldown inteiro de prazo pro evento chegar. E folgado
-        // de proposito: o clipe cabe dentro do cooldown, entao se
-        // passou disso o evento nao existe mesmo.
-        prazoDoEvento = Time.time + attackCooldown;
+        // Dou o golpe inteiro de prazo pro evento chegar. E folgado de
+        // proposito: o clipe cabe dentro dele, entao se passou disso o
+        // evento nao existe mesmo.
+        prazoDoEvento = Time.time + duracaoDoCast;
 
         OnAttack?.Invoke(target);
     }

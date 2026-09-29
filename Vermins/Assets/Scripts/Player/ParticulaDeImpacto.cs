@@ -21,7 +21,7 @@ public class ParticulaDeImpacto : MonoBehaviour
 
     [SerializeField] private int particulasNoAcerto = 14;
 
-    [Tooltip("O golpe que mata espirra mais.")]
+    [Tooltip("O golpe que mata e o final do combo espirram mais.")]
     [SerializeField] private int particulasNaMorte = 26;
 
     [SerializeField] private int particulasAoApanhar = 10;
@@ -67,7 +67,7 @@ public class ParticulaDeImpacto : MonoBehaviour
     {
         Vector3 origem = transform.position + Vector3.up * alturaDoPeito;
         Espirrar(PontoNoCorpo(alvo.gameObject, origem), origem,
-            alvo.IsDead ? particulasNaMorte : particulasNoAcerto);
+            alvo.IsDead || combat.GolpeFinal ? particulasNaMorte : particulasNoAcerto);
     }
 
     private void Apanhou(float dano, GameObject quemBateu)

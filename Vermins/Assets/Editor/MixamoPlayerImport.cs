@@ -58,6 +58,7 @@ public static class MixamoPlayerImport
         {
             { "GreatSwordAttack01", 0.51f },   // de cima pra baixo, reto na frente
             { "GreatSwordAttack02", 0.37f },   // rasteiro, varrendo da direita pra esquerda
+            { "GreatSwordAttack03", 0.51f },   // final do combo, varrendo a frente depois de erguer
         };
 
     private const string EventoDaPancada = "AcertarGolpe";

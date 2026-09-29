@@ -104,13 +104,20 @@ public static class PlayerAnimatorSetup
     /// "ia bater num lugar e bateu em outro". Eu tinha escolhido so pela
     /// duracao e por nao sair do lugar, sem olhar onde a lamina caia.
     ///
-    /// Entre os que caem na frente, o slash (5) ganhou pela duracao. Os
-    /// dois golpes dividem o estado Ataque, e o PlayerAnimator acelera o
-    /// estado pelo clipe MAIS LONGO pra caber no cooldown: com o slash (5),
-    /// de 1,43 s, os dois tocam a 1,25x; com o slash (3), de 1,83 s,
-    /// tocariam a 1,61x e o 01 ficaria corrido. Ficaram de fora os que
-    /// avancam demais - o slash (4) leva o quadril 1,07 m pra frente, pra
+    /// Entre os que caem na frente, o slash (5) ganhou pela duracao. Na
+    /// epoca o PlayerAnimator acelerava o estado inteiro pelo clipe MAIS
+    /// LONGO: com o slash (5), de 1,43 s, os dois tocavam a 1,25x; com o
+    /// slash (3), de 1,83 s, tocariam a 1,61x e o 01 ficaria corrido.
+    /// Ficaram de fora os que avancam demais - o slash (4) leva o quadril 1,07 m pra frente, pra
     /// fora do collider, e quem manda na posicao e o NavMeshAgent.
+    ///
+    /// O 03 e o golpe final do combo, o great sword slash (3). Medi os
+    /// que sobravam do pack do mesmo jeito: ele levanta a espada acima da
+    /// cabeca (2,5 m) e varre a frente aos 51%, a 2,33 m, sem tirar o
+    /// quadril do lugar no fim. O high spin, o jump attack e o slide
+    /// attack terminam 2,2 a 3,3 m a frente de onde comecaram, e o kick
+    /// nem usa a espada. Com a velocidade por clipe no PlayerAnimator o
+    /// comprimento dele (1,83 s) nao atrasa mais os outros dois.
     ///
     /// A reacao e o unico impacto do pack que fica em pe. Ela toca so no
     /// torso, e um impacto agachado em cima de pernas andando vira boneco
@@ -129,7 +136,7 @@ public static class PlayerAnimatorSetup
             "WalkLeft",    "RunLeft",
             "WalkRight",   "RunRight",
         },
-        ataques = new[] { "GreatSwordAttack01", "GreatSwordAttack02" },
+        ataques = new[] { "GreatSwordAttack01", "GreatSwordAttack02", "GreatSwordAttack03" },
         clipeDeMorte = "GreatSwordDeathBackward",
         clipeDeReacao = "GreatSwordImpact",
         clipeDeEsquiva = "DiveForward",
@@ -458,8 +465,9 @@ public static class PlayerAnimatorSetup
         }
 
         // 1D e nao 2D: aqui nao tem mistura nenhuma pra fazer, so escolha.
-        // O PlayerAnimator poe a Variacao exatamente em 0 ou 1, entao um
-        // clipe fica com peso 1 e o outro com zero.
+        // O PlayerAnimator poe a Variacao exatamente no indice de um
+        // clipe (0, 1 ou 2), entao ele fica com peso 1 e os outros com
+        // zero.
         arvore.blendType = BlendTreeType.Simple1D;
         arvore.blendParameter = ParamVariacao;
         arvore.useAutomaticThresholds = false;
