@@ -5,7 +5,10 @@ public class SceneLoader : MonoBehaviour
 {
     public void LoadGame()
     {
-        SceneManager.LoadScene("DungeonComPlayer");
+        // Ian: o jogo novo comeca na cidade, onde o guarda da a quest e o
+        // bueiro leva pra dungeon. Direto na dungeon a HUBCity nunca
+        // aparecia e a quest nao tinha como comecar.
+        SceneManager.LoadScene("HUBCity");
     }
 
     public void SaveGame()

@@ -98,28 +98,10 @@ public class PlayerInteractor : MonoBehaviour
         // RAY DA CAMERA ATÉ O CURSOR
         // ========================================
 
-        RaycastHit hit;
-
-        bool foundObject =
-            Physics.Raycast(
+        if (!AcharNoRaio(
                 ray,
-                out hit,
-                raycastDistance,
-                interactionLayers,
-                QueryTriggerInteraction.Collide
-            );
-
-        if (!foundObject)
-            return false;
-
-        // ========================================
-        // PROCURA IINTERACTABLE
-        // ========================================
-
-        IInteractable interactable =
-            FindInteractable(hit.collider);
-
-        if (interactable == null)
+                out IInteractable interactable,
+                out RaycastHit hit))
             return false;
 
         // ========================================
@@ -184,14 +166,49 @@ public class PlayerInteractor : MonoBehaviour
     /// </summary>
     public bool TemInteragivel(Ray ray)
     {
-        return Physics.Raycast(
-                   ray,
-                   out RaycastHit hit,
-                   raycastDistance,
-                   interactionLayers,
-                   QueryTriggerInteraction.Collide
-               ) &&
-               FindInteractable(hit.collider) != null;
+        return AcharNoRaio(ray, out _, out _);
+    }
+
+    /// <summary>
+    /// Ian: o primeiro interagivel no raio, do mais perto pro mais longe.
+    /// Trigger que nao e interagivel nao segura o raio: cada sala da
+    /// dungeon tem um PlacementBounds, um trigger do tamanho da sala que
+    /// o gerador usa pra ver se as salas se encostam, e com um Raycast so
+    /// o clique parava nele e nunca chegava na escada de saida nem no
+    /// guarda morto. Collider solido continua segurando, pra ninguem
+    /// interagir atraves de parede.
+    /// </summary>
+    private bool AcharNoRaio(
+        Ray ray,
+        out IInteractable interactable,
+        out RaycastHit hit)
+    {
+        RaycastHit[] hits = Physics.RaycastAll(
+            ray,
+            raycastDistance,
+            interactionLayers,
+            QueryTriggerInteraction.Collide
+        );
+
+        System.Array.Sort(hits, (a, b) => a.distance.CompareTo(b.distance));
+
+        foreach (RaycastHit h in hits)
+        {
+            interactable = FindInteractable(h.collider);
+
+            if (interactable != null)
+            {
+                hit = h;
+                return true;
+            }
+
+            if (!h.collider.isTrigger)
+                break;
+        }
+
+        interactable = null;
+        hit = default;
+        return false;
     }
 
     /// <summary>
