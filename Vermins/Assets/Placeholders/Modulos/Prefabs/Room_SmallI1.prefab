@@ -201,6 +201,39 @@ MonoBehaviour:
   canSpawn: 1
   showGizmo: 1
   gizmoRadius: 0.25
+--- !u!1 &2759047317284921032
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 4083395007900280931}
+  m_Layer: 0
+  m_Name: DeadGuardSpawnPoints
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &4083395007900280931
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2759047317284921032}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: -2.79, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children:
+  - {fileID: 4804991957626828468}
+  - {fileID: 3721046264707282964}
+  m_Father: {fileID: 4761223531160847714}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &4612875430116823188
 GameObject:
   m_ObjectHideFlags: 0
@@ -295,6 +328,53 @@ MonoBehaviour:
   canSpawn: 1
   showGizmo: 1
   gizmoRadius: 0.25
+--- !u!1 &5453856898460425329
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 3721046264707282964}
+  - component: {fileID: 6115881321706297558}
+  m_Layer: 0
+  m_Name: DeadGuardSpawnPoint2
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &3721046264707282964
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5453856898460425329}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: -0.7071068, z: 0, w: 0.7071068}
+  m_LocalPosition: {x: 3.35, y: 0, z: 3.84}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 4083395007900280931}
+  m_LocalEulerAnglesHint: {x: 0, y: -90, z: 0}
+--- !u!114 &6115881321706297558
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5453856898460425329}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 19467e63ccc4ca74e98077cabbbbd313, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::DeadGuardSpawnPoint
+  canSpawn: 1
+  showGizmo: 1
+  gizmoRadius: 0.35
 --- !u!1 &8085473566549754809
 GameObject:
   m_ObjectHideFlags: 0
@@ -393,6 +473,53 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 7.7, y: 3, z: 12}
   m_Center: {x: -2, y: 1.5, z: 4}
+--- !u!1 &8413837829800071522
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 4804991957626828468}
+  - component: {fileID: 6390488730724745057}
+  m_Layer: 0
+  m_Name: DeadGuardSpawnPoint1
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &4804991957626828468
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8413837829800071522}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0.71263844, z: 0, w: 0.70153147}
+  m_LocalPosition: {x: -2.32, y: 0, z: 3.93}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 4083395007900280931}
+  m_LocalEulerAnglesHint: {x: 0, y: 90.9, z: 0}
+--- !u!114 &6390488730724745057
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8413837829800071522}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 19467e63ccc4ca74e98077cabbbbd313, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::DeadGuardSpawnPoint
+  canSpawn: 1
+  showGizmo: 1
+  gizmoRadius: 0.35
 --- !u!1 &9065979576216134371
 GameObject:
   m_ObjectHideFlags: 0
@@ -431,6 +558,7 @@ Transform:
   - {fileID: 204452951311620852}
   - {fileID: 3793281533218442021}
   - {fileID: 1420098407905270301}
+  - {fileID: 4083395007900280931}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!33 &3177931721696751434
