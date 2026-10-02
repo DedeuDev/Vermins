@@ -434,6 +434,9 @@ MonoBehaviour:
   distance: 24.3
   fieldOfView: 30
   smoothTime: 0.15
+  tremorMaximo: 0.7
+  frequenciaDoTremor: 25
+  recuperacaoDoTremor: 2
 --- !u!1 &468261028
 GameObject:
   m_ObjectHideFlags: 0
@@ -962,7 +965,7 @@ GameObject:
   - component: {fileID: 1383743872}
   m_Layer: 0
   m_Name: Boss_Ladino
-  m_TagString: Untagged
+  m_TagString: Boss
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
