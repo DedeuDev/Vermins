@@ -8,6 +8,21 @@ public class PocaVeneno : MonoBehaviour
 
     private float timerDano;
 
+    // Ian: mesmo caso da flecha. Sem Rigidbody na poca nem no Player, o
+    // OnTriggerStay nunca era chamado. O sleepThreshold em zero impede
+    // o corpo de dormir: dormindo, o Stay para de chegar com o Player
+    // parado em cima da poca.
+    void Awake()
+    {
+        if (GetComponent<Rigidbody>() == null)
+        {
+            Rigidbody corpo = gameObject.AddComponent<Rigidbody>();
+            corpo.isKinematic = true;
+            corpo.useGravity = false;
+            corpo.sleepThreshold = 0f;
+        }
+    }
+
     void Start()
     {
         // Destrói a poça após a duração configurada
@@ -26,14 +41,13 @@ public class PocaVeneno : MonoBehaviour
                 timerDano = 0f;
                 Debug.Log("Player está recebendo dano de VENENO!");
 
-                /* 
-                // Se tiver o script de vida do Player, descomente abaixo:
-                var playerHealth = other.GetComponent<PlayerHealth>();
-                if (playerHealth != null)
-                {
-                    playerHealth.TomarDano(danoPorSegundo);
-                }
-                */
+                // Ian: o bloco comentado aqui procurava um PlayerHealth, que
+                // nao existe. A vida do Player e o Health. Sem origem, o
+                // sangue sai pra cima em vez de pro lado.
+                var vida = other.GetComponentInParent<Health>();
+
+                if (vida != null)
+                    vida.TakeDamage(danoPorSegundo);
             }
         }
     }
