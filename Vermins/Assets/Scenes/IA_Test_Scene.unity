@@ -961,7 +961,6 @@ GameObject:
   - component: {fileID: 1383743866}
   - component: {fileID: 1383743865}
   - component: {fileID: 1383743874}
-  - component: {fileID: 1383743873}
   - component: {fileID: 1383743872}
   m_Layer: 0
   m_Name: Boss_Ladino
@@ -995,11 +994,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d9d43219eca61492b8facbd64eddfcf0, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::BossRatMage
-  dados: {fileID: 11400000, guid: e50cd7e6d4c7f484f96fd35788643964, type: 2}
+  dados: {fileID: 11400000, guid: 2504019cd9b9a44fbbd2211d5d768c67, type: 2}
   player: {fileID: 1875739566}
   camadaObstaculos:
     serializedVersion: 2
-    m_Bits: 0
+    m_Bits: 9
   modeloRenderers:
   - {fileID: 1699584936}
   pontoDisparoBesta: {fileID: 468261029}
@@ -1015,7 +1014,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 2d5888ebe04614899b495f81cc159f2b, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::BossStats
-  dadosBoss: {fileID: 11400000, guid: e50cd7e6d4c7f484f96fd35788643964, type: 2}
+  dadosBoss: {fileID: 11400000, guid: 2504019cd9b9a44fbbd2211d5d768c67, type: 2}
 --- !u!195 &1383743868
 NavMeshAgent:
   m_ObjectHideFlags: 0
@@ -1026,7 +1025,7 @@ NavMeshAgent:
   m_Enabled: 1
   m_AgentTypeID: 0
   m_Radius: 0.5
-  m_Speed: 3.5
+  m_Speed: 2
   m_Acceleration: 20
   avoidancePriority: 50
   m_AngularSpeed: 500
@@ -1142,19 +1141,6 @@ MonoBehaviour:
   cor: {r: 1, g: 0, b: 0, a: 1}
   duracao: 0.15
   forca: 0.8
---- !u!114 &1383743873
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1383743864}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 2c890e443d1f4b14f87aa79349e3037a, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::MeleeAttack
-  damage: 10
 --- !u!114 &1383743874
 MonoBehaviour:
   m_ObjectHideFlags: 0

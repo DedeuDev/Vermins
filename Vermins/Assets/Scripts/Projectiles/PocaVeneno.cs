@@ -25,7 +25,14 @@ public class PocaVeneno : MonoBehaviour
 
     void Start()
     {
-        // Destrói a poça após a duração configurada
+        // Ajusta o raio do SphereCollider para bater com o valor de raioArea
+        SphereCollider collider = GetComponent<SphereCollider>();
+        if (collider != null)
+        {
+            collider.radius = raioArea;
+        }
+
+        // Destroi a poça automaticamente após a duração configurada
         Destroy(gameObject, duracaoPoca);
     }
 

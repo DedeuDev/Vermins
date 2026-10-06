@@ -5,7 +5,7 @@ using UnityEngine.AI;
 public class BossRogue : MonoBehaviour
 {
     [Header("Configurações")]
-    [SerializeField] private BossDataSO dados;
+    [SerializeField] private BossLadinoDataSO dados;
     [SerializeField] private Transform player;
     [SerializeField] private LayerMask camadaObstaculos;
 
@@ -76,47 +76,81 @@ public class BossRogue : MonoBehaviour
         timerInvisibilidade += Time.deltaTime;
     }
 
+    private Vector3 ultimoPontoFuga = Vector3.zero;
+
     private void ExecutarComportamentoPadrao(float distancia, float cooldownTiro)
     {
-        // 1. Manter distância (Kiting) com esquiva lateral se encurralado
+        // 1. Lógica de Fuga Prioritária
         if (distancia < dados.distanciaSegura)
         {
-            Vector3 direcaoOposta = (transform.position - player.position).normalized;
-            Vector3 destinoRecuo = transform.position + direcaoOposta * 2.5f;
+            Vector3 melhorDestino = ObterMelhorPontoFuga();
 
-            if (NavMesh.SamplePosition(destinoRecuo, out NavMeshHit hit, 2f, NavMesh.AllAreas))
+            if (melhorDestino != Vector3.zero)
             {
-                agent.isStopped = false;
-                agent.SetDestination(hit.position);
-            }
-            else
-            {
-                // Flanquear para os lados se a retaguarda estiver bloqueada
-                Vector3 fugaEsquerda = transform.position + Quaternion.Euler(0, 60, 0) * direcaoOposta * 3f;
-                if (NavMesh.SamplePosition(fugaEsquerda, out NavMeshHit hitEsq, 2f, NavMesh.AllAreas))
-                {
+                // Reativa o agente se estiver parado
+                if (agent.isStopped) 
                     agent.isStopped = false;
-                    agent.SetDestination(hitEsq.position);
+
+                // Só recalcula a rota no NavMesh se o novo ponto for significativamente diferente do atual
+                // Isso impede que os golpes continuos do Player cancelem a trajetória de fuga do Boss
+                if (Vector3.Distance(ultimoPontoFuga, melhorDestino) > 1.0f || !agent.hasPath)
+                {
+                    ultimoPontoFuga = melhorDestino;
+                    agent.SetDestination(melhorDestino);
                 }
             }
         }
         else
         {
+            // Se o Player se afastou, limpa o destino de fuga e para
+            ultimoPontoFuga = Vector3.zero;
             agent.isStopped = true;
-            LookAtPlayer();
         }
 
-        // 2. Disparo da Besta
+        // Mantém o foco no Player
+        LookAtPlayer();
+
+        // 2. Ataque da Besta
         if (timerFlecha >= cooldownTiro && distancia <= dados.alcanceBesta)
         {
             AtirarFlecha();
         }
 
-        // 3. Arremesso de Bomba de Veneno
+        // 3. Bomba de Veneno
         if (timerVeneno >= dados.cooldownVeneno)
         {
             ArremessarVeneno();
         }
+    }
+
+    private Vector3 ObterMelhorPontoFuga()
+    {
+        Vector3 direcaoOposta = (transform.position - player.position).normalized;
+        
+        // Testa direções em leque (Trás, Diagonais e Lados)
+        float[] angulos = { 0f, 30f, -30f, 60f, -60f, 90f, -90f };
+        float distanciaFuga = 3.5f;
+
+        foreach (float angulo in angulos)
+        {
+            Vector3 direcaoTeste = Quaternion.Euler(0, angulo, 0) * direcaoOposta;
+            Vector3 pontoAlvo = transform.position + direcaoTeste * distanciaFuga;
+
+            // Procura um ponto navegável na malha do NavMesh
+            if (NavMesh.SamplePosition(pontoAlvo, out NavMeshHit hit, 2.0f, NavMesh.AllAreas))
+            {
+                // Checa se o ponto encontrado realmente afasta o Boss do Player
+                float distanciaNovoPontoAoPlayer = Vector3.Distance(hit.position, player.position);
+                float distanciaAtualAoPlayer = Vector3.Distance(transform.position, player.position);
+
+                if (distanciaNovoPontoAoPlayer > distanciaAtualAoPlayer)
+                {
+                    return hit.position;
+                }
+            }
+        }
+
+        return Vector3.zero;
     }
 
     private void ExecutarFase2_Assassino(float distancia)
