@@ -104,6 +104,11 @@ public class SceneTransitionInteractable :
         // LOAD
         // ========================================
 
+        // Ian: anoto vida, pocoes, ouro e joias do Player antes de sair.
+        // A cena nova tem outro Player, que nasce com os valores
+        // iniciais; o EstadoEntreCenas devolve isto nele quando ela abre.
+        EstadoEntreCenas.Guardar();
+
         SceneManager.LoadScene(
             destinationSceneName
         );
