@@ -99,7 +99,7 @@ public static class EstadoEntreCenas
 
     // O sceneLoaded chega depois dos Awake e antes dos Start. O
     // AtributosDoPersonagem aplica a build no Start e enche a vida, entao
-    // se eu devolvesse aqui mesmo ele passaria por cima. Espero um quadro.
+    // se eu devolvesse aqui mesmo ele passaria por cima. Espero um frame.
     private static IEnumerator Devolver(GameObject player, Health saude)
     {
         yield return null;

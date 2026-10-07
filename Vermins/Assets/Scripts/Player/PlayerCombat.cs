@@ -24,7 +24,7 @@ using UnityEngine.AI;
 ///   - com projetil: magia. Alcance da build, a bola nasce no evento
 ///     SoltarMagia. E o PlayerMagia.prefab, guardado.
 ///   - sem projetil: corpo a corpo. Alcance da arma, o dano sai no evento
-///     AcertarGolpe, no quadro da pancada. E o Paladino.
+///     AcertarGolpe, no frame da pancada. E o Paladino.
 /// Escolhi o campo e nao uma flag nova porque os dois andam juntos: uma
 /// flag "corpo a corpo" com projetil ligado nao teria sentido nenhum, e
 /// alguem ia acabar deixando os dois brigando.
@@ -242,7 +242,7 @@ public class PlayerCombat : MonoBehaviour
     public event System.Action OnGolpeInterrompido;
 
     /// <summary>
-    /// Disparado quando a espada tira vida de alguem, no quadro da
+    /// Disparado quando a espada tira vida de alguem, no frame da
     /// pancada, com quanto tirou. Serve pra pausa no impacto, tremor,
     /// particula e numero de dano, que so fazem sentido no acerto de
     /// verdade, nao no golpe que erra.
@@ -377,7 +377,7 @@ public class PlayerCombat : MonoBehaviour
     }
 
     /// <summary>
-    /// O quadro da pancada. Quem chama e o Animation Event AcertarGolpe dos
+    /// O frame da pancada. Quem chama e o Animation Event AcertarGolpe dos
     /// clipes de espada, que o MixamoPlayerImport grava no ponto medido de
     /// cada golpe (51% e 37%).
     ///
@@ -417,7 +417,7 @@ public class PlayerCombat : MonoBehaviour
     }
 
     /// <summary>
-    /// Se, no quadro da pancada, a espada chega no alvo.
+    /// Se, no frame da pancada, a espada chega no alvo.
     ///
     /// O golpe comeca com o alvo dentro do alcanceDaArma, mas a pancada
     /// so vem 0,4 a 0,5 s depois. Nesse meio tempo o bicho pode ter

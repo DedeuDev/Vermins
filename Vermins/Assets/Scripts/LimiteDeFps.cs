@@ -5,38 +5,38 @@ using UnityEngine;
 using UnityEngine.LowLevel;
 
 /// <summary>
-/// Limita quantos quadros por segundo o jogo desenha.
+/// Limita o fps do jogo.
 ///
 /// Sem limite ele desenhava o maximo que a placa de video aguentava:
-/// medi entre 403 e 432 quadros por segundo na HUBCity, num monitor que
+/// medi entre 403 e 432 fps na HUBCity, num monitor que
 /// mostra 210. O que passa do monitor nao aparece na tela, so esquenta
 /// a maquina e liga a ventoinha.
 ///
 /// Nao uso o Application.targetFrameRate. Foi a minha primeira versao e
-/// engasgava: com teto de 210, medi quadros alternando entre 2,3 e 25
+/// engasgava: com teto de 210, medi frames alternando entre 2,3 e 25
 /// ms, com o pior em 40 ms, e de 21% a 31% deles a mais de um quarto de
 /// distancia dos 4,76 ms que deviam durar. A propria documentacao da
 /// Unity avisa que ele esta sujeito a micro engasgos.
 ///
 /// No lugar dele vai uma espera minha, que eu ja usava em outro projeto.
-/// Ela fica no comeco do quadro, antes de a Unity ler o relogio, entao o
+/// Ela fica no comeco do frame, antes de a Unity ler o relogio, entao o
 /// Time.deltaTime ja sai com o intervalo certo e tudo anda de acordo com
 /// o que a tela vai mostrar. Ela dorme enquanto sobra bastante tempo e
 /// gira em vazio no trecho final, porque um sono so e preciso ate um ou
-/// dois milissegundos e um quadro inteiro a 200 por segundo dura 5.
+/// dois milissegundos e um frame inteiro a 200 fps dura 5.
 ///
 /// Medi na HUBCity, no editor, 10 s por rodada. Com teto de 210 a media
-/// foi de 157-172 pra 209,5-209,7 quadros por segundo, o desvio de
-/// 4,0-4,8 ms pra 0,45-0,70 e o pior quadro de 37-40 ms pra 8-10. Com
+/// foi de 157-172 pra 209,5-209,7 fps, o desvio de
+/// 4,0-4,8 ms pra 0,45-0,70 e o pior frame de 37-40 ms pra 8-10. Com
 /// teto de 60 o desvio foi de 0,7-1,1 ms pra 0,01. O que sobra de
-/// variacao perto de 200 nao e da espera: ela solta o quadro com atraso
+/// variacao perto de 200 nao e da espera: ela solta o frame com atraso
 /// mediano de 0,2 microssegundo, e o proprio jogo sem limite ja tem
-/// quadros de 17 ms de vez em quando.
+/// frames de 17 ms de vez em quando.
 ///
 /// Fica numa classe estatica, sem objeto em cena, pra valer do menu em
 /// diante sem eu ter que por componente em cada cena.
 /// </summary>
-public static class LimiteDeQuadros
+public static class LimiteDeFps
 {
     // Zero acompanha o monitor. Qualquer outro numero vira teto fixo,
     // pra quem quiser travar em 60 de proposito.
@@ -47,9 +47,9 @@ public static class LimiteDeQuadros
     private const int LimiteSemMonitor = 60;
 
     // Acompanhando o monitor, o teto fica um pouco abaixo da taxa dele:
-    // 4%, e nunca menos de 2 quadros. Num monitor de 210 Hz da 202. Em
+    // 4%, e nunca menos de 2 fps. Num monitor de 210 Hz da 202. Em
     // cima da taxa exata sao dois relogios disputando a mesma fronteira,
-    // e cada quadro vira sorteio de em qual atualizacao da tela ele cai.
+    // e cada frame vira sorteio de em qual atualizacao da tela ele cai.
     private const float FolgaDoMonitor = 0.04f;
     private const int FolgaMinima = 2;
 
@@ -64,7 +64,7 @@ public static class LimiteDeQuadros
     // De onde a estimativa parte a cada vez que o jogo comeca.
     private const double CustoInicialDoSono = 0.002d;
 
-    // Ate quanto depois da hora um quadro pode ser solto e ainda contar
+    // Ate quanto depois da hora um frame pode ser solto e ainda contar
     // como pontual. Separa o estouro normal do giro (microssegundos) de
     // um atraso de verdade. O valor veio medido do outro projeto.
     private const double AtrasoTolerado = 0.0002d;
@@ -75,28 +75,28 @@ public static class LimiteDeQuadros
     // sono de passar da hora nos dois casos.
     private static double custoDoSono = CustoInicialDoSono;
 
-    // De quando conta o intervalo do quadro anterior, em segundos.
+    // De quando conta o intervalo do frame anterior, em segundos.
     private static double ultimoInicio;
 
     // Se a espera esta dentro do PlayerLoop.
     private static bool instalado;
 
-    private static int quadrosPorSegundo;
+    private static int fps;
 
     /// <summary>
-    /// O teto em quadros por segundo, ou 0 pra nenhum.
+    /// O teto em fps, ou 0 pra nenhum.
     ///
     /// So peco o relogio fino do sistema enquanto existe teto pra
     /// segurar, e devolvo assim que nao existe mais.
     /// </summary>
-    public static int QuadrosPorSegundo
+    public static int Fps
     {
-        get => quadrosPorSegundo;
+        get => fps;
         set
         {
-            quadrosPorSegundo = Math.Max(0, value);
+            fps = Math.Max(0, value);
 
-            if (instalado && quadrosPorSegundo > 0)
+            if (instalado && fps > 0)
                 SubirPrecisaoDoRelogio();
             else
                 DevolverPrecisaoDoRelogio();
@@ -104,13 +104,13 @@ public static class LimiteDeQuadros
     }
 
     /// <summary>
-    /// Quanto a espera segurou este quadro, em segundos. Entra no
-    /// Time.unscaledDeltaTime sem fazer parte do que o quadro custou.
+    /// Quanto a espera segurou este frame, em segundos. Entra no
+    /// Time.unscaledDeltaTime sem fazer parte do que o frame custou.
     /// </summary>
     public static float UltimaEspera { get; private set; }
 
     /// <summary>
-    /// Quanto depois da hora a espera soltou este quadro, em segundos.
+    /// Quanto depois da hora a espera soltou este frame, em segundos.
     /// Normalmente alguns microssegundos. Serve pra medir; nada no jogo
     /// le isto.
     /// </summary>
@@ -132,13 +132,13 @@ public static class LimiteDeQuadros
     }
 
     /// <summary>
-    /// Quando um quadro pode comecar, sabendo quando o anterior foi solto
+    /// Quando um frame pode comecar, sabendo quando o anterior foi solto
     /// e que horas sao.
     ///
-    /// Quadro adiantado espera a vez dele, um intervalo depois do ultimo.
-    /// Quadro atrasado comeca na hora e o ritmo recomeca a partir dele.
+    /// Frame adiantado espera a vez dele, um intervalo depois do ultimo.
+    /// Frame atrasado comeca na hora e o ritmo recomeca a partir dele.
     /// Nao encurto os proximos pra recuperar o tempo perdido, porque isso
-    /// transforma um quadro torto em dois.
+    /// transforma um frame torto em dois.
     /// </summary>
     public static double InicioDe(double inicioAnterior, double agora, double intervalo)
     {
@@ -147,7 +147,7 @@ public static class LimiteDeQuadros
     }
 
     /// <summary>
-    /// De quando conta o intervalo do proximo quadro, sabendo quando este
+    /// De quando conta o intervalo do proximo frame, sabendo quando este
     /// devia sair e quando a espera soltou de fato.
     ///
     /// Normalmente da hora prevista, pro ritmo ficar numa grade exata em
@@ -181,11 +181,11 @@ public static class LimiteDeQuadros
     /// <summary>
     /// O custo do sono um pouco mais tarde, sem nada novo aprendido.
     ///
-    /// Tambem roda uma vez pra cada quadro que nao dormiu. Um custo maior
-    /// que a sobra do quadro faz a espera parar de dormir, e dormir era o
+    /// Tambem roda uma vez pra cada frame que nao dormiu. Um custo maior
+    /// que a sobra do frame faz a espera parar de dormir, e dormir era o
     /// unico lugar em que o custo era esquecido. Sem isto, um unico sono
     /// lento deixaria a espera girando um nucleo no maximo pelo resto da
-    /// sessao. Esquecendo um centesimo por quadro, um sono de 15,6 ms e
+    /// sessao. Esquecendo um centesimo por frame, um sono de 15,6 ms e
     /// largado em mais ou menos um segundo.
     /// </summary>
     public static double CustoDoSonoEsquecido(double custo)
@@ -206,12 +206,12 @@ public static class LimiteDeQuadros
 
         var espera = new PlayerLoopSystem
         {
-            type = typeof(LimiteDeQuadros),
+            type = typeof(LimiteDeFps),
             updateDelegate = Esperar
         };
 
         // Primeira coisa dentro do TimeUpdate, na frente do sistema que
-        // le o relogio do quadro. Em qualquer ponto depois, o deltaTime
+        // le o relogio do frame. Em qualquer ponto depois, o deltaTime
         // nao enxergaria a espera.
         PlayerLoopSystem[] topo = raiz.subSystemList;
         int relogio = Array.FindIndex(topo, s => s.type == typeof(UnityEngine.PlayerLoop.TimeUpdate));
@@ -237,7 +237,7 @@ public static class LimiteDeQuadros
 
         // Comeca sem teto. O Aplicar poe o teto logo em seguida, antes
         // da primeira cena.
-        QuadrosPorSegundo = 0;
+        Fps = 0;
 
         // Sair do Play mantem o dominio e o PlayerLoop, e o editor nao
         // tem por que ficar limitado.
@@ -259,7 +259,7 @@ public static class LimiteDeQuadros
                 : Mathf.RoundToInt((float)taxa));
         }
 
-        QuadrosPorSegundo = teto;
+        Fps = teto;
 
         // O limite da Unity fica desligado de vez. No editor ele nao
         // volta sozinho pra -1 entre uma sessao de Play e outra.
@@ -272,7 +272,7 @@ public static class LimiteDeQuadros
     {
         Application.quitting -= Desinstalar;
         instalado = false;
-        QuadrosPorSegundo = 0;
+        Fps = 0;
 
         PlayerLoopSystem raiz = PlayerLoop.GetCurrentPlayerLoop();
         TirarDe(ref raiz);
@@ -281,7 +281,7 @@ public static class LimiteDeQuadros
 
 #if UNITY_EDITOR
     // Onde o teto espera uma recompilacao passar. So na sessao do editor.
-    private const string ChaveDoTetoGuardado = "Vermins.LimiteDeQuadros.TetoGuardado";
+    private const string ChaveDoTetoGuardado = "Vermins.LimiteDeFps.TetoGuardado";
 
     // Recompilar no meio do Play, que o editor faz quando um script e
     // salvo, joga fora todo campo estatico daqui. Vai junto a anotacao
@@ -302,14 +302,14 @@ public static class LimiteDeQuadros
         if (guardado >= 0 && UnityEditor.EditorApplication.isPlaying)
         {
             Instalar();
-            QuadrosPorSegundo = guardado;
+            Fps = guardado;
         }
     }
 
     private static void AntesDeRecompilar()
     {
         if (instalado && UnityEditor.EditorApplication.isPlaying)
-            UnityEditor.SessionState.SetInt(ChaveDoTetoGuardado, QuadrosPorSegundo);
+            UnityEditor.SessionState.SetInt(ChaveDoTetoGuardado, Fps);
 
         Desinstalar();
     }
@@ -324,7 +324,7 @@ public static class LimiteDeQuadros
 
         foreach (PlayerLoopSystem filho in sistema.subSystemList)
         {
-            if (filho.type == typeof(LimiteDeQuadros))
+            if (filho.type == typeof(LimiteDeFps))
                 continue;
 
             PlayerLoopSystem copia = filho;
@@ -337,7 +337,7 @@ public static class LimiteDeQuadros
 
     private static void Esperar()
     {
-        int teto = quadrosPorSegundo;
+        int teto = fps;
 
         if (teto <= 0)
         {

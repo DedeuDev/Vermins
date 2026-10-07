@@ -3,7 +3,7 @@ using UnityEngine.AI;
 using UnityEngine.InputSystem;
 
 /// <summary>
-/// HUD de debug do jogador: vida, pocoes, ouro, joias, alvo e velocidade num canto da tela.
+/// HUD de debug do jogador: vida, pocoes, ouro, joias, alvo, velocidade e fps num canto da tela.
 ///
 /// E TEMPORARIO. A UI de verdade e do Rogger - isto aqui existe so pra
 /// gente testar combate enxergando os numeros ate a barra dele ficar
@@ -33,6 +33,16 @@ public class PlayerDebugHUD : MonoBehaviour
     private NavMeshAgent agent;
     private GUIStyle estilo;
 
+    // De quanto em quanto tempo a linha do fps troca de numero.
+    // Frame a frame o valor treme e nao da pra ler.
+    private const float JanelaDoFps = 0.5f;
+
+    private float tempoNaJanela;
+    private int framesNaJanela;
+    private float piorNaJanela;
+    private float fps;
+    private float piorFrame;
+
     private void Awake()
     {
         health = GetComponent<Health>();
@@ -52,6 +62,31 @@ public class PlayerDebugHUD : MonoBehaviour
 
         if (teclado != null && teclado[teclaParaEsconder].wasPressedThisFrame)
             visivel = !visivel;
+
+        MedirFps();
+    }
+
+    private void MedirFps()
+    {
+        // Conto aqui e nao no OnGUI, que roda mais de uma vez por frame.
+        // O relogio e o unscaledDeltaTime, pra linha continuar valendo
+        // com o jogo pausado. O Stats da Game view nao serve pra isto:
+        // com o jogo travado em 192 ele pulou de 183 a 253.
+        float frame = Time.unscaledDeltaTime;
+
+        tempoNaJanela += frame;
+        framesNaJanela++;
+        piorNaJanela = Mathf.Max(piorNaJanela, frame);
+
+        if (tempoNaJanela < JanelaDoFps)
+            return;
+
+        fps = framesNaJanela / tempoNaJanela;
+        piorFrame = piorNaJanela;
+
+        tempoNaJanela = 0f;
+        framesNaJanela = 0;
+        piorNaJanela = 0f;
     }
 
     private void OnGUI()
@@ -69,7 +104,7 @@ public class PlayerDebugHUD : MonoBehaviour
         // fora do OnGUI.
         estilo ??= new GUIStyle(GUI.skin.label) { fontSize = 20, richText = true };
 
-        GUILayout.BeginArea(new Rect(16f, 16f, 380f, 280f), GUI.skin.box);
+        GUILayout.BeginArea(new Rect(16f, 16f, 380f, 312f), GUI.skin.box);
 
         GUILayout.Label($"<b>DEBUG</b>   ({teclaParaEsconder} esconde)", estilo);
 
@@ -90,7 +125,20 @@ public class PlayerDebugHUD : MonoBehaviour
 
         GUILayout.Label($"Velocidade   {DescreverVelocidade()}", estilo);
 
+        GUILayout.Label($"FPS   {DescreverFps()}", estilo);
+
         GUILayout.EndArea();
+    }
+
+    private string DescreverFps()
+    {
+        // Media contra o teto do LimiteDeFps, e o frame mais demorado
+        // da mesma janela. A media mostra que o teto esta valendo; o pior
+        // frame e o que denuncia engasgo, que a media esconde.
+        int teto = LimiteDeFps.Fps;
+        string limite = teto > 0 ? teto.ToString() : "sem teto";
+
+        return $"{fps:F0} / {limite}   pior {piorFrame * 1000f:F1} ms";
     }
 
     private void DesenharBarra(float cheio, Color cor)

@@ -48,7 +48,7 @@ public class EventoDeAnimacao : MonoBehaviour
     }
 
     /// <summary>
-    /// Chamado pelo Animation Event dos clipes de espada, no quadro da
+    /// Chamado pelo Animation Event dos clipes de espada, no frame da
     /// pancada. Este NAO precisa ser posto na mao: o MixamoPlayerImport
     /// grava ele sozinho nos clipes da tabela MomentoDaPancada.
     /// </summary>
