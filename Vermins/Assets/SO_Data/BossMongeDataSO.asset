@@ -14,13 +14,13 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::BossMongeDataSO
   nomeBoss: Boss
   vidaMaxima: 1000
-  velocidadeCaminhada: 4
+  velocidadeCaminhada: 2
   velocidadeAproximacao: 6
-  alcanceAtaqueMelee: 2
+  alcanceAtaqueMelee: 1.5
   cooldownAtaqueMelee: 1.2
   danoMelee: 15
   alcanceDecisaoTerremoto: 4
-  raioImpactoTerremoto: 3.5
+  raioImpactoTerremoto: 3
   cooldownTerremoto: 7
   danoTerremoto: 25
   prefabEfeitoTerremoto: {fileID: 0}
