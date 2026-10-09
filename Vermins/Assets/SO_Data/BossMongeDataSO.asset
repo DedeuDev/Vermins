@@ -1,0 +1,29 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e34c529f3e0334eaa8f154b610b87854, type: 3}
+  m_Name: BossMongeDataSO
+  m_EditorClassIdentifier: Assembly-CSharp::BossMongeDataSO
+  nomeBoss: Boss
+  vidaMaxima: 1000
+  velocidadeCaminhada: 4
+  velocidadeAproximacao: 6
+  alcanceAtaqueMelee: 2
+  cooldownAtaqueMelee: 1.2
+  danoMelee: 15
+  alcanceDecisaoTerremoto: 4
+  raioImpactoTerremoto: 3.5
+  cooldownTerremoto: 7
+  danoTerremoto: 25
+  prefabEfeitoTerremoto: {fileID: 0}
+  duracaoEscudoKi: 4
+  cooldownEscudoKi: 12
+  prefabEscudoKi: {fileID: 0}

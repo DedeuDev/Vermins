@@ -16,6 +16,7 @@ public class BossMongeDataSO : BossDataSO
     public float alcanceDecisaoTerremoto = 4.0f;
     public float raioImpactoTerremoto = 3.5f;
     public float cooldownTerremoto = 7.0f;
+    public float danoTerremoto = 25f; // <--- Adicionado aqui
     public GameObject prefabEfeitoTerremoto;
 
     [Header("Habilidade Fase 2: Escudo de Ki")]
