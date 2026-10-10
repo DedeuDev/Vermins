@@ -17,6 +17,7 @@ public class JewelPickup : MonoBehaviour
     [SerializeField, Min(1)] private int maxValue = 60;
 
     private int valor;
+    private bool coletada;
 
     private void Reset()
     {
@@ -39,10 +40,18 @@ public class JewelPickup : MonoBehaviour
 
     private void OnTriggerEnter(Collider other)
     {
+        // Mesma trava do ouro e da pocao: o trigger avisa uma vez por
+        // collider que entra e o Destroy so vale no fim do frame. Com um
+        // segundo collider no Player, medi 10 joias virando 20.
+        if (coletada)
+            return;
+
         JewelPouch bolsa = other.GetComponentInParent<JewelPouch>();
 
         if (bolsa == null)
             return;
+
+        coletada = true;
 
         bolsa.Add(valor);
         Destroy(gameObject);

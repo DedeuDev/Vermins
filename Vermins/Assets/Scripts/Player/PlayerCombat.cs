@@ -132,6 +132,7 @@ public class PlayerCombat : MonoBehaviour
     private PlayerMotor motor;
     private MeleeAttack weapon;
     private Health ownHealth;
+    private NavMeshAgent agente;
     private Transform mao;
 
     private Health target;
@@ -254,6 +255,7 @@ public class PlayerCombat : MonoBehaviour
         motor = GetComponent<PlayerMotor>();
         weapon = GetComponent<MeleeAttack>();
         ownHealth = GetComponent<Health>();
+        agente = GetComponent<NavMeshAgent>();
 
         // O avatar do Mixamo e Humanoid, entao da pra pedir a mao pelo
         // nome do osso em vez de deixar um campo pra alguem arrastar e
@@ -412,8 +414,18 @@ public class PlayerCombat : MonoBehaviour
         // arma: no golpe que mata o inimigo com 5 de vida, sai 5.
         float vidaAntes = alvoDoCast.Current;
 
-        if (weapon.TryHit(alvoDoCast, GolpeFinal ? danoDoFinal : 1f))
-            OnGolpeAcertou?.Invoke(alvoDoCast, vidaAntes - alvoDoCast.Current);
+        if (!weapon.TryHit(alvoDoCast, GolpeFinal ? danoDoFinal : 1f))
+            return;
+
+        // So conta como acerto se tirou vida. O TryHit devolve true
+        // sempre que tinha um alvo vivo, mesmo que ele esteja
+        // invulneravel. Medi no Monge com a invulnerabilidade ligada: 7
+        // golpes, vida parada em 745, e todos com a pausa de 60 ou 100 ms
+        // e o sangue de um acerto normal.
+        float dano = vidaAntes - alvoDoCast.Current;
+
+        if (dano > 0f)
+            OnGolpeAcertou?.Invoke(alvoDoCast, dano);
     }
 
     /// <summary>
@@ -595,8 +607,56 @@ public class PlayerCombat : MonoBehaviour
         Vector3 de = transform.position + Vector3.up * alturaDoRaio;
         Vector3 para = alvo.transform.position + Vector3.up * alturaDoRaio;
 
-        return !Physics.Linecast(de, para, oQueBloqueiaVisao,
-                                 QueryTriggerInteraction.Ignore);
+        if (Physics.Linecast(de, para, oQueBloqueiaVisao,
+                             QueryTriggerInteraction.Ignore))
+        {
+            return false;
+        }
+
+        // A magia so pergunta pra fisica: a bola pode cruzar um vao.
+        return !CorpoACorpo || ChaoLigaAte(alvo);
+    }
+
+    // Ate onde procuro NavMesh em volta do pe do alvo. O agente fica a
+    // pelo menos o raio dele (0,5) de qualquer borda, entao 1 m acha o
+    // chao de quem esta pisando nele e nao pula pro outro lado da parede.
+    private const float raioDoPeDoAlvo = 1f;
+
+    /// <summary>
+    /// O chao pisavel vai direto de mim ate o alvo, sem borda no meio?
+    ///
+    /// Existe porque as paredes da dungeon nao tem collider. Medi em tres
+    /// dungeons: de 400 retas com parede ou vao no meio, nenhuma batia na
+    /// Obstaculo, e a espada acertou seis vezes seguidas um alvo a 1,79 m
+    /// do outro lado de uma parede, a 82,6 m pelo caminho.
+    ///
+    /// O NavMesh sabe onde a parede esta mesmo sem collider: ele acaba
+    /// nela. O NavMesh.Raycast anda em linha reta por cima da malha e
+    /// para na primeira borda. O custo e que vao sem chao tambem conta
+    /// como parede, mesmo sem nada na frente.
+    /// </summary>
+    private bool ChaoLigaAte(Health alvo)
+    {
+        if (agente == null || !agente.isOnNavMesh)
+            return true;
+
+        // Desco ate o pe do alvo, igual o ChasePoint. Na pancada o alvo do
+        // golpe pode nao ser mais o alvo travado, entao nao da pra contar
+        // sempre com o targetAgent.
+        NavMeshAgent agenteDoAlvo =
+            alvo == target ? targetAgent : alvo.GetComponent<NavMeshAgent>();
+
+        Vector3 pe = alvo.transform.position;
+
+        if (agenteDoAlvo != null)
+            pe.y -= agenteDoAlvo.baseOffset;
+
+        // Alvo sem NavMesh por perto (um barril encostado na parede) nao
+        // tem o que perguntar. Fico so com a resposta da fisica.
+        if (!NavMesh.SamplePosition(pe, out NavMeshHit chao, raioDoPeDoAlvo, NavMesh.AllAreas))
+            return true;
+
+        return !NavMesh.Raycast(agente.nextPosition, chao.position, out _, NavMesh.AllAreas);
     }
 
     private void Chase(Vector3 alvo, float distanciaDeParada)

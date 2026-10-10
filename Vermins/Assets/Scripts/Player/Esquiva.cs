@@ -144,8 +144,14 @@ public class Esquiva : MonoBehaviour
 
         inicio = Time.time;
         andado = 0f;
+
+        // So sou dono se ela estava desligada quando comecei. Antes eu me
+        // marcava como dono em todo rolamento: com a invulnerabilidade ja
+        // ligada por fora, o Player rolava e 0,8 s depois ela estava
+        // desligada, e um golpe de 10 tirou 10. Se eu ja era dono (um
+        // rolamento emendado no outro, com a recarga curta), continuo.
+        euDeiInvulnerabilidade = euDeiInvulnerabilidade || !health.Invulneravel;
         health.Invulneravel = true;
-        euDeiInvulnerabilidade = true;
 
         OnEsquivou?.Invoke(duracaoDaAnimacao);
         return true;

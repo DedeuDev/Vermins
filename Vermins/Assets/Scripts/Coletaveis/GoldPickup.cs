@@ -18,6 +18,7 @@ public class GoldPickup : MonoBehaviour
     [SerializeField, Min(1)] private int maxAmount = 15;
 
     private int quantia;
+    private bool coletado;
 
     private void Reset()
     {
@@ -44,10 +45,21 @@ public class GoldPickup : MonoBehaviour
 
     private void OnTriggerEnter(Collider other)
     {
+        // O trigger avisa uma vez por collider que entra, e o Destroy so
+        // tira o monte do jogo no fim do frame. Hoje o Player tem um
+        // collider so e nao acontece nada. Com um segundo collider nele,
+        // medi 20 itens entregando em dobro: 212 de ouro em vez de 106.
+        if (coletado)
+            return;
+
         GoldWallet carteira = other.GetComponentInParent<GoldWallet>();
 
         if (carteira == null)
             return;
+
+        // Marco antes de somar, igual a pocao, pra uma reentrada pelo
+        // OnChanged da carteira tambem nao pegar o mesmo monte de novo.
+        coletado = true;
 
         carteira.Add(quantia);
         Destroy(gameObject);
