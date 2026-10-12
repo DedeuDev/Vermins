@@ -12,6 +12,10 @@ using UnityEngine.InputSystem;
 /// nao engana ninguem de que e a UI final. Quando a dele chegar, e so
 /// tirar este componente do Player.prefab e apagar o arquivo.
 ///
+/// Tem tambem os controles do teto de fps: ligar, desligar e escolher o
+/// numero. Sao pra comparar o jogo com e sem limite na mesma sessao; a
+/// escolha nao e salva e volta pro padrao quando o jogo abre de novo.
+///
 /// So desenha no editor e em Development Build. A classe continua
 /// existindo na build normal de proposito: se eu sumisse com ela
 /// inteira, o Player.prefab ficaria com "Missing Script" na build.
@@ -24,7 +28,54 @@ public class PlayerDebugHUD : MonoBehaviour
     [Tooltip("Liga e desliga o HUD, pra ele nao aparecer em print e video.")]
     [SerializeField] private Key teclaParaEsconder = Key.F1;
 
+    /// <summary>
+    /// Se o mouse esta em cima dos controles do teto de fps.
+    ///
+    /// O PlayerController pergunta isto antes de transformar o clique em
+    /// ordem. O EventSystem nao sabe do OnGUI, entao sem a pergunta o
+    /// clique no slider tambem mandava o jogador andar pro canto da tela.
+    /// So os controles barram: o resto do painel continua deixando o
+    /// clique passar pro chao, como sempre deixou.
+    /// </summary>
+    public static bool CursorNosControles
+    {
+        get
+        {
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
+            Mouse mouse = Mouse.current;
+
+            if (mouse == null)
+                return false;
+
+            // O OnGUI conta a altura de cima pra baixo e o mouse de baixo
+            // pra cima.
+            Vector2 cursor = mouse.position.ReadValue();
+            cursor.y = Screen.height - cursor.y;
+
+            return controlesNaTela.Contains(cursor);
+#else
+            return false;
+#endif
+        }
+    }
+
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+    // Onde o painel fica, na tela de referencia de 1080 de altura.
+    private static readonly Rect Painel = new Rect(16f, 16f, 380f, 348f);
+
+    // O menor teto que o slider oferece, e o maior quando o monitor nao
+    // informa a taxa. Com a taxa conhecida o maior e ela.
+    private const int TetoMinimo = 30;
+    private const int TetoMaximoSemMonitor = 240;
+
+    // Onde os controles do fps foram desenhados, em pixels da tela.
+    // Vazio enquanto o HUD esta escondido.
+    private static Rect controlesNaTela;
+
+    private GUIStyle estiloDoBotao;
+    private GUIStyle estiloDoTrilho;
+    private GUIStyle estiloDoPino;
+
     private Health health;
     private PotionBelt belt;
     private GoldWallet wallet;
@@ -66,6 +117,11 @@ public class PlayerDebugHUD : MonoBehaviour
         MedirFps();
     }
 
+    private void OnDisable()
+    {
+        controlesNaTela = default;
+    }
+
     private void MedirFps()
     {
         // Conto aqui e nao no OnGUI, que roda mais de uma vez por frame.
@@ -92,7 +148,10 @@ public class PlayerDebugHUD : MonoBehaviour
     private void OnGUI()
     {
         if (!visivel)
+        {
+            controlesNaTela = default;
             return;
+        }
 
         // Escalo pela altura da tela com 1080 de referencia. O OnGUI
         // trabalha em pixel, entao sem isso o texto fica minusculo num
@@ -104,7 +163,7 @@ public class PlayerDebugHUD : MonoBehaviour
         // fora do OnGUI.
         estilo ??= new GUIStyle(GUI.skin.label) { fontSize = 20, richText = true };
 
-        GUILayout.BeginArea(new Rect(16f, 16f, 380f, 312f), GUI.skin.box);
+        GUILayout.BeginArea(Painel, GUI.skin.box);
 
         GUILayout.Label($"<b>DEBUG</b>   ({teclaParaEsconder} esconde)", estilo);
 
@@ -127,7 +186,68 @@ public class PlayerDebugHUD : MonoBehaviour
 
         GUILayout.Label($"FPS   {DescreverFps()}", estilo);
 
+        DesenharControlesDoFps(escala);
+
         GUILayout.EndArea();
+    }
+
+    private void DesenharControlesDoFps(float escala)
+    {
+        // O slider padrao do OnGUI tem 12 pixels de altura, dificil de
+        // pegar com o mouse. Engrosso o trilho e o pino.
+        estiloDoBotao ??= new GUIStyle(GUI.skin.button) { fontSize = 16 };
+        estiloDoTrilho ??= new GUIStyle(GUI.skin.horizontalSlider) { fixedHeight = 20f };
+        estiloDoPino ??= new GUIStyle(GUI.skin.horizontalSliderThumb) { fixedHeight = 20f, fixedWidth = 20f };
+
+        GUILayout.BeginVertical();
+
+        GUILayout.BeginHorizontal();
+
+        // Botao em vez de caixa de marcar: a caixa do OnGUI tem 12
+        // pixels e nao da pra ver de longe se esta marcada.
+        string estado = LimiteDeFps.Ligado ? "ligado" : "desligado";
+
+        if (GUILayout.Button($"teto {estado}", estiloDoBotao))
+            LimiteDeFps.Ligado = !LimiteDeFps.Ligado;
+
+        GUILayout.Label($"{LimiteDeFps.Fps}", estilo);
+
+        GUILayout.FlexibleSpace();
+
+        if (GUILayout.Button($"padrao {LimiteDeFps.FpsPadrao}", estiloDoBotao))
+            LimiteDeFps.Fps = LimiteDeFps.FpsPadrao;
+
+        GUILayout.EndHorizontal();
+
+        int maximo = LimiteDeFps.TaxaDoMonitor > 0
+            ? LimiteDeFps.TaxaDoMonitor
+            : TetoMaximoSemMonitor;
+
+        // Comparo com o numero ja preso na faixa do slider. Um teto fora
+        // dela (monitor de 24 Hz, por exemplo) seria reescrito so por
+        // ter sido desenhado, sem ninguem encostar no mouse.
+        int mostrado = Mathf.Clamp(LimiteDeFps.Fps, TetoMinimo, maximo);
+
+        int escolhido = Mathf.RoundToInt(GUILayout.HorizontalSlider(
+            mostrado, TetoMinimo, maximo, estiloDoTrilho, estiloDoPino));
+
+        if (escolhido != mostrado)
+            LimiteDeFps.Fps = escolhido;
+
+        GUILayout.EndVertical();
+
+        // O retangulo so vale no Repaint. Ele vem relativo ao painel e
+        // na tela de referencia, entao levo pra pixels de verdade.
+        if (Event.current.type != EventType.Repaint)
+            return;
+
+        Rect faixa = GUILayoutUtility.GetLastRect();
+
+        controlesNaTela = new Rect(
+            (Painel.x + faixa.x) * escala,
+            (Painel.y + faixa.y) * escala,
+            faixa.width * escala,
+            faixa.height * escala);
     }
 
     private string DescreverFps()
@@ -135,7 +255,7 @@ public class PlayerDebugHUD : MonoBehaviour
         // Media contra o teto do LimiteDeFps, e o frame mais demorado
         // da mesma janela. A media mostra que o teto esta valendo; o pior
         // frame e o que denuncia engasgo, que a media esconde.
-        int teto = LimiteDeFps.Fps;
+        int teto = LimiteDeFps.TetoEmVigor;
         string limite = teto > 0 ? teto.ToString() : "sem teto";
 
         return $"{fps:F0} / {limite}   pior {piorFrame * 1000f:F1} ms";

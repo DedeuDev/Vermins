@@ -82,12 +82,10 @@ public static class LimiteDeFps
     private static bool instalado;
 
     private static int fps;
+    private static bool ligado = true;
 
     /// <summary>
     /// O teto em fps, ou 0 pra nenhum.
-    ///
-    /// So peco o relogio fino do sistema enquanto existe teto pra
-    /// segurar, e devolvo assim que nao existe mais.
     /// </summary>
     public static int Fps
     {
@@ -95,12 +93,49 @@ public static class LimiteDeFps
         set
         {
             fps = Math.Max(0, value);
-
-            if (instalado && fps > 0)
-                SubirPrecisaoDoRelogio();
-            else
-                DevolverPrecisaoDoRelogio();
+            AcertarRelogio();
         }
+    }
+
+    /// <summary>
+    /// Liga e desliga o teto sem perder o numero escolhido. Existe pra
+    /// comparar o jogo com e sem limite na mesma sessao, pelo HUD de
+    /// debug: desligando pelo Fps = 0 eu teria que lembrar o numero em
+    /// outro lugar pra religar.
+    /// </summary>
+    public static bool Ligado
+    {
+        get => ligado;
+        set
+        {
+            ligado = value;
+            AcertarRelogio();
+        }
+    }
+
+    /// <summary>
+    /// O teto que esta valendo agora: o Fps com o limite ligado, 0 sem.
+    /// </summary>
+    public static int TetoEmVigor => ligado ? fps : 0;
+
+    /// <summary>
+    /// O teto que o jogo escolheu sozinho ao abrir, pelo monitor.
+    /// </summary>
+    public static int FpsPadrao { get; private set; }
+
+    /// <summary>
+    /// A taxa do monitor lida ao abrir, ou 0 se ele nao informou.
+    /// </summary>
+    public static int TaxaDoMonitor { get; private set; }
+
+    // So peco o relogio fino do sistema enquanto existe teto pra
+    // segurar, e devolvo assim que nao existe mais.
+    private static void AcertarRelogio()
+    {
+        if (instalado && TetoEmVigor > 0)
+            SubirPrecisaoDoRelogio();
+        else
+            DevolverPrecisaoDoRelogio();
     }
 
     /// <summary>
@@ -236,7 +271,10 @@ public static class LimiteDeFps
         instalado = true;
 
         // Comeca sem teto. O Aplicar poe o teto logo em seguida, antes
-        // da primeira cena.
+        // da primeira cena. O Ligado volta pra true aqui porque o editor
+        // pode entrar em Play sem recarregar o dominio, e ai o teto
+        // desligado numa sessao continuaria desligado na seguinte.
+        ligado = true;
         Fps = 0;
 
         // Sair do Play mantem o dominio e o PlayerLoop, e o editor nao
@@ -248,22 +286,26 @@ public static class LimiteDeFps
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
     private static void Aplicar()
     {
-        int teto = LimiteFixo;
-
-        if (teto <= 0)
-        {
-            double taxa = Screen.currentResolution.refreshRateRatio.value;
-
-            teto = TetoPara(double.IsNaN(taxa) || taxa <= 0d
-                ? 0
-                : Mathf.RoundToInt((float)taxa));
-        }
-
-        Fps = teto;
+        LerOMonitor();
+        Fps = FpsPadrao;
 
         // O limite da Unity fica desligado de vez. No editor ele nao
         // volta sozinho pra -1 entre uma sessao de Play e outra.
         Application.targetFrameRate = -1;
+    }
+
+    // Separado do Aplicar porque a recompilacao no meio do Play apaga
+    // estes dois numeros e precisa le-los de novo sem mexer no teto que
+    // estava valendo.
+    private static void LerOMonitor()
+    {
+        double taxa = Screen.currentResolution.refreshRateRatio.value;
+
+        TaxaDoMonitor = double.IsNaN(taxa) || taxa <= 0d
+            ? 0
+            : Mathf.RoundToInt((float)taxa);
+
+        FpsPadrao = LimiteFixo > 0 ? LimiteFixo : TetoPara(TaxaDoMonitor);
     }
 
     // Tira a espera do PlayerLoop e devolve o relogio do sistema. Pode
@@ -282,6 +324,7 @@ public static class LimiteDeFps
 #if UNITY_EDITOR
     // Onde o teto espera uma recompilacao passar. So na sessao do editor.
     private const string ChaveDoTetoGuardado = "Vermins.LimiteDeFps.TetoGuardado";
+    private const string ChaveDoLigadoGuardado = "Vermins.LimiteDeFps.LigadoGuardado";
 
     // Recompilar no meio do Play, que o editor faz quando um script e
     // salvo, joga fora todo campo estatico daqui. Vai junto a anotacao
@@ -297,19 +340,26 @@ public static class LimiteDeFps
         UnityEditor.AssemblyReloadEvents.beforeAssemblyReload += AntesDeRecompilar;
 
         int guardado = UnityEditor.SessionState.GetInt(ChaveDoTetoGuardado, -1);
+        bool ligadoGuardado = UnityEditor.SessionState.GetBool(ChaveDoLigadoGuardado, true);
         UnityEditor.SessionState.EraseInt(ChaveDoTetoGuardado);
+        UnityEditor.SessionState.EraseBool(ChaveDoLigadoGuardado);
 
         if (guardado >= 0 && UnityEditor.EditorApplication.isPlaying)
         {
             Instalar();
+            LerOMonitor();
             Fps = guardado;
+            Ligado = ligadoGuardado;
         }
     }
 
     private static void AntesDeRecompilar()
     {
         if (instalado && UnityEditor.EditorApplication.isPlaying)
+        {
             UnityEditor.SessionState.SetInt(ChaveDoTetoGuardado, Fps);
+            UnityEditor.SessionState.SetBool(ChaveDoLigadoGuardado, Ligado);
+        }
 
         Desinstalar();
     }
@@ -337,7 +387,7 @@ public static class LimiteDeFps
 
     private static void Esperar()
     {
-        int teto = fps;
+        int teto = TetoEmVigor;
 
         if (teto <= 0)
         {

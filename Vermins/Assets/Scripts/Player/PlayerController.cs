@@ -363,6 +363,11 @@ public class PlayerController : MonoBehaviour
     /// </summary>
     private static bool IsPointerOverUI()
     {
+        // Os controles do HUD de debug sao OnGUI, e o EventSystem nao
+        // enxerga OnGUI.
+        if (PlayerDebugHUD.CursorNosControles)
+            return true;
+
         return EventSystem.current != null &&
                EventSystem.current.IsPointerOverGameObject();
     }

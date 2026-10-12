@@ -124,6 +124,20 @@ public class PlayerMotor : MonoBehaviour
 
     public Vector3 Destination => AgentePronto ? agent.destination : transform.position;
 
+    /// <summary>
+    /// Verdadeiro quando o caminho que eu tenho acaba antes do destino
+    /// pedido: o alvo esta num pedaco de NavMesh que nao liga com o meu.
+    ///
+    /// O agente aceita o pedido do mesmo jeito e anda ate o ponto mais
+    /// perto que da. Medi que, depois de chegar la, ele continua com o
+    /// caminho guardado e o status parcial, entao da pra perguntar
+    /// parado. Com a rota ainda pendente eu respondo false, porque o
+    /// status so vale depois que ela chega.
+    /// </summary>
+    public bool CaminhoNaoChega =>
+        AgentePronto && !agent.pathPending && agent.hasPath &&
+        agent.pathStatus != NavMeshPathStatus.PathComplete;
+
     private void Awake()
     {
         agent = GetComponent<NavMeshAgent>();

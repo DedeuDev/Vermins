@@ -141,6 +141,12 @@ public class PlayerCombat : MonoBehaviour
     private float ultimaDistanciaDeParada = -1f;
     private float nextAttackTime;
 
+    // O alvo de que desisti por nao ter caminho ate ele, e onde nos dois
+    // estavamos. Ver DesistirDoAlvoSemCaminho.
+    private Health alvoSemCaminho;
+    private Vector3 ondeOAlvoEstava;
+    private Vector3 ondeEuEstava;
+
     // O alvo travado no comeco do golpe. A bola so nasce meio segundo
     // depois, no Animation Event, e nesse meio tempo o jogador pode ter
     // clicado em outro bicho - o golpe que ja comecou termina em quem o
@@ -277,6 +283,14 @@ public class PlayerCombat : MonoBehaviour
         // for o mesmo, para o repathThreshold continuar valendo.
         if (novoAlvo == target)
             return;
+
+        // Segurar o clique num alvo de que acabei de desistir pediria a
+        // mesma rota de novo, eu desistiria de novo, e o alvo ficaria
+        // piscando. Enquanto ninguem sair do lugar a resposta e a mesma.
+        if (novoAlvo == alvoSemCaminho && NinguemSaiuDoLugar())
+            return;
+
+        alvoSemCaminho = null;
 
         target = novoAlvo;
 
@@ -674,6 +688,11 @@ public class PlayerCombat : MonoBehaviour
         if (mesmoPonto &&
             Mathf.Approximately(distanciaDeParada, ultimaDistanciaDeParada))
         {
+            // Ja pedi este ponto num frame anterior. Se o motor parou e o
+            // caminho nao chega nele, eu andei o que dava.
+            if (!motor.IsMoving && motor.CaminhoNaoChega)
+                DesistirDoAlvoSemCaminho();
+
             return;
         }
 
@@ -685,6 +704,42 @@ public class PlayerCombat : MonoBehaviour
             lastChasePoint = ponto;
             ultimaDistanciaDeParada = distanciaDeParada;
         }
+    }
+
+    /// <summary>
+    /// Larga o alvo que esta num pedaco de NavMesh que nao liga com o meu.
+    ///
+    /// Antes eu ficava com ele travado pra sempre. Medi na HUBCity com um
+    /// alvo na faixa de NavMesh de fora da muralha: o Player andou 44 m,
+    /// parou a 10,9 m dele e continuou com o alvo travado ate eu encerrar
+    /// o teste, uns 15 s depois.
+    ///
+    /// So desisto com o caminho parcial, e nao em qualquer parada. Parar
+    /// no meio de uma perseguicao normal acontece (o frame em que a rota
+    /// foi pedida logo depois de um Stop, por exemplo), e ali desistir
+    /// seria largar um alvo que da pra alcancar.
+    ///
+    /// Guardo de quem desisti e onde estavamos pra o SetTarget nao aceitar
+    /// o mesmo pedido de novo com o clique segurado. O NavMesh nao muda
+    /// depois que a cena carrega, entao enquanto ninguem andar o caminho
+    /// continua nao chegando.
+    /// </summary>
+    private void DesistirDoAlvoSemCaminho()
+    {
+        alvoSemCaminho = target;
+        ondeOAlvoEstava = target.transform.position;
+        ondeEuEstava = transform.position;
+
+        ClearTarget();
+        StopChasing();
+    }
+
+    private bool NinguemSaiuDoLugar()
+    {
+        float folga = repathThreshold * repathThreshold;
+
+        return (alvoSemCaminho.transform.position - ondeOAlvoEstava).sqrMagnitude <= folga
+            && (transform.position - ondeEuEstava).sqrMagnitude <= folga;
     }
 
     /// <summary>
