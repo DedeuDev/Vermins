@@ -120,9 +120,7 @@ public class CursorContextual : MonoBehaviour
 
     private static bool EhColetavel(Collider c)
     {
-        return c.GetComponentInParent<PotionPickup>() != null ||
-               c.GetComponentInParent<GoldPickup>() != null ||
-               c.GetComponentInParent<JewelPickup>() != null;
+        return c.GetComponentInParent<Coletavel>() != null;
     }
 
     private static readonly System.Collections.Generic.IComparer<RaycastHit> PorDistancia =

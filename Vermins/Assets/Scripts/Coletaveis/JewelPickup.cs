@@ -3,11 +3,10 @@ using UnityEngine;
 /// <summary>
 /// Joia no chao. Quem encosta e tem bolsa de joias leva.
 ///
-/// Mesma montagem da pocao e do ouro: esfera trigger com Rigidbody
-/// kinematic, porque o NavMeshAgent do jogador nao conta pro trigger.
+/// A montagem do trigger e a trava contra entrega dupla estao no
+/// Coletavel.
 /// </summary>
-[RequireComponent(typeof(Rigidbody), typeof(SphereCollider))]
-public class JewelPickup : MonoBehaviour
+public class JewelPickup : Coletavel
 {
     [Tooltip("Menor valor de venda desta joia, em ouro. Valor de teste, " +
              "quem vai calibrar e a loja.")]
@@ -17,19 +16,6 @@ public class JewelPickup : MonoBehaviour
     [SerializeField, Min(1)] private int maxValue = 60;
 
     private int valor;
-    private bool coletada;
-
-    private void Reset()
-    {
-        Rigidbody corpo = GetComponent<Rigidbody>();
-        corpo.isKinematic = true;
-        corpo.useGravity = false;
-
-        SphereCollider area = GetComponent<SphereCollider>();
-        area.isTrigger = true;
-        area.center = new Vector3(0f, 0.5f, 0f);
-        area.radius = 0.6f;
-    }
 
     private void Awake()
     {
@@ -38,22 +24,14 @@ public class JewelPickup : MonoBehaviour
         valor = Random.Range(minValue, Mathf.Max(minValue, maxValue) + 1);
     }
 
-    private void OnTriggerEnter(Collider other)
+    protected override bool Entregar(Collider quemEncostou)
     {
-        // Mesma trava do ouro e da pocao: o trigger avisa uma vez por
-        // collider que entra e o Destroy so vale no fim do frame. Com um
-        // segundo collider no Player, medi 10 joias virando 20.
-        if (coletada)
-            return;
-
-        JewelPouch bolsa = other.GetComponentInParent<JewelPouch>();
+        JewelPouch bolsa = quemEncostou.GetComponentInParent<JewelPouch>();
 
         if (bolsa == null)
-            return;
-
-        coletada = true;
+            return false;
 
         bolsa.Add(valor);
-        Destroy(gameObject);
+        return true;
     }
 }
