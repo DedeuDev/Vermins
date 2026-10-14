@@ -392,12 +392,16 @@ public class PlayerCombat : MonoBehaviour
     /// <summary>
     /// Golpeia pro lado do ponto sem sair do lugar. E o Shift + clique do
     /// Diablo 4 e do Path of Exile 2: serve pra segurar a posicao numa
-    /// porta, bater no bicho que vem chegando sem correr atras dele, e
-    /// bater no ar.
+    /// porta e bater no bicho que vem chegando sem correr atras dele.
     ///
-    /// Desiste do alvo travado e para de andar. O golpe nao tem alvo: na
-    /// pancada eu pego quem estiver na frente, ao alcance da espada (ver
-    /// AlvoNaFrente). Respeita o cooldown e o combo como o golpe normal;
+    /// Desiste do alvo travado, para de andar e vira pro ponto. So golpeia
+    /// se tiver inimigo ao alcance da espada do lado do ponto: na primeira
+    /// versao ele golpeava o ar, e na build isso pareceu estranho. Sem
+    /// ninguem perto, o Shift so segura o personagem parado e virado.
+    ///
+    /// O golpe nao trava alvo: na pancada eu pego quem estiver na frente
+    /// (ver AlvoNaFrente), porque o bicho pode ter andado no meio segundo
+    /// do gesto. Respeita o cooldown e o combo como o golpe normal;
     /// segurando o botao, quem chama de novo todo frame e o
     /// PlayerController.
     ///
@@ -415,6 +419,14 @@ public class PlayerCombat : MonoBehaviour
         FaceTarget(ponto);
 
         if (Time.time < nextAttackTime)
+            return;
+
+        // Testo pro lado do ponto e nao pra frente do corpo: no clique ele
+        // ainda nao terminou de virar.
+        Vector3 paraOPonto = ponto - transform.position;
+        paraOPonto.y = 0f;
+
+        if (AlvoNaFrente(paraOPonto) == null)
             return;
 
         ComecarGolpe(null);
@@ -491,7 +503,7 @@ public class PlayerCombat : MonoBehaviour
             return;
 
         if (golpeParado)
-            alvoDoCast = AlvoNaFrente();
+            alvoDoCast = AlvoNaFrente(transform.forward);
 
         if (alvoDoCast == null || alvoDoCast.IsDead)
             return;
@@ -530,12 +542,13 @@ public class PlayerCombat : MonoBehaviour
     /// <summary>
     /// Quem leva a pancada do golpe parado: o vivo mais perto entre os que
     /// a lamina alcanca e sem parede no meio, pelos mesmos testes do golpe
-    /// com alvo. Null quando o golpe foi no ar.
+    /// com alvo, olhando pra metade da frente dada. Null quando ninguem
+    /// esta ao alcance.
     ///
     /// Uso o NonAlloc com um buffer fixo pra pancada nao gerar lixo. 16 da
     /// folga: o raio e de uns 2,7 m.
     /// </summary>
-    private Health AlvoNaFrente()
+    private Health AlvoNaFrente(Vector3 frente)
     {
         int quantos = Physics.OverlapSphereNonAlloc(
             transform.position, alcanceDaArma + folgaDaPancada,
@@ -552,7 +565,7 @@ public class PlayerCombat : MonoBehaviour
             if (candidato == null || candidato == ownHealth || candidato.IsDead)
                 continue;
 
-            if (!LaminaAlcanca(candidato) || !VisaoLimpa(candidato))
+            if (!LaminaAlcanca(candidato, frente) || !VisaoLimpa(candidato))
                 continue;
 
             float distancia = (candidato.transform.position - transform.position).sqrMagnitude;
@@ -576,6 +589,11 @@ public class PlayerCombat : MonoBehaviour
     /// </summary>
     private bool LaminaAlcanca(Health alvo)
     {
+        return LaminaAlcanca(alvo, transform.forward);
+    }
+
+    private bool LaminaAlcanca(Health alvo, Vector3 frente)
+    {
         // So no plano do chao: um inimigo num degrau nao pode escapar do
         // golpe por estar 30 cm mais alto.
         Vector3 ate = alvo.transform.position - transform.position;
@@ -591,7 +609,7 @@ public class PlayerCombat : MonoBehaviour
         // Metade da frente. O Player gira pro alvo o golpe inteiro, entao
         // isto quase nunca barra - so pega o bicho que contornou por tras,
         // onde a lamina nunca passa em nenhum dos dois golpes.
-        return Vector3.Dot(ate, transform.forward) > 0f;
+        return Vector3.Dot(ate, frente) > 0f;
     }
 
     /// <summary>
