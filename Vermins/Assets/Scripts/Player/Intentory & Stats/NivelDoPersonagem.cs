@@ -242,6 +242,17 @@ public class NivelDoPersonagem : MonoBehaviour
     }
 
     /// <summary>
+    /// Atalho de teste: botao direito no componente, em Play. 1000 e o
+    /// XP de um boss, e com sete cliques chega no nivel 10 - matando
+    /// inimigo de 30 seriam 225.
+    /// </summary>
+    [ContextMenu("Teste: ganhar 1000 de XP")]
+    private void GanharMilDeTeste()
+    {
+        Ganhar(1000);
+    }
+
+    /// <summary>
     /// Poe o XP que veio de fora: do save ou da passagem de cena. Nao
     /// enche a vida, porque quem restaura devolve a vida que estava logo
     /// em seguida.
