@@ -18,6 +18,7 @@ using UnityEngine.SceneManagement;
 /// So quem chama o Guardar e a passagem entre cenas. Morrer, comecar
 /// jogo novo e carregar o save nao passam por aqui de proposito: quem
 /// morre renasce do zero, e o load do save aplica o que esta no arquivo.
+/// A excecao e o XP da morte, que o NivelDoPersonagem cuida sozinho.
 /// </summary>
 public static class EstadoEntreCenas
 {

@@ -70,6 +70,12 @@ public class NivelDoPersonagem : MonoBehaviour
     private TextMeshPro aviso;
     private float avisoNasceu = -1f;
 
+    // O XP com que o Player entrou na cena, e se a proxima cena e o
+    // renascimento de uma morte. Sao estaticos porque a morte recarrega a
+    // cena, e o Player que morreu deixa de existir.
+    private static int xpDaEntrada;
+    private static bool renascer;
+
     public int Xp => xp;
     public int Nivel => nivel;
     public int NivelMaximo => nivelMaximo;
@@ -110,11 +116,53 @@ public class NivelDoPersonagem : MonoBehaviour
     /// </summary>
     public event System.Action<bool> OnNivelMudou;
 
+    // Campo estatico nao zera sozinho quando o editor entra em Play sem
+    // recarregar o dominio. Sem isto, um Play novo depois de morrer
+    // nasceria com o XP da sessao anterior.
+    [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+    private static void Zerar()
+    {
+        xpDaEntrada = 0;
+        renascer = false;
+    }
+
+    /// <summary>
+    /// Pede pro Player da proxima cena nascer com o XP de quando este
+    /// entrou na cena. Quem chama e o PlayerDeath, logo antes de
+    /// recarregar.
+    /// </summary>
+    public static void RenascerNaProximaCena()
+    {
+        renascer = true;
+    }
+
     private void Awake()
     {
         combate = GetComponent<PlayerCombat>();
 
         CriarAviso();
+
+        // Morrer recarrega a cena e o Player nasce do zero. Com XP isso
+        // seria cruel demais: quem morresse na terceira dungeon voltaria
+        // pro nivel 1. Por isso a morte devolve o XP de quando entrei na
+        // cena, e perco so o que ganhei nesta tentativa.
+        //
+        // Faco aqui no Awake de proposito. Todo Awake termina antes do
+        // Start do AtributosDoPersonagem, entao a build ja aplica o nivel
+        // certo e enche a vida dele, sem precisar de evento.
+        if (renascer)
+        {
+            renascer = false;
+            xp = xpDaEntrada;
+            nivel = NivelDoXp(xp);
+        }
+        else
+        {
+            // Cena aberta sem morte: jogo novo, passagem ou load do save.
+            // Os dois ultimos chamam o Restaurar logo depois, e e ele que
+            // anota a entrada de verdade.
+            xpDaEntrada = 0;
+        }
     }
 
     private void OnEnable()
@@ -206,6 +254,10 @@ public class NivelDoPersonagem : MonoBehaviour
     {
         xp = Mathf.Clamp(xpTotal, 0, XpParaChegarNoNivel(nivelMaximo));
         nivel = NivelDoXp(xp);
+
+        // O XP que veio de fora e o da entrada nesta cena: se eu morrer
+        // daqui, e pra ele que eu volto.
+        xpDaEntrada = xp;
 
         OnNivelMudou?.Invoke(false);
     }
