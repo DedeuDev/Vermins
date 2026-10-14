@@ -21,4 +21,8 @@ public class SaveData
     public int playerGold;
     public int playerJewels;
     public int playerJewelsValue;
+
+    // Ian: o XP total do Player. O nivel sai dele pela curva do
+    // NivelDoPersonagem. Save de antes deste campo abre com 0, o nivel 1.
+    public int playerXp;
 }
