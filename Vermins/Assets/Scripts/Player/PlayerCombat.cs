@@ -96,6 +96,16 @@ public class PlayerCombat : MonoBehaviour
     [Tooltip("Quanto o golpe final tira, em vezes o dano da arma.")]
     [SerializeField] private float danoDoFinal = 2f;
 
+    [Header("Critico")]
+    [Tooltip("Chance de cada pancada sair critica, de 0 a 1. O Diablo 4 " +
+             "comeca com 5%; pus 10% pra ele aparecer o bastante pra ser " +
+             "sentido enquanto nao tem equipamento somando.")]
+    [SerializeField, Range(0f, 1f)] private float chanceDeCritico = 0.1f;
+
+    [Tooltip("Quanto o critico tira, em vezes o dano. Multiplica junto com " +
+             "o do golpe final: final critico tira 2 x 1,5 = 3 vezes.")]
+    [SerializeField, Min(1f)] private float danoDoCritico = 1.5f;
+
     [Tooltip("Quanto o golpe final demora, em vezes o cooldown. O clipe " +
              "dele levanta a espada acima da cabeca antes de descer, e essa " +
              "espera e o que faz ele pesar mais que os outros.")]
@@ -194,6 +204,29 @@ public class PlayerCombat : MonoBehaviour
     /// OnGolpeAcertou le isto pra pesar mais a pancada.
     /// </summary>
     public bool GolpeFinal => golpesNoCombo > 1 && passoDoCast == golpesNoCombo - 1;
+
+    /// <summary>
+    /// Se a pancada que acabou de acertar foi critica. Vale durante o
+    /// OnGolpeAcertou: quem escuta le isto pra mudar o numero e o peso.
+    /// </summary>
+    public bool UltimoAcertoCritico { get; private set; }
+
+    /// <summary>
+    /// Chance de critico, de 0 a 1. Tem setter pro equipamento somar
+    /// quando existir, igual o AttackRange com a build.
+    /// </summary>
+    public float ChanceDeCritico
+    {
+        get => chanceDeCritico;
+        set => chanceDeCritico = Mathf.Clamp01(value);
+    }
+
+    /// <summary>Multiplicador do critico. Nunca abaixo de 1.</summary>
+    public float DanoDoCritico
+    {
+        get => danoDoCritico;
+        set => danoDoCritico = Mathf.Max(1f, value);
+    }
 
     /// <summary>
     /// Quanto tempo o golpe que esta saindo tem ate o proximo, ja com o
@@ -472,7 +505,12 @@ public class PlayerCombat : MonoBehaviour
         // arma: no golpe que mata o inimigo com 5 de vida, sai 5.
         float vidaAntes = alvoDoCast.Current;
 
-        if (!weapon.TryHit(alvoDoCast, GolpeFinal ? danoDoFinal : 1f))
+        // Sorteio na pancada, e nao no comeco do golpe: golpe cortado ou
+        // que errou nao gasta sorteio nenhum.
+        bool critico = Random.value < chanceDeCritico;
+        float multiplicador = (GolpeFinal ? danoDoFinal : 1f) * (critico ? danoDoCritico : 1f);
+
+        if (!weapon.TryHit(alvoDoCast, multiplicador))
             return;
 
         // So conta como acerto se tirou vida. O TryHit devolve true
@@ -483,7 +521,10 @@ public class PlayerCombat : MonoBehaviour
         float dano = vidaAntes - alvoDoCast.Current;
 
         if (dano > 0f)
+        {
+            UltimoAcertoCritico = critico;
             OnGolpeAcertou?.Invoke(alvoDoCast, dano);
+        }
     }
 
     /// <summary>

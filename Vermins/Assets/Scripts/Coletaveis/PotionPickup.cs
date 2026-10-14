@@ -12,6 +12,10 @@ public class PotionPickup : Coletavel
     // Tento de novo se o jogador beber sem sair de cima da pocao.
     protected override bool TentarDeNovoEmCima => true;
 
+    protected override string TextoDoRotulo => "Pocao";
+
+    protected override Color CorDoRotulo => new Color(1f, 0.4f, 0.4f);
+
     protected override bool Entregar(Collider quemEncostou)
     {
         PotionBelt cinto = quemEncostou.GetComponentInParent<PotionBelt>();

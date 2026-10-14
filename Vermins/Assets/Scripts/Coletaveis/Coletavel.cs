@@ -1,3 +1,4 @@
+using TMPro;
 using UnityEngine;
 
 /// <summary>
@@ -16,6 +17,16 @@ using UnityEngine;
 [RequireComponent(typeof(Rigidbody), typeof(SphereCollider))]
 public abstract class Coletavel : MonoBehaviour
 {
+    // Onde o nome fica, acima do pivo do item, e o tamanho da letra no
+    // mundo. Os itens sao todos do mesmo porte, entao vale pra todos.
+    private const float AlturaDoRotulo = 1.0f;
+    private const float TamanhoDoRotulo = 3f;
+
+    // Um material so pra todos os rotulos. Contorno no TextMeshPro pela
+    // propriedade outlineWidth cria um material por texto; com uma horda
+    // soltando item isso vira dezenas.
+    private static Material materialDoRotulo;
+
     private bool coletado;
 
     /// <summary>
@@ -25,6 +36,53 @@ public abstract class Coletavel : MonoBehaviour
     /// precisam, porque quem tem carteira sempre leva na primeira.
     /// </summary>
     protected virtual bool TentarDeNovoEmCima => false;
+
+    /// <summary>
+    /// O que aparece escrito em cima do item no chao. Lido uma vez, no
+    /// Start, entao a quantia ja sorteada no Awake entra no texto.
+    /// </summary>
+    protected abstract string TextoDoRotulo { get; }
+
+    /// <summary>A cor do nome. Cada tipo de item tem a sua.</summary>
+    protected virtual Color CorDoRotulo => Color.white;
+
+    /// <summary>
+    /// Escreve o nome em cima do item, como os dois jogos fazem com o que
+    /// cai no chao: da pra saber o que caiu sem passar o mouse em cada
+    /// coisa. O texto e montado uma vez so e nao muda.
+    /// </summary>
+    protected virtual void Start()
+    {
+        var objeto = new GameObject("Rotulo");
+        objeto.transform.SetParent(transform, false);
+        objeto.transform.localPosition = Vector3.up * AlturaDoRotulo;
+
+        // A camera nunca gira, entao basta copiar a rotacao dela uma vez
+        // pro texto ficar de frente. Mesmo jeito do NumerosDeDano.
+        Camera cam = Camera.main;
+
+        if (cam != null)
+            objeto.transform.rotation = cam.transform.rotation;
+
+        var rotulo = objeto.AddComponent<TextMeshPro>();
+        rotulo.text = TextoDoRotulo;
+        rotulo.fontSize = TamanhoDoRotulo;
+        rotulo.color = CorDoRotulo;
+        rotulo.alignment = TextAlignmentOptions.Center;
+        rotulo.fontStyle = FontStyles.Bold;
+        rotulo.textWrappingMode = TextWrappingModes.NoWrap;
+        rotulo.rectTransform.sizeDelta = new Vector2(4f, 1f);
+
+        if (materialDoRotulo == null)
+        {
+            // Contorno escuro pra ler no chao claro da cidade e no esgoto.
+            materialDoRotulo = new Material(rotulo.fontSharedMaterial);
+            materialDoRotulo.SetFloat(ShaderUtilities.ID_OutlineWidth, 0.25f);
+            materialDoRotulo.SetColor(ShaderUtilities.ID_OutlineColor, new Color32(20, 12, 8, 255));
+        }
+
+        rotulo.fontSharedMaterial = materialDoRotulo;
+    }
 
     // O Reset roda quando o componente e adicionado no editor. Deixo o
     // Rigidbody e a esfera prontos aqui pra ninguem precisar lembrar da

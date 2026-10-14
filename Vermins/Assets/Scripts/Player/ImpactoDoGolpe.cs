@@ -69,7 +69,7 @@ public class ImpactoDoGolpe : MonoBehaviour
     {
         // O golpe final do combo pesa igual ao que mata: e a recompensa
         // de ter fechado a sequencia.
-        bool forte = alvo.IsDead || combat.GolpeFinal;
+        bool forte = alvo.IsDead || combat.GolpeFinal || combat.UltimoAcertoCritico;
 
         IsometricCameraFollow.Tremer(forte ? tremorNaMorte : tremorNoAcerto);
 

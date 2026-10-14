@@ -20,6 +20,10 @@ public class DestaqueDeAlvo : MonoBehaviour
     [Tooltip("Material com o shader Vermins/Contorno.")]
     [SerializeField] private Material contorno;
 
+    [Tooltip("Cor do contorno no item sob o mouse. Clara, pra nao " +
+             "confundir com o vermelho do inimigo.")]
+    [SerializeField] private Color corDoContornoDeItem = new Color(1f, 0.95f, 0.75f, 1f);
+
     [Header("Anel no alvo travado")]
     [Tooltip("Material transparente com cor de vertice. Uso o mesmo do " +
              "marcador de destino.")]
@@ -50,7 +54,11 @@ public class DestaqueDeAlvo : MonoBehaviour
 
     // Quem esta com contorno agora, e os materiais que cada renderer dele
     // tinha antes, pra devolver do jeito que estava.
-    private Health contornado;
+    private Component contornado;
+
+    // Copia do material do contorno com a cor do item. Criada aqui pra
+    // nao precisar de outro asset nem de outro campo no prefab.
+    private Material contornoDeItem;
     private Renderer[] renderersContornados;
     private Material[][] materiaisOriginais;
 
@@ -63,6 +71,12 @@ public class DestaqueDeAlvo : MonoBehaviour
     {
         cursor = GetComponent<CursorContextual>();
         combat = GetComponent<PlayerCombat>();
+
+        if (contorno != null)
+        {
+            contornoDeItem = new Material(contorno);
+            contornoDeItem.SetColor("_CorDoContorno", corDoContornoDeItem);
+        }
 
         // Mesma montagem do MarcadorDeDestino: fora do Player, deitado no
         // chao com o alinhamento TransformZ.
@@ -100,34 +114,42 @@ public class DestaqueDeAlvo : MonoBehaviour
     {
         if (anel != null)
             Destroy(anel.gameObject);
+
+        if (contornoDeItem != null)
+            Destroy(contornoDeItem);
     }
 
     private void LateUpdate()
     {
-        AtualizarContorno(cursor.InimigoSobOMouse);
+        // O cursor so acha item quando nao tem inimigo embaixo, entao no
+        // maximo um dos dois vem preenchido.
+        if (cursor.InimigoSobOMouse != null)
+            AtualizarContorno(cursor.InimigoSobOMouse, contorno);
+        else
+            AtualizarContorno(cursor.ColetavelSobOMouse, contornoDeItem);
         AtualizarAnel(combat.HasTarget ? combat.Target : null);
     }
 
-    private void AtualizarContorno(Health inimigo)
+    private void AtualizarContorno(Component alvo, Material material)
     {
-        if (inimigo == contornado)
+        if (alvo == contornado)
             return;
 
         TirarContorno();
 
-        if (inimigo == null || contorno == null)
+        if (alvo == null || material == null)
             return;
 
-        contornado = inimigo;
+        contornado = alvo;
 
         // So malha. LineRenderer e particula no inimigo nao tem normal
-        // que preste pro contorno.
-        var todos = inimigo.GetComponentsInChildren<Renderer>();
+        // que preste pro contorno, e o rotulo do item e texto.
+        var todos = alvo.GetComponentsInChildren<Renderer>();
         int quantos = 0;
 
         foreach (var r in todos)
         {
-            if (r is MeshRenderer || r is SkinnedMeshRenderer)
+            if (Contornavel(r))
                 quantos++;
         }
 
@@ -138,19 +160,27 @@ public class DestaqueDeAlvo : MonoBehaviour
 
         foreach (var r in todos)
         {
-            if (!(r is MeshRenderer || r is SkinnedMeshRenderer))
+            if (!Contornavel(r))
                 continue;
 
             Material[] originais = r.sharedMaterials;
             var comContorno = new Material[originais.Length + 1];
             originais.CopyTo(comContorno, 0);
-            comContorno[originais.Length] = contorno;
+            comContorno[originais.Length] = material;
 
             renderersContornados[i] = r;
             materiaisOriginais[i] = originais;
             r.sharedMaterials = comContorno;
             i++;
         }
+    }
+
+    // O TextMeshPro desenha com MeshRenderer tambem; sem o teste o nome do
+    // item ganhava contorno em volta de cada letra.
+    private static bool Contornavel(Renderer r)
+    {
+        return (r is MeshRenderer || r is SkinnedMeshRenderer) &&
+               r.GetComponent<TMPro.TMP_Text>() == null;
     }
 
     private void TirarContorno()

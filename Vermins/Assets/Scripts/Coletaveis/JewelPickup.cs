@@ -17,6 +17,11 @@ public class JewelPickup : Coletavel
 
     private int valor;
 
+    // So o nome. O valor e de venda, e quem mostra e a loja.
+    protected override string TextoDoRotulo => "Joia";
+
+    protected override Color CorDoRotulo => new Color(0.45f, 0.85f, 1f);
+
     private void Awake()
     {
         // Sorteio ao nascer, igual o ouro, e com o mesmo +1 porque o Range

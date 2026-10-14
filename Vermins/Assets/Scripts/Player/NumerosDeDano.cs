@@ -30,6 +30,14 @@ public class NumerosDeDano : MonoBehaviour
              "o laranja e so de quem morreu.")]
     [SerializeField] private float escalaDoFinal = 1.25f;
 
+    [Tooltip("Cor do critico. Amarelo, como no Diablo 4. Se o critico " +
+             "mata, fica o laranja da morte e o ! continua dizendo que foi " +
+             "critico.")]
+    [SerializeField] private Color corDoCritico = new Color(1f, 0.85f, 0.2f, 1f);
+
+    [Tooltip("Quanto o critico sai maior.")]
+    [SerializeField] private float escalaDoCritico = 1.5f;
+
     [Tooltip("Quanto tempo o numero fica na tela.")]
     [SerializeField] private float duracao = 0.8f;
 
@@ -110,12 +118,16 @@ public class NumerosDeDano : MonoBehaviour
             return;
 
         bool matou = alvo.IsDead;
+        bool critico = combat.UltimoAcertoCritico;
         Numero n = Livre();
 
-        n.texto.text = Mathf.RoundToInt(dano).ToString();
+        n.texto.text = critico ? Mathf.RoundToInt(dano) + "!" : Mathf.RoundToInt(dano).ToString();
         n.texto.fontSize = tamanho;
-        n.texto.color = matou ? corDaMorte : corNormal;
-        n.escala = matou ? escalaDaMorte : combat.GolpeFinal ? escalaDoFinal : 1f;
+        n.texto.color = matou ? corDaMorte : critico ? corDoCritico : corNormal;
+        n.escala = Mathf.Max(
+            matou ? escalaDaMorte : 1f,
+            critico ? escalaDoCritico : 1f,
+            combat.GolpeFinal ? escalaDoFinal : 1f);
 
         Vector3 lado = Random.insideUnitSphere * espalhamento;
         lado.y = 0f;

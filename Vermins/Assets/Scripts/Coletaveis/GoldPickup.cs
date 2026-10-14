@@ -18,6 +18,10 @@ public class GoldPickup : Coletavel
 
     private int quantia;
 
+    protected override string TextoDoRotulo => $"Ouro {quantia}";
+
+    protected override Color CorDoRotulo => new Color(1f, 0.85f, 0.3f);
+
     private void Awake()
     {
         // Sorteio ao nascer, e nao ao pegar, pra quantia ja estar decidida
