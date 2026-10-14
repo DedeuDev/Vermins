@@ -12,8 +12,8 @@ using UnityEngine.InputSystem;
 /// nao engana ninguem de que e a UI final. Quando a dele chegar, e so
 /// tirar este componente do Player.prefab e apagar o arquivo.
 ///
-/// Tem tambem os controles do teto de fps: ligar, desligar e escolher o
-/// numero. Sao pra comparar o jogo com e sem limite na mesma sessao; a
+/// Tem tambem os controles do fps: vsync, teto ligado ou desligado e o
+/// numero do teto. Sao pra comparar o jogo com e sem limite na mesma sessao; a
 /// escolha nao e salva e volta pro padrao quando o jogo abre de novo.
 ///
 /// So desenha no editor e em Development Build. A classe continua
@@ -61,7 +61,7 @@ public class PlayerDebugHUD : MonoBehaviour
 
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
     // Onde o painel fica, na tela de referencia de 1080 de altura.
-    private static readonly Rect Painel = new Rect(16f, 16f, 380f, 348f);
+    private static readonly Rect Painel = new Rect(16f, 16f, 380f, 382f);
 
     // O menor teto que o slider oferece, e o maior quando o monitor nao
     // informa a taxa. Com a taxa conhecida o maior e ela.
@@ -201,6 +201,16 @@ public class PlayerDebugHUD : MonoBehaviour
 
         GUILayout.BeginVertical();
 
+        string estadoDoVSync = LimiteDeFps.VSync ? "ligado" : "desligado";
+
+        if (GUILayout.Button($"vsync {estadoDoVSync}", estiloDoBotao))
+            LimiteDeFps.VSync = !LimiteDeFps.VSync;
+
+        // Com o vsync ligado o teto nao vale. Deixo os controles dele
+        // apagados em vez de sumir, pra o painel nao pular de tamanho.
+        bool habilitado = GUI.enabled;
+        GUI.enabled = habilitado && !LimiteDeFps.VSync;
+
         GUILayout.BeginHorizontal();
 
         // Botao em vez de caixa de marcar: a caixa do OnGUI tem 12
@@ -234,6 +244,8 @@ public class PlayerDebugHUD : MonoBehaviour
         if (escolhido != mostrado)
             LimiteDeFps.Fps = escolhido;
 
+        GUI.enabled = habilitado;
+
         GUILayout.EndVertical();
 
         // O retangulo so vale no Repaint. Ele vem relativo ao painel e
@@ -256,7 +268,9 @@ public class PlayerDebugHUD : MonoBehaviour
         // da mesma janela. A media mostra que o teto esta valendo; o pior
         // frame e o que denuncia engasgo, que a media esconde.
         int teto = LimiteDeFps.TetoEmVigor;
-        string limite = teto > 0 ? teto.ToString() : "sem teto";
+        string limite = LimiteDeFps.VSync ? "vsync"
+            : teto > 0 ? teto.ToString()
+            : "sem teto";
 
         return $"{fps:F0} / {limite}   pior {piorFrame * 1000f:F1} ms";
     }

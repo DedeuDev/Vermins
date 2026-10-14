@@ -33,6 +33,20 @@ using UnityEngine.LowLevel;
 /// mediano de 0,2 microssegundo, e o proprio jogo sem limite ja tem
 /// frames de 17 ms de vez em quando.
 ///
+/// Na build o padrao agora e o vsync, e a espera fica desligada. Joguei
+/// a Development Build num monitor de 200 Hz e vi micro engasgos com o
+/// teto perto de 200 (192, que era o padrao), e nenhum com o teto em 120
+/// pra baixo nem sem teto. A minha leitura: sem vsync o monitor troca de
+/// imagem 200 vezes por segundo e o jogo entrega 192, e a diferenca, 8
+/// por segundo, vira 8 vezes por segundo em que a tela repete um frame
+/// ou mostra um corte. Em 120 a diferenca e de 80 por segundo, rapida
+/// demais pra virar soluco, e sem teto cada atualizacao da tela ja tem
+/// frame novo. O vsync tira a diferenca: um frame por atualizacao. Custa
+/// ate um frame a mais entre o clique e a tela, uns 5 ms a 200 Hz.
+///
+/// No editor o padrao continua sendo o teto, porque a Game view ignora o
+/// vsync: medi 318 fps com ele ligado.
+///
 /// Fica numa classe estatica, sem objeto em cena, pra valer do menu em
 /// diante sem eu ter que por componente em cada cena.
 /// </summary>
@@ -50,6 +64,10 @@ public static class LimiteDeFps
     // 4%, e nunca menos de 2 fps. Num monitor de 210 Hz da 202. Em
     // cima da taxa exata sao dois relogios disputando a mesma fronteira,
     // e cada frame vira sorteio de em qual atualizacao da tela ele cai.
+    // Abaixo dela, sem vsync, aparece o soluco que eu descrevo la em
+    // cima. Escolhi este numero olhando so o tempo de cada frame dentro
+    // do jogo, e nao o que chega na tela; e por isso que a build agora
+    // usa o vsync.
     private const float FolgaDoMonitor = 0.04f;
     private const int FolgaMinima = 2;
 
@@ -83,6 +101,19 @@ public static class LimiteDeFps
 
     private static int fps;
     private static bool ligado = true;
+    private static bool vsync;
+
+    // O vSyncCount que o projeto tinha antes de eu mexer. Devolvo ao
+    // desinstalar, pra sair do Play nao deixar o editor diferente do que
+    // esta no QualitySettings.
+    private static int vSyncDoProjeto = -1;
+
+    // O vsync so vale na build. Ver o comentario da classe.
+#if UNITY_EDITOR
+    private const bool VSyncPadrao = false;
+#else
+    private const bool VSyncPadrao = true;
+#endif
 
     /// <summary>
     /// O teto em fps, ou 0 pra nenhum.
@@ -114,9 +145,26 @@ public static class LimiteDeFps
     }
 
     /// <summary>
-    /// O teto que esta valendo agora: o Fps com o limite ligado, 0 sem.
+    /// Sincroniza o frame com o monitor. Com ele ligado a minha espera
+    /// para: as duas juntas brigariam, e o teto abaixo da taxa faria o
+    /// frame perder a atualizacao da tela de vez em quando.
     /// </summary>
-    public static int TetoEmVigor => ligado ? fps : 0;
+    public static bool VSync
+    {
+        get => vsync;
+        set
+        {
+            vsync = value;
+            QualitySettings.vSyncCount = vsync ? 1 : 0;
+            AcertarRelogio();
+        }
+    }
+
+    /// <summary>
+    /// O teto que esta valendo agora: o Fps com o limite ligado e o vsync
+    /// desligado, 0 fora disso.
+    /// </summary>
+    public static int TetoEmVigor => ligado && !vsync ? fps : 0;
 
     /// <summary>
     /// O teto que o jogo escolheu sozinho ao abrir, pelo monitor.
@@ -275,6 +323,8 @@ public static class LimiteDeFps
         // pode entrar em Play sem recarregar o dominio, e ai o teto
         // desligado numa sessao continuaria desligado na seguinte.
         ligado = true;
+        vsync = false;
+        vSyncDoProjeto = QualitySettings.vSyncCount;
         Fps = 0;
 
         // Sair do Play mantem o dominio e o PlayerLoop, e o editor nao
@@ -288,6 +338,7 @@ public static class LimiteDeFps
     {
         LerOMonitor();
         Fps = FpsPadrao;
+        VSync = VSyncPadrao;
 
         // O limite da Unity fica desligado de vez. No editor ele nao
         // volta sozinho pra -1 entre uma sessao de Play e outra.
@@ -316,6 +367,11 @@ public static class LimiteDeFps
         instalado = false;
         Fps = 0;
 
+        vsync = false;
+
+        if (vSyncDoProjeto >= 0)
+            QualitySettings.vSyncCount = vSyncDoProjeto;
+
         PlayerLoopSystem raiz = PlayerLoop.GetCurrentPlayerLoop();
         TirarDe(ref raiz);
         PlayerLoop.SetPlayerLoop(raiz);
@@ -325,6 +381,7 @@ public static class LimiteDeFps
     // Onde o teto espera uma recompilacao passar. So na sessao do editor.
     private const string ChaveDoTetoGuardado = "Vermins.LimiteDeFps.TetoGuardado";
     private const string ChaveDoLigadoGuardado = "Vermins.LimiteDeFps.LigadoGuardado";
+    private const string ChaveDoVSyncGuardado = "Vermins.LimiteDeFps.VSyncGuardado";
 
     // Recompilar no meio do Play, que o editor faz quando um script e
     // salvo, joga fora todo campo estatico daqui. Vai junto a anotacao
@@ -341,8 +398,10 @@ public static class LimiteDeFps
 
         int guardado = UnityEditor.SessionState.GetInt(ChaveDoTetoGuardado, -1);
         bool ligadoGuardado = UnityEditor.SessionState.GetBool(ChaveDoLigadoGuardado, true);
+        bool vsyncGuardado = UnityEditor.SessionState.GetBool(ChaveDoVSyncGuardado, false);
         UnityEditor.SessionState.EraseInt(ChaveDoTetoGuardado);
         UnityEditor.SessionState.EraseBool(ChaveDoLigadoGuardado);
+        UnityEditor.SessionState.EraseBool(ChaveDoVSyncGuardado);
 
         if (guardado >= 0 && UnityEditor.EditorApplication.isPlaying)
         {
@@ -350,6 +409,7 @@ public static class LimiteDeFps
             LerOMonitor();
             Fps = guardado;
             Ligado = ligadoGuardado;
+            VSync = vsyncGuardado;
         }
     }
 
@@ -359,6 +419,7 @@ public static class LimiteDeFps
         {
             UnityEditor.SessionState.SetInt(ChaveDoTetoGuardado, Fps);
             UnityEditor.SessionState.SetBool(ChaveDoLigadoGuardado, Ligado);
+            UnityEditor.SessionState.SetBool(ChaveDoVSyncGuardado, VSync);
         }
 
         Desinstalar();
