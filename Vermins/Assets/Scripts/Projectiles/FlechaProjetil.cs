@@ -6,7 +6,8 @@ public class FlechaProjetil : MonoBehaviour
     [SerializeField] private float tempoDeVida = 4f;
 
     // Ian: dano da flecha no Player. O BossDataSO nao tinha esse numero,
-    // entao pus 10 de chute (o inimigo comum tira 12). Ajusta no prefab.
+    // entao pus 10 de chute (o inimigo comum tirava 12; desde 14/10 tira
+    // 6). Ajusta no prefab.
     [SerializeField] private float dano = 10f;
 
     // Ian: trigger so dispara se um dos dois lados tiver Rigidbody. O
