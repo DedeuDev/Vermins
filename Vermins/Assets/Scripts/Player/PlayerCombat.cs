@@ -174,6 +174,13 @@ public class PlayerCombat : MonoBehaviour
     private int passoDoCast;
     private float duracaoDoCast;
 
+    // Golpe parado (Shift): nao tem alvo travado. O corpo vira pro ponto
+    // do clique durante o gesto, e quem leva o dano e decidido na
+    // pancada, entre os que estiverem na frente. Ver GolpearParado.
+    private bool golpeParado;
+    private Vector3 pontoDoGolpeParado;
+    private static readonly Collider[] PertoDaLamina = new Collider[16];
+
     public Health Target => target;
 
     /// <summary>
@@ -238,6 +245,9 @@ public class PlayerCombat : MonoBehaviour
     /// defeito: a magia acertava antes de a mao subir. Hoje isto e o
     /// "comecou o cast" - quem quiser reagir ao dano que aconteceu deve
     /// escutar o Health.OnDamaged do alvo, que e onde a verdade mora.
+    ///
+    /// No golpe parado (Shift) o alvo vem null: quem leva so e decidido
+    /// na pancada.
     /// </summary>
     public event System.Action<Health> OnAttack;
 
@@ -347,6 +357,37 @@ public class PlayerCombat : MonoBehaviour
     }
 
     /// <summary>
+    /// Golpeia pro lado do ponto sem sair do lugar. E o Shift + clique do
+    /// Diablo 4 e do Path of Exile 2: serve pra segurar a posicao numa
+    /// porta, bater no bicho que vem chegando sem correr atras dele, e
+    /// bater no ar.
+    ///
+    /// Desiste do alvo travado e para de andar. O golpe nao tem alvo: na
+    /// pancada eu pego quem estiver na frente, ao alcance da espada (ver
+    /// AlvoNaFrente). Respeita o cooldown e o combo como o golpe normal;
+    /// segurando o botao, quem chama de novo todo frame e o
+    /// PlayerController.
+    ///
+    /// So vale no corpo a corpo. A magia precisa de alvo pra mirar a bola.
+    /// </summary>
+    public void GolpearParado(Vector3 ponto)
+    {
+        if (!CorpoACorpo || (ownHealth != null && ownHealth.IsDead))
+            return;
+
+        ClearTarget();
+        StopChasing();
+
+        pontoDoGolpeParado = ponto;
+        FaceTarget(ponto);
+
+        if (Time.time < nextAttackTime)
+            return;
+
+        ComecarGolpe(null);
+    }
+
+    /// <summary>
     /// Faz a bola nascer. Quem chama e o Animation Event do clipe de
     /// magia, atraves do EventoDeAnimacao que mora no modelo - o Mecanim
     /// so alcanca componente que esteja no mesmo objeto do Animator.
@@ -416,6 +457,9 @@ public class PlayerCombat : MonoBehaviour
         if (ownHealth != null && ownHealth.IsDead)
             return;
 
+        if (golpeParado)
+            alvoDoCast = AlvoNaFrente();
+
         if (alvoDoCast == null || alvoDoCast.IsDead)
             return;
 
@@ -440,6 +484,46 @@ public class PlayerCombat : MonoBehaviour
 
         if (dano > 0f)
             OnGolpeAcertou?.Invoke(alvoDoCast, dano);
+    }
+
+    /// <summary>
+    /// Quem leva a pancada do golpe parado: o vivo mais perto entre os que
+    /// a lamina alcanca e sem parede no meio, pelos mesmos testes do golpe
+    /// com alvo. Null quando o golpe foi no ar.
+    ///
+    /// Uso o NonAlloc com um buffer fixo pra pancada nao gerar lixo. 16 da
+    /// folga: o raio e de uns 2,7 m.
+    /// </summary>
+    private Health AlvoNaFrente()
+    {
+        int quantos = Physics.OverlapSphereNonAlloc(
+            transform.position, alcanceDaArma + folgaDaPancada,
+            PertoDaLamina, ~0, QueryTriggerInteraction.Ignore);
+
+        Health melhor = null;
+        float melhorDistancia = float.MaxValue;
+
+        for (int i = 0; i < quantos; i++)
+        {
+            Health candidato = PertoDaLamina[i].GetComponentInParent<Health>();
+            PertoDaLamina[i] = null;
+
+            if (candidato == null || candidato == ownHealth || candidato.IsDead)
+                continue;
+
+            if (!LaminaAlcanca(candidato) || !VisaoLimpa(candidato))
+                continue;
+
+            float distancia = (candidato.transform.position - transform.position).sqrMagnitude;
+
+            if (distancia < melhorDistancia)
+            {
+                melhor = candidato;
+                melhorDistancia = distancia;
+            }
+        }
+
+        return melhor;
     }
 
     /// <summary>
@@ -529,6 +613,11 @@ public class PlayerCombat : MonoBehaviour
 
         VigiarOEvento();
 
+        // Golpe parado: o corpo termina de virar pro ponto do clique
+        // durante o gesto. Um clique so daria um frame de giro.
+        if (golpeParado && gestoEmCurso && Time.time < nextAttackTime)
+            FaceTarget(pontoDoGolpeParado);
+
         if (target == null)
             return;
 
@@ -581,6 +670,15 @@ public class PlayerCombat : MonoBehaviour
         if (Time.time < nextAttackTime)
             return;
 
+        ComecarGolpe(target);
+    }
+
+    /// <summary>
+    /// Comeca um golpe do combo. Com alvo, e o golpe normal; sem alvo
+    /// (null), e o golpe parado, e quem leva e decidido na pancada.
+    /// </summary>
+    private void ComecarGolpe(Health alvo)
+    {
         // Aqui o nextAttackTime ainda e o fim do golpe anterior. Se ja
         // passou da janela, a sequencia esfriou e recomeca do primeiro.
         if (Time.time > nextAttackTime + janelaDoCombo)
@@ -592,7 +690,8 @@ public class PlayerCombat : MonoBehaviour
         duracaoDoCast = GolpeFinal ? attackCooldown * tempoDoFinal : attackCooldown;
         nextAttackTime = Time.time + duracaoDoCast;
 
-        alvoDoCast = target;
+        alvoDoCast = alvo;
+        golpeParado = alvo == null;
         esperandoOEvento = true;
         gestoEmCurso = true;
 
@@ -601,7 +700,7 @@ public class PlayerCombat : MonoBehaviour
         // evento nao existe mesmo.
         prazoDoEvento = Time.time + duracaoDoCast;
 
-        OnAttack?.Invoke(target);
+        OnAttack?.Invoke(alvo);
     }
 
     /// <summary>
