@@ -34,6 +34,12 @@ public class CursorContextual : MonoBehaviour
     /// </summary>
     public Health InimigoSobOMouse { get; private set; }
 
+    /// <summary>
+    /// O item no chao que esta embaixo do mouse neste frame, ou null. O
+    /// DestaqueDeAlvo le daqui pra por o contorno nele.
+    /// </summary>
+    public Coletavel ColetavelSobOMouse { get; private set; }
+
     private PlayerController controller;
     private Health health;
     private Tipo atual = Tipo.Normal;
@@ -64,6 +70,7 @@ public class CursorContextual : MonoBehaviour
     private Tipo Classificar()
     {
         InimigoSobOMouse = null;
+        ColetavelSobOMouse = null;
 
         // Mesmos cortes do Update do PlayerController: morto ou pausado
         // o clique nao faz nada, entao o cursor tambem nao promete nada.
@@ -105,9 +112,13 @@ public class CursorContextual : MonoBehaviour
         for (int i = 0; i < quantos; i++)
         {
             Collider c = acertos[i].collider;
+            Coletavel item = c.GetComponentInParent<Coletavel>();
 
-            if (EhColetavel(c))
+            if (item != null)
+            {
+                ColetavelSobOMouse = item;
                 return true;
+            }
 
             // Chao, parede ou inimigo na frente: o item atras dele nao
             // conta.
@@ -116,13 +127,6 @@ public class CursorContextual : MonoBehaviour
         }
 
         return false;
-    }
-
-    private static bool EhColetavel(Collider c)
-    {
-        return c.GetComponentInParent<PotionPickup>() != null ||
-               c.GetComponentInParent<GoldPickup>() != null ||
-               c.GetComponentInParent<JewelPickup>() != null;
     }
 
     private static readonly System.Collections.Generic.IComparer<RaycastHit> PorDistancia =

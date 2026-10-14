@@ -38,6 +38,12 @@ public class PlayerController : MonoBehaviour
     [Tooltip("Deixe vazio pra usar a Camera.main.")]
     [SerializeField] private Camera viewCamera;
 
+    [Header("Comando guardado")]
+    [Tooltip("Por quanto tempo a esquiva apertada antes da hora fica " +
+             "guardada. Apertando ate isso antes da recarga acabar, ela " +
+             "sai sozinha assim que puder, em vez de se perder.")]
+    [SerializeField] private float janelaDaEsquiva = 0.2f;
+
     private InputSystem_Actions input;
     private PlayerMotor motor;
     private Health health;
@@ -53,12 +59,23 @@ public class PlayerController : MonoBehaviour
     /// inimigo virava ataque sem querer, e quem queria fugir parava pra
     /// brigar.
     /// </summary>
-    private enum Ordem { Nenhuma, Andar, Atacar }
+    private enum Ordem { Nenhuma, Andar, Atacar, AtacarParado }
 
     /// <summary>O que esta embaixo do mouse, pro cursor contextual.</summary>
     public enum AlvoDoCursor { Nada, Chao, Inimigo, Interagivel }
 
     private Ordem ordem;
+
+    // Comandos dados quando o personagem ainda nao podia obedecer. Os
+    // dois jogos que a gente copia guardam o comando e executam assim que
+    // da; aqui eles se perdiam. Medi com clique e tecla simulados: um
+    // clique no chao 0,2 s depois do rolamento comecar nao fazia nada (o
+    // Player terminou a 9,46 m do ponto, parado), e a esquiva apertada
+    // 0,15 s antes da recarga acabar nao saia.
+    private bool temCliqueGuardado;
+    private Ray cliqueGuardado;
+    private float esquivaGuardadaAte = -1f;
+    private Vector3 esquivaGuardadaPara;
 
     /// <summary>
     /// Disparado toda vez que o jogador manda andar pra um ponto.
@@ -137,18 +154,37 @@ public class PlayerController : MonoBehaviour
 
         // Esquiva vai pro lado do mouse, esteja ele no chao, num inimigo
         // ou em cima da UI - e tecla, nao clique.
-        if (esquiva != null && input.Player.Esquiva.WasPressedThisFrame())
-            esquiva.TentarEsquivar(PontoDoCursorNoChao());
+        if (esquiva != null)
+            TentarEsquivaGuardada();
 
         // Rolando, o clique espera. Nao zero a ordem: se o botao continua
         // segurado, o jogador volta a andar ou a bater sozinho no fim do
         // rolamento, que e o que se espera de quem rolou no meio da briga.
+        // Clique novo no meio do rolamento fica guardado e vale no fim.
         if (esquiva != null && esquiva.EmEsquiva)
+        {
+            if (input.Player.Click.WasPressedThisFrame() && !IsPointerOverUI())
+            {
+                // Guardo o raio e nao a posicao na tela: a camera anda
+                // junto com o rolamento, e o mesmo pixel ja estaria
+                // apontando pra outro lugar no fim.
+                cliqueGuardado = RaioDoCursor();
+                temCliqueGuardado = true;
+            }
+
             return;
+        }
+
+        if (temCliqueGuardado)
+        {
+            temCliqueGuardado = false;
+            ordem = DecidirOrdem(cliqueGuardado);
+            return;
+        }
 
         if (input.Player.Click.WasPressedThisFrame())
         {
-            ordem = IsPointerOverUI() ? Ordem.Nenhuma : DecidirOrdem();
+            ordem = IsPointerOverUI() ? Ordem.Nenhuma : DecidirOrdem(RaioDoCursor());
             return;
         }
 
@@ -167,15 +203,29 @@ public class PlayerController : MonoBehaviour
             TryMoveToPointer(RaioDoCursor());
         else if (ordem == Ordem.Atacar)
             TryAttackAtPointer(RaioDoCursor());
+        else if (ordem == Ordem.AtacarParado)
+            combat.GolpearParado(PontoNoChao(RaioDoCursor()));
     }
 
     /// <summary>
     /// Olha o que esta embaixo do cursor e da a ordem certa. A
     /// prioridade e interagivel, depois inimigo, depois chao.
     /// </summary>
-    private Ordem DecidirOrdem()
+    private Ordem DecidirOrdem(Ray ray)
     {
-        Ray ray = RaioDoCursor();
+        // Shift manda mais que tudo: e o "fica parado" do Diablo 4 e do
+        // Path of Exile 2. O personagem golpeia pro lado do cursor sem
+        // andar, tenha inimigo, NPC ou chao embaixo. Como o resto, vale o
+        // que estava apertado no clique: soltar o Shift com o botao ainda
+        // segurado nao faz ele sair andando.
+        if (combat != null && input.Player.AtacarParado.IsPressed())
+        {
+            if (interactor != null)
+                interactor.ClearTarget();
+
+            combat.GolpearParado(PontoNoChao(ray));
+            return Ordem.AtacarParado;
+        }
 
         // NPC primeiro. O collider do CaptainGuard e trigger, e os raios
         // do ataque e do chao ignoram trigger: se o interactor nao olhasse
@@ -199,6 +249,30 @@ public class PlayerController : MonoBehaviour
         // cursor pro chao segurando o botao, o jogador vai atras.
         TryMoveToPointer(ray);
         return Ordem.Andar;
+    }
+
+    /// <summary>
+    /// Esquiva e tecla: vai pro lado do mouse, esteja ele no chao, num
+    /// inimigo ou em cima da UI. Apertada na recarga, fica guardada pela
+    /// janelaDaEsquiva e sai sozinha quando der, pro lado em que o mouse
+    /// estava no aperto.
+    /// </summary>
+    private void TentarEsquivaGuardada()
+    {
+        if (input.Player.Esquiva.WasPressedThisFrame())
+        {
+            esquivaGuardadaPara = PontoDoCursorNoChao();
+            esquivaGuardadaAte = Time.time + janelaDaEsquiva;
+        }
+
+        if (Time.time > esquivaGuardadaAte || !esquiva.TentarEsquivar(esquivaGuardadaPara))
+            return;
+
+        esquivaGuardadaAte = -1f;
+
+        // A esquiva nova corta tudo, entao o clique guardado na anterior
+        // tambem cai. Vale o comando mais novo.
+        temCliqueGuardado = false;
     }
 
     private Ray RaioDoCursor()
@@ -238,8 +312,13 @@ public class PlayerController : MonoBehaviour
     /// </summary>
     private Vector3 PontoDoCursorNoChao()
     {
+        return PontoNoChao(RaioDoCursor());
+    }
+
+    private Vector3 PontoNoChao(Ray ray)
+    {
         if (Physics.Raycast(
-                RaioDoCursor(),
+                ray,
                 out RaycastHit hit,
                 maxRayDistance,
                 groundMask,

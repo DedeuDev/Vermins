@@ -60,18 +60,37 @@ public class PlayerDebugHUD : MonoBehaviour
     }
 
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
-    // Onde o painel fica, na tela de referencia de 1080 de altura.
-    private static readonly Rect Painel = new Rect(16f, 16f, 380f, 382f);
+    // Onde o painel fica e a largura dele, na tela de referencia de 1080
+    // de altura. A altura sai da soma das linhas, em AlturaDoPainel.
+    private const float PainelX = 16f;
+    private const float PainelY = 16f;
+    private const float PainelLargura = 380f;
+
+    // Medidas de dentro do painel, casadas com o que o GUILayout
+    // desenhava antes, pra o painel nao mudar de cara.
+    private const float Margem = 6f;
+    private const float AlturaDoTexto = 32f;
+    private const float AlturaDaBarra = 14f;
+    private const float AlturaDoBotao = 28f;
+    private const float AlturaDoSlider = 20f;
+    private const float Espaco = 6f;
 
     // O menor teto que o slider oferece, e o maior quando o monitor nao
     // informa a taxa. Com a taxa conhecida o maior e ela.
     private const int TetoMinimo = 30;
     private const int TetoMaximoSemMonitor = 240;
 
+    // Velocidade e distancia do alvo mudam todo frame enquanto alguem
+    // anda. Remonto os textos delas so 10 vezes por segundo: a 200 fps
+    // ninguem le um numero que troca a cada frame, e cada troca e uma
+    // string nova.
+    private const float IntervaloDosTextosQueCorrem = 0.1f;
+
     // Onde os controles do fps foram desenhados, em pixels da tela.
     // Vazio enquanto o HUD esta escondido.
     private static Rect controlesNaTela;
 
+    private GUIStyle estilo;
     private GUIStyle estiloDoBotao;
     private GUIStyle estiloDoTrilho;
     private GUIStyle estiloDoPino;
@@ -82,7 +101,6 @@ public class PlayerDebugHUD : MonoBehaviour
     private JewelPouch pouch;
     private PlayerCombat combat;
     private NavMeshAgent agent;
-    private GUIStyle estilo;
 
     // De quanto em quanto tempo a linha do fps troca de numero.
     // Frame a frame o valor treme e nao da pra ler.
@@ -94,6 +112,71 @@ public class PlayerDebugHUD : MonoBehaviour
     private float fps;
     private float piorFrame;
 
+    private float proximosTextosQueCorrem;
+
+    // Os textos que nunca mudam. Os botoes de ligar alternam entre dois.
+    private GUIContent cabecalho;
+    private static readonly GUIContent VSyncLigado = new GUIContent("vsync ligado");
+    private static readonly GUIContent VSyncDesligado = new GUIContent("vsync desligado");
+    private static readonly GUIContent TetoLigado = new GUIContent("teto ligado");
+    private static readonly GUIContent TetoDesligado = new GUIContent("teto desligado");
+    private readonly Texto vida = new Texto();
+    private readonly Texto pocoes = new Texto();
+    private readonly Texto ouro = new Texto();
+    private readonly Texto joias = new Texto();
+    private readonly Texto alvo = new Texto();
+    private readonly Texto velocidade = new Texto();
+    private readonly Texto linhaDoFps = new Texto();
+    private readonly Texto teto = new Texto();
+    private readonly Texto padrao = new Texto();
+
+    /// <summary>
+    /// Um texto do painel e os numeros de que ele foi montado. So vira
+    /// string nova quando algum numero muda.
+    ///
+    /// Existe por causa do lixo. Antes cada linha era montada com $"..."
+    /// dentro do OnGUI, que roda mais de uma vez por frame, e o painel
+    /// ainda passava pelo GUILayout. Medi no Profiler: 8051 bytes de lixo
+    /// por frame so no OnGUI do HUD. Na build isso dava uma coleta de
+    /// lixo por segundo, e com o Graphics Jobs ligado no D3D12 cada coleta
+    /// virava um engasgo na tela.
+    ///
+    /// Guardo o GUIContent pronto, e nao so a string. Medi: um GUI.Label
+    /// com string gera uns 120 bytes por chamada, e com o GUIContent
+    /// guardado uns 50. Esses 50 sao do proprio Unity desenhando o texto,
+    /// e daqui nao da pra tirar.
+    ///
+    /// Com isto, o fim do GUILayout e os textos remontados so quando
+    /// mudam, o HUD caiu de 9,5 KB de lixo por frame (8051 no OnGUI e 1433
+    /// no BeginGUI/EndGUI do Unity) pra uns 730 bytes, parado ou andando.
+    /// </summary>
+    private sealed class Texto
+    {
+        private bool montado;
+        private int a, b, c, d;
+
+        public readonly GUIContent Conteudo = new GUIContent(string.Empty);
+
+        /// <summary>Verdadeiro se os numeros mudaram e o texto tem que ser remontado.</summary>
+        public bool Mudou(int a, int b = 0, int c = 0, int d = 0)
+        {
+            if (montado && a == this.a && b == this.b && c == this.c && d == this.d)
+                return false;
+
+            montado = true;
+            this.a = a;
+            this.b = b;
+            this.c = c;
+            this.d = d;
+            return true;
+        }
+
+        public void Trocar(string valor)
+        {
+            Conteudo.text = valor;
+        }
+    }
+
     private void Awake()
     {
         health = GetComponent<Health>();
@@ -102,6 +185,12 @@ public class PlayerDebugHUD : MonoBehaviour
         belt = GetComponent<PotionBelt>();
         wallet = GetComponent<GoldWallet>();
         pouch = GetComponent<JewelPouch>();
+
+        cabecalho = new GUIContent($"<b>DEBUG</b>   ({teclaParaEsconder} esconde)");
+
+        // Sem a passada de Layout. Tudo aqui e desenhado em retangulo
+        // fixo, e o GUILayout era a outra parte do lixo.
+        useGUILayout = false;
     }
 
     private void Update()
@@ -115,6 +204,9 @@ public class PlayerDebugHUD : MonoBehaviour
             visivel = !visivel;
 
         MedirFps();
+
+        if (visivel)
+            AtualizarTextos();
     }
 
     private void OnDisable()
@@ -145,6 +237,139 @@ public class PlayerDebugHUD : MonoBehaviour
         piorNaJanela = 0f;
     }
 
+    /// <summary>
+    /// Remonta so os textos cujos numeros mudaram. Os numeros vao como
+    /// inteiro ja arredondado do jeito que aparecem na tela, entao uma
+    /// vida indo de 99,7 pra 99,8 nao gera texto novo.
+    /// </summary>
+    private void AtualizarTextos()
+    {
+        int vidaAtual = Mathf.RoundToInt(health.Current);
+        int vidaMaxima = Mathf.RoundToInt(health.Max);
+
+        if (vida.Mudou(vidaAtual, vidaMaxima))
+            vida.Trocar($"Vida   {vidaAtual} / {vidaMaxima}");
+
+        if (belt != null && pocoes.Mudou(belt.Count, belt.Capacity))
+            pocoes.Trocar($"Pocoes   {belt.Count} / {belt.Capacity}");
+
+        if (wallet != null && ouro.Mudou(wallet.Amount))
+            ouro.Trocar($"Ouro   {wallet.Amount}");
+
+        if (pouch != null && joias.Mudou(pouch.Count, pouch.TotalValue))
+            joias.Trocar($"Joias   {pouch.Count}  (valem {pouch.TotalValue})");
+
+        AtualizarFps();
+
+        if (teto.Mudou(LimiteDeFps.Fps))
+            teto.Trocar(LimiteDeFps.Fps.ToString());
+
+        if (padrao.Mudou(LimiteDeFps.FpsPadrao))
+            padrao.Trocar($"padrao {LimiteDeFps.FpsPadrao}");
+
+        if (Time.unscaledTime < proximosTextosQueCorrem)
+            return;
+
+        proximosTextosQueCorrem = Time.unscaledTime + IntervaloDosTextosQueCorrem;
+
+        AtualizarAlvo();
+        AtualizarVelocidade();
+    }
+
+    private void AtualizarFps()
+    {
+        // Media contra o teto do LimiteDeFps, e o frame mais demorado
+        // da mesma janela. A media mostra que o teto esta valendo; o pior
+        // frame e o que denuncia engasgo, que a media esconde.
+        int media = Mathf.RoundToInt(fps);
+        int pior = Mathf.RoundToInt(piorFrame * 10000f);
+        int tetoEmVigor = LimiteDeFps.TetoEmVigor;
+        int vsync = LimiteDeFps.VSync ? 1 : 0;
+
+        if (!linhaDoFps.Mudou(media, pior, tetoEmVigor, vsync))
+            return;
+
+        string limite = vsync == 1 ? "vsync"
+            : tetoEmVigor > 0 ? tetoEmVigor.ToString()
+            : "sem teto";
+
+        linhaDoFps.Trocar($"FPS   {media} / {limite}   pior {pior / 10f:F1} ms");
+    }
+
+    private void AtualizarAlvo()
+    {
+        // O == null do Unity tambem pega alvo ja destruido, que e o que
+        // acontece com o inimigo 2 s depois de morrer.
+        Health alvoAtual = combat != null ? combat.Target : null;
+
+        if (alvoAtual == null)
+        {
+            if (alvo.Mudou(0))
+                alvo.Trocar("Alvo   nenhum");
+
+            return;
+        }
+
+        // Distancia no chao, sem a altura. E essa que o PlayerCombat
+        // compara com o alcance, entao e essa que interessa ver.
+        Vector3 ate = alvoAtual.transform.position - transform.position;
+        ate.y = 0f;
+
+        // -1 na vida marca o morto: arredondada, uma vida de 0,3 tambem
+        // daria 0 e ele ainda nao morreu.
+        int vidaDoAlvo = alvoAtual.IsDead ? -1 : Mathf.RoundToInt(alvoAtual.Current);
+        int maximaDoAlvo = Mathf.RoundToInt(alvoAtual.Max);
+        int decimetros = Mathf.RoundToInt(ate.magnitude * 10f);
+
+        if (!alvo.Mudou(alvoAtual.GetInstanceID(), vidaDoAlvo, maximaDoAlvo, decimetros))
+            return;
+
+        string texto = $"Alvo   {alvoAtual.name}  {Mathf.Max(0, vidaDoAlvo)}/{maximaDoAlvo}  a {decimetros / 10f:F1} m";
+        alvo.Trocar(vidaDoAlvo < 0 ? texto + "  (morto)" : texto);
+    }
+
+    private void AtualizarVelocidade()
+    {
+        if (agent == null)
+        {
+            if (velocidade.Mudou(0))
+                velocidade.Trocar("Velocidade   sem NavMeshAgent");
+
+            return;
+        }
+
+        // A velocidade de verdade do agente contra o maximo dele. Mostro
+        // as duas porque "andando a 1.9 de 3.2" e o que denuncia quando
+        // a aceleracao ou uma curva estao segurando o personagem.
+        Vector3 v = agent.velocity;
+        v.y = 0f;
+
+        int atual = Mathf.RoundToInt(v.magnitude * 100f);
+        int maxima = Mathf.RoundToInt(agent.speed * 100f);
+
+        if (velocidade.Mudou(atual, maxima))
+            velocidade.Trocar($"Velocidade   {atual / 100f:F2} / {maxima / 100f:F2} m/s");
+    }
+
+    private float AlturaDoPainel()
+    {
+        // O cinto, a carteira e a bolsa sao opcionais no Player; sem eles
+        // a linha so nao aparece.
+        int linhas = 5;
+
+        if (belt != null) linhas++;
+        if (wallet != null) linhas++;
+        if (pouch != null) linhas++;
+
+        return Margem + linhas * AlturaDoTexto + AlturaDaBarra + Espaco +
+               AlturaDosControles() + Margem;
+    }
+
+    private static float AlturaDosControles()
+    {
+        return AlturaDoBotao + Espaco + AlturaDoBotao + Espaco + AlturaDoSlider + Espaco;
+    }
+
     private void OnGUI()
     {
         if (!visivel)
@@ -159,75 +384,77 @@ public class PlayerDebugHUD : MonoBehaviour
         float escala = Screen.height / 1080f;
         GUI.matrix = Matrix4x4.Scale(new Vector3(escala, escala, 1f));
 
-        // So da pra criar o estilo aqui dentro: o GUI.skin nao existe
-        // fora do OnGUI.
-        estilo ??= new GUIStyle(GUI.skin.label) { fontSize = 20, richText = true };
+        CriarEstilos();
 
-        GUILayout.BeginArea(Painel, GUI.skin.box);
+        GUI.Box(new Rect(PainelX, PainelY, PainelLargura, AlturaDoPainel()), GUIContent.none);
 
-        GUILayout.Label($"<b>DEBUG</b>   ({teclaParaEsconder} esconde)", estilo);
+        float x = PainelX + Margem;
+        float largura = PainelLargura - 2f * Margem;
+        float y = PainelY + Margem;
 
-        GUILayout.Label($"Vida   {health.Current:F0} / {health.Max:F0}", estilo);
-        DesenharBarra(health.Normalized, new Color(0.75f, 0.15f, 0.12f));
+        Escrever(cabecalho, x, largura, ref y);
+        Escrever(vida.Conteudo, x, largura, ref y);
+        DesenharBarra(new Rect(x, y, largura, AlturaDaBarra), health.Normalized, new Color(0.75f, 0.15f, 0.12f));
+        y += AlturaDaBarra + Espaco;
 
-        // O cinto e opcional no Player; sem ele a linha so nao aparece.
-        if (belt != null)
-            GUILayout.Label($"Pocoes   {belt.Count} / {belt.Capacity}", estilo);
+        if (belt != null) Escrever(pocoes.Conteudo, x, largura, ref y);
+        if (wallet != null) Escrever(ouro.Conteudo, x, largura, ref y);
+        if (pouch != null) Escrever(joias.Conteudo, x, largura, ref y);
 
-        if (wallet != null)
-            GUILayout.Label($"Ouro   {wallet.Amount}", estilo);
+        Escrever(alvo.Conteudo, x, largura, ref y);
+        Escrever(velocidade.Conteudo, x, largura, ref y);
+        Escrever(linhaDoFps.Conteudo, x, largura, ref y);
 
-        if (pouch != null)
-            GUILayout.Label($"Joias   {pouch.Count}  (valem {pouch.TotalValue})", estilo);
-
-        GUILayout.Label($"Alvo   {DescreverAlvo()}", estilo);
-
-        GUILayout.Label($"Velocidade   {DescreverVelocidade()}", estilo);
-
-        GUILayout.Label($"FPS   {DescreverFps()}", estilo);
-
-        DesenharControlesDoFps(escala);
-
-        GUILayout.EndArea();
+        DesenharControlesDoFps(new Rect(x, y, largura, AlturaDosControles()), escala);
     }
 
-    private void DesenharControlesDoFps(float escala)
+    private void CriarEstilos()
     {
-        // O slider padrao do OnGUI tem 12 pixels de altura, dificil de
-        // pegar com o mouse. Engrosso o trilho e o pino.
+        // So da pra criar o estilo aqui dentro: o GUI.skin nao existe
+        // fora do OnGUI. O slider padrao do OnGUI tem 12 pixels de
+        // altura, dificil de pegar com o mouse, entao engrosso o trilho e
+        // o pino.
+        estilo ??= new GUIStyle(GUI.skin.label) { fontSize = 20, richText = true };
         estiloDoBotao ??= new GUIStyle(GUI.skin.button) { fontSize = 16 };
-        estiloDoTrilho ??= new GUIStyle(GUI.skin.horizontalSlider) { fixedHeight = 20f };
-        estiloDoPino ??= new GUIStyle(GUI.skin.horizontalSliderThumb) { fixedHeight = 20f, fixedWidth = 20f };
+        estiloDoTrilho ??= new GUIStyle(GUI.skin.horizontalSlider) { fixedHeight = AlturaDoSlider };
+        estiloDoPino ??= new GUIStyle(GUI.skin.horizontalSliderThumb) { fixedHeight = AlturaDoSlider, fixedWidth = AlturaDoSlider };
+    }
 
-        GUILayout.BeginVertical();
+    private void Escrever(GUIContent texto, float x, float largura, ref float y)
+    {
+        GUI.Label(new Rect(x, y, largura, AlturaDoTexto), texto, estilo);
+        y += AlturaDoTexto;
+    }
 
-        string estadoDoVSync = LimiteDeFps.VSync ? "ligado" : "desligado";
+    private void DesenharControlesDoFps(Rect area, float escala)
+    {
+        float y = area.y;
 
-        if (GUILayout.Button($"vsync {estadoDoVSync}", estiloDoBotao))
+        // Botao em vez de caixa de marcar: a caixa do OnGUI tem 12 pixels
+        // e nao da pra ver de longe se esta marcada.
+        GUIContent textoDoVSync = LimiteDeFps.VSync ? VSyncLigado : VSyncDesligado;
+
+        if (GUI.Button(new Rect(area.x, y, area.width, AlturaDoBotao), textoDoVSync, estiloDoBotao))
             LimiteDeFps.VSync = !LimiteDeFps.VSync;
+
+        y += AlturaDoBotao + Espaco;
 
         // Com o vsync ligado o teto nao vale. Deixo os controles dele
         // apagados em vez de sumir, pra o painel nao pular de tamanho.
         bool habilitado = GUI.enabled;
         GUI.enabled = habilitado && !LimiteDeFps.VSync;
 
-        GUILayout.BeginHorizontal();
+        GUIContent textoDoTeto = LimiteDeFps.Ligado ? TetoLigado : TetoDesligado;
 
-        // Botao em vez de caixa de marcar: a caixa do OnGUI tem 12
-        // pixels e nao da pra ver de longe se esta marcada.
-        string estado = LimiteDeFps.Ligado ? "ligado" : "desligado";
-
-        if (GUILayout.Button($"teto {estado}", estiloDoBotao))
+        if (GUI.Button(new Rect(area.x, y, 120f, AlturaDoBotao), textoDoTeto, estiloDoBotao))
             LimiteDeFps.Ligado = !LimiteDeFps.Ligado;
 
-        GUILayout.Label($"{LimiteDeFps.Fps}", estilo);
+        GUI.Label(new Rect(area.x + 126f, y - 2f, 80f, AlturaDoTexto), teto.Conteudo, estilo);
 
-        GUILayout.FlexibleSpace();
-
-        if (GUILayout.Button($"padrao {LimiteDeFps.FpsPadrao}", estiloDoBotao))
+        if (GUI.Button(new Rect(area.xMax - 110f, y, 110f, AlturaDoBotao), padrao.Conteudo, estiloDoBotao))
             LimiteDeFps.Fps = LimiteDeFps.FpsPadrao;
 
-        GUILayout.EndHorizontal();
+        y += AlturaDoBotao + Espaco;
 
         int maximo = LimiteDeFps.TaxaDoMonitor > 0
             ? LimiteDeFps.TaxaDoMonitor
@@ -238,7 +465,8 @@ public class PlayerDebugHUD : MonoBehaviour
         // ter sido desenhado, sem ninguem encostar no mouse.
         int mostrado = Mathf.Clamp(LimiteDeFps.Fps, TetoMinimo, maximo);
 
-        int escolhido = Mathf.RoundToInt(GUILayout.HorizontalSlider(
+        int escolhido = Mathf.RoundToInt(GUI.HorizontalSlider(
+            new Rect(area.x, y, area.width, AlturaDoSlider),
             mostrado, TetoMinimo, maximo, estiloDoTrilho, estiloDoPino));
 
         if (escolhido != mostrado)
@@ -246,75 +474,22 @@ public class PlayerDebugHUD : MonoBehaviour
 
         GUI.enabled = habilitado;
 
-        GUILayout.EndVertical();
-
-        // O retangulo so vale no Repaint. Ele vem relativo ao painel e
-        // na tela de referencia, entao levo pra pixels de verdade.
-        if (Event.current.type != EventType.Repaint)
-            return;
-
-        Rect faixa = GUILayoutUtility.GetLastRect();
-
+        // A area vem na tela de referencia, entao levo pra pixels de
+        // verdade.
         controlesNaTela = new Rect(
-            (Painel.x + faixa.x) * escala,
-            (Painel.y + faixa.y) * escala,
-            faixa.width * escala,
-            faixa.height * escala);
+            area.x * escala,
+            area.y * escala,
+            area.width * escala,
+            area.height * escala);
     }
 
-    private string DescreverFps()
+    private static void DesenharBarra(Rect fundo, float cheio, Color cor)
     {
-        // Media contra o teto do LimiteDeFps, e o frame mais demorado
-        // da mesma janela. A media mostra que o teto esta valendo; o pior
-        // frame e o que denuncia engasgo, que a media esconde.
-        int teto = LimiteDeFps.TetoEmVigor;
-        string limite = LimiteDeFps.VSync ? "vsync"
-            : teto > 0 ? teto.ToString()
-            : "sem teto";
-
-        return $"{fps:F0} / {limite}   pior {piorFrame * 1000f:F1} ms";
-    }
-
-    private void DesenharBarra(float cheio, Color cor)
-    {
-        Rect fundo = GUILayoutUtility.GetRect(340f, 14f);
         GUI.DrawTexture(fundo, Texture2D.whiteTexture, ScaleMode.StretchToFill, false, 0f, new Color(0.15f, 0.15f, 0.15f), 0f, 0f);
 
         Rect preenchido = fundo;
         preenchido.width *= Mathf.Clamp01(cheio);
         GUI.DrawTexture(preenchido, Texture2D.whiteTexture, ScaleMode.StretchToFill, false, 0f, cor, 0f, 0f);
-    }
-
-    private string DescreverAlvo()
-    {
-        // O == null do Unity tambem pega alvo ja destruido, que e o que
-        // acontece com o inimigo 2 s depois de morrer.
-        Health alvo = combat != null ? combat.Target : null;
-
-        if (alvo == null)
-            return "nenhum";
-
-        // Distancia no chao, sem a altura. E essa que o PlayerCombat
-        // compara com o alcance, entao e essa que interessa ver.
-        Vector3 ate = alvo.transform.position - transform.position;
-        ate.y = 0f;
-
-        string texto = $"{alvo.name}  {alvo.Current:F0}/{alvo.Max:F0}  a {ate.magnitude:F1} m";
-        return alvo.IsDead ? texto + "  (morto)" : texto;
-    }
-
-    private string DescreverVelocidade()
-    {
-        if (agent == null)
-            return "sem NavMeshAgent";
-
-        // A velocidade de verdade do agente contra o maximo dele. Mostro
-        // as duas porque "andando a 1.9 de 3.2" e o que denuncia quando
-        // a aceleracao ou uma curva estao segurando o personagem.
-        Vector3 v = agent.velocity;
-        v.y = 0f;
-
-        return $"{v.magnitude:F2} / {agent.speed:F2} m/s";
     }
 #endif
 }

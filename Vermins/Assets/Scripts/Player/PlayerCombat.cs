@@ -43,10 +43,10 @@ public class PlayerCombat : MonoBehaviour
              "perto. O inimigo alcanca 1,5 m, entao o jogador tem uns " +
              "tres golpes antes do bicho encostar - e isso que faz valer " +
              "a pena recuar em vez de ficar parado trocando dano. " +
-             "Duas coisas que ainda nao existem e ficam mais visiveis " +
-             "com o alcance grande: nao tem projetil (o dano acontece na " +
-             "hora, a 9 m de distancia, sem nada sair da mao) e nao tem " +
-             "linha de visao (da pra atacar atraves de parede).")]
+             "O dano sai da bola (campo projetil), e antes de lancar o " +
+             "VisaoLimpa confere parede. Na magia esse teste e so contra " +
+             "a layer do oQueBloqueiaVisao: as paredes da dungeon nao tem " +
+             "collider, entao la a bola ainda passa por elas.")]
     [SerializeField] private float attackRange = 9f;
 
     [Tooltip("Segundos entre um golpe e o proximo. Era 0,8 e subiu pra " +
@@ -95,6 +95,16 @@ public class PlayerCombat : MonoBehaviour
 
     [Tooltip("Quanto o golpe final tira, em vezes o dano da arma.")]
     [SerializeField] private float danoDoFinal = 2f;
+
+    [Header("Critico")]
+    [Tooltip("Chance de cada pancada sair critica, de 0 a 1. O Diablo 4 " +
+             "comeca com 5%; pus 10% pra ele aparecer o bastante pra ser " +
+             "sentido enquanto nao tem equipamento somando.")]
+    [SerializeField, Range(0f, 1f)] private float chanceDeCritico = 0.1f;
+
+    [Tooltip("Quanto o critico tira, em vezes o dano. Multiplica junto com " +
+             "o do golpe final: final critico tira 2 x 1,5 = 3 vezes.")]
+    [SerializeField, Min(1f)] private float danoDoCritico = 1.5f;
 
     [Tooltip("Quanto o golpe final demora, em vezes o cooldown. O clipe " +
              "dele levanta a espada acima da cabeca antes de descer, e essa " +
@@ -174,6 +184,13 @@ public class PlayerCombat : MonoBehaviour
     private int passoDoCast;
     private float duracaoDoCast;
 
+    // Golpe parado (Shift): nao tem alvo travado. O corpo vira pro ponto
+    // do clique durante o gesto, e quem leva o dano e decidido na
+    // pancada, entre os que estiverem na frente. Ver GolpearParado.
+    private bool golpeParado;
+    private Vector3 pontoDoGolpeParado;
+    private static readonly Collider[] PertoDaLamina = new Collider[16];
+
     public Health Target => target;
 
     /// <summary>
@@ -187,6 +204,29 @@ public class PlayerCombat : MonoBehaviour
     /// OnGolpeAcertou le isto pra pesar mais a pancada.
     /// </summary>
     public bool GolpeFinal => golpesNoCombo > 1 && passoDoCast == golpesNoCombo - 1;
+
+    /// <summary>
+    /// Se a pancada que acabou de acertar foi critica. Vale durante o
+    /// OnGolpeAcertou: quem escuta le isto pra mudar o numero e o peso.
+    /// </summary>
+    public bool UltimoAcertoCritico { get; private set; }
+
+    /// <summary>
+    /// Chance de critico, de 0 a 1. Tem setter pro equipamento somar
+    /// quando existir, igual o AttackRange com a build.
+    /// </summary>
+    public float ChanceDeCritico
+    {
+        get => chanceDeCritico;
+        set => chanceDeCritico = Mathf.Clamp01(value);
+    }
+
+    /// <summary>Multiplicador do critico. Nunca abaixo de 1.</summary>
+    public float DanoDoCritico
+    {
+        get => danoDoCritico;
+        set => danoDoCritico = Mathf.Max(1f, value);
+    }
 
     /// <summary>
     /// Quanto tempo o golpe que esta saindo tem ate o proximo, ja com o
@@ -238,6 +278,9 @@ public class PlayerCombat : MonoBehaviour
     /// defeito: a magia acertava antes de a mao subir. Hoje isto e o
     /// "comecou o cast" - quem quiser reagir ao dano que aconteceu deve
     /// escutar o Health.OnDamaged do alvo, que e onde a verdade mora.
+    ///
+    /// No golpe parado (Shift) o alvo vem null: quem leva so e decidido
+    /// na pancada.
     /// </summary>
     public event System.Action<Health> OnAttack;
 
@@ -347,6 +390,49 @@ public class PlayerCombat : MonoBehaviour
     }
 
     /// <summary>
+    /// Golpeia pro lado do ponto sem sair do lugar. E o Shift + clique do
+    /// Diablo 4 e do Path of Exile 2: serve pra segurar a posicao numa
+    /// porta e bater no bicho que vem chegando sem correr atras dele.
+    ///
+    /// Desiste do alvo travado, para de andar e vira pro ponto. So golpeia
+    /// se tiver inimigo ao alcance da espada do lado do ponto: na primeira
+    /// versao ele golpeava o ar, e na build isso pareceu estranho. Sem
+    /// ninguem perto, o Shift so segura o personagem parado e virado.
+    ///
+    /// O golpe nao trava alvo: na pancada eu pego quem estiver na frente
+    /// (ver AlvoNaFrente), porque o bicho pode ter andado no meio segundo
+    /// do gesto. Respeita o cooldown e o combo como o golpe normal;
+    /// segurando o botao, quem chama de novo todo frame e o
+    /// PlayerController.
+    ///
+    /// So vale no corpo a corpo. A magia precisa de alvo pra mirar a bola.
+    /// </summary>
+    public void GolpearParado(Vector3 ponto)
+    {
+        if (!CorpoACorpo || (ownHealth != null && ownHealth.IsDead))
+            return;
+
+        ClearTarget();
+        StopChasing();
+
+        pontoDoGolpeParado = ponto;
+        FaceTarget(ponto);
+
+        if (Time.time < nextAttackTime)
+            return;
+
+        // Testo pro lado do ponto e nao pra frente do corpo: no clique ele
+        // ainda nao terminou de virar.
+        Vector3 paraOPonto = ponto - transform.position;
+        paraOPonto.y = 0f;
+
+        if (AlvoNaFrente(paraOPonto) == null)
+            return;
+
+        ComecarGolpe(null);
+    }
+
+    /// <summary>
     /// Faz a bola nascer. Quem chama e o Animation Event do clipe de
     /// magia, atraves do EventoDeAnimacao que mora no modelo - o Mecanim
     /// so alcanca componente que esteja no mesmo objeto do Animator.
@@ -416,6 +502,9 @@ public class PlayerCombat : MonoBehaviour
         if (ownHealth != null && ownHealth.IsDead)
             return;
 
+        if (golpeParado)
+            alvoDoCast = AlvoNaFrente(transform.forward);
+
         if (alvoDoCast == null || alvoDoCast.IsDead)
             return;
 
@@ -428,7 +517,12 @@ public class PlayerCombat : MonoBehaviour
         // arma: no golpe que mata o inimigo com 5 de vida, sai 5.
         float vidaAntes = alvoDoCast.Current;
 
-        if (!weapon.TryHit(alvoDoCast, GolpeFinal ? danoDoFinal : 1f))
+        // Sorteio na pancada, e nao no comeco do golpe: golpe cortado ou
+        // que errou nao gasta sorteio nenhum.
+        bool critico = Random.value < chanceDeCritico;
+        float multiplicador = (GolpeFinal ? danoDoFinal : 1f) * (critico ? danoDoCritico : 1f);
+
+        if (!weapon.TryHit(alvoDoCast, multiplicador))
             return;
 
         // So conta como acerto se tirou vida. O TryHit devolve true
@@ -439,7 +533,51 @@ public class PlayerCombat : MonoBehaviour
         float dano = vidaAntes - alvoDoCast.Current;
 
         if (dano > 0f)
+        {
+            UltimoAcertoCritico = critico;
             OnGolpeAcertou?.Invoke(alvoDoCast, dano);
+        }
+    }
+
+    /// <summary>
+    /// Quem leva a pancada do golpe parado: o vivo mais perto entre os que
+    /// a lamina alcanca e sem parede no meio, pelos mesmos testes do golpe
+    /// com alvo, olhando pra metade da frente dada. Null quando ninguem
+    /// esta ao alcance.
+    ///
+    /// Uso o NonAlloc com um buffer fixo pra pancada nao gerar lixo. 16 da
+    /// folga: o raio e de uns 2,7 m.
+    /// </summary>
+    private Health AlvoNaFrente(Vector3 frente)
+    {
+        int quantos = Physics.OverlapSphereNonAlloc(
+            transform.position, alcanceDaArma + folgaDaPancada,
+            PertoDaLamina, ~0, QueryTriggerInteraction.Ignore);
+
+        Health melhor = null;
+        float melhorDistancia = float.MaxValue;
+
+        for (int i = 0; i < quantos; i++)
+        {
+            Health candidato = PertoDaLamina[i].GetComponentInParent<Health>();
+            PertoDaLamina[i] = null;
+
+            if (candidato == null || candidato == ownHealth || candidato.IsDead)
+                continue;
+
+            if (!LaminaAlcanca(candidato, frente) || !VisaoLimpa(candidato))
+                continue;
+
+            float distancia = (candidato.transform.position - transform.position).sqrMagnitude;
+
+            if (distancia < melhorDistancia)
+            {
+                melhor = candidato;
+                melhorDistancia = distancia;
+            }
+        }
+
+        return melhor;
     }
 
     /// <summary>
@@ -450,6 +588,11 @@ public class PlayerCombat : MonoBehaviour
     /// andado, e a pergunta aqui e se ainda e justo contar como acerto.
     /// </summary>
     private bool LaminaAlcanca(Health alvo)
+    {
+        return LaminaAlcanca(alvo, transform.forward);
+    }
+
+    private bool LaminaAlcanca(Health alvo, Vector3 frente)
     {
         // So no plano do chao: um inimigo num degrau nao pode escapar do
         // golpe por estar 30 cm mais alto.
@@ -466,7 +609,7 @@ public class PlayerCombat : MonoBehaviour
         // Metade da frente. O Player gira pro alvo o golpe inteiro, entao
         // isto quase nunca barra - so pega o bicho que contornou por tras,
         // onde a lamina nunca passa em nenhum dos dois golpes.
-        return Vector3.Dot(ate, transform.forward) > 0f;
+        return Vector3.Dot(ate, frente) > 0f;
     }
 
     /// <summary>
@@ -529,6 +672,11 @@ public class PlayerCombat : MonoBehaviour
 
         VigiarOEvento();
 
+        // Golpe parado: o corpo termina de virar pro ponto do clique
+        // durante o gesto. Um clique so daria um frame de giro.
+        if (golpeParado && gestoEmCurso && Time.time < nextAttackTime)
+            FaceTarget(pontoDoGolpeParado);
+
         if (target == null)
             return;
 
@@ -581,6 +729,15 @@ public class PlayerCombat : MonoBehaviour
         if (Time.time < nextAttackTime)
             return;
 
+        ComecarGolpe(target);
+    }
+
+    /// <summary>
+    /// Comeca um golpe do combo. Com alvo, e o golpe normal; sem alvo
+    /// (null), e o golpe parado, e quem leva e decidido na pancada.
+    /// </summary>
+    private void ComecarGolpe(Health alvo)
+    {
         // Aqui o nextAttackTime ainda e o fim do golpe anterior. Se ja
         // passou da janela, a sequencia esfriou e recomeca do primeiro.
         if (Time.time > nextAttackTime + janelaDoCombo)
@@ -592,7 +749,8 @@ public class PlayerCombat : MonoBehaviour
         duracaoDoCast = GolpeFinal ? attackCooldown * tempoDoFinal : attackCooldown;
         nextAttackTime = Time.time + duracaoDoCast;
 
-        alvoDoCast = target;
+        alvoDoCast = alvo;
+        golpeParado = alvo == null;
         esperandoOEvento = true;
         gestoEmCurso = true;
 
@@ -601,7 +759,7 @@ public class PlayerCombat : MonoBehaviour
         // evento nao existe mesmo.
         prazoDoEvento = Time.time + duracaoDoCast;
 
-        OnAttack?.Invoke(target);
+        OnAttack?.Invoke(alvo);
     }
 
     /// <summary>
