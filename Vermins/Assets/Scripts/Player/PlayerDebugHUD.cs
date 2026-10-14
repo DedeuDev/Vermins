@@ -132,8 +132,8 @@ public class PlayerDebugHUD : MonoBehaviour
     private GUIContent cabecalho;
     private static readonly GUIContent VSyncLigado = new GUIContent("vsync ligado");
     private static readonly GUIContent VSyncDesligado = new GUIContent("vsync desligado");
-    private static readonly GUIContent TetoLigado = new GUIContent("teto ligado");
-    private static readonly GUIContent TetoDesligado = new GUIContent("teto desligado");
+    private static readonly GUIContent TetoLigado = new GUIContent("limite ligado");
+    private static readonly GUIContent TetoDesligado = new GUIContent("limite desligado");
     private readonly Texto vida = new Texto();
     private readonly Texto linhaDoNivel = new Texto();
     private readonly Texto pocoes = new Texto();
@@ -316,7 +316,7 @@ public class PlayerDebugHUD : MonoBehaviour
 
         string limite = vsync == 1 ? "vsync"
             : tetoEmVigor > 0 ? tetoEmVigor.ToString()
-            : "sem teto";
+            : "sem limite";
 
         linhaDoFps.Trocar($"FPS   {media} / {limite}   pior {pior / 10f:F1} ms");
     }
@@ -515,10 +515,10 @@ public class PlayerDebugHUD : MonoBehaviour
 
         GUIContent textoDoTeto = LimiteDeFps.Ligado ? TetoLigado : TetoDesligado;
 
-        if (GUI.Button(new Rect(area.x, y, 120f, AlturaDoBotao), textoDoTeto, estiloDoBotao))
+        if (GUI.Button(new Rect(area.x, y, 150f, AlturaDoBotao), textoDoTeto, estiloDoBotao))
             LimiteDeFps.Ligado = !LimiteDeFps.Ligado;
 
-        GUI.Label(new Rect(area.x + 126f, y - 2f, 80f, AlturaDoTexto), teto.Conteudo, estilo);
+        GUI.Label(new Rect(area.x + 156f, y - 2f, 80f, AlturaDoTexto), teto.Conteudo, estilo);
 
         if (GUI.Button(new Rect(area.xMax - 110f, y, 110f, AlturaDoBotao), padrao.Conteudo, estiloDoBotao))
             LimiteDeFps.Fps = LimiteDeFps.FpsPadrao;
