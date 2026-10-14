@@ -1,9 +1,14 @@
+using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
 
 public class QuestUI : MonoBehaviour
 {
-    public static QuestUI Instance { get; private set; }
+    public static QuestUI Instance
+    {
+        get;
+        private set;
+    }
 
     [Header("References")]
     [SerializeField]
@@ -12,11 +17,12 @@ public class QuestUI : MonoBehaviour
     [SerializeField]
     private TMP_Text questTitleText;
 
+    [Header("Objective Texts")]
     [SerializeField]
-    private TMP_Text guardObjectiveText;
+    private TMP_Text objectiveText1;
 
     [SerializeField]
-    private TMP_Text bossObjectiveText;
+    private TMP_Text objectiveText2;
 
     [SerializeField]
     private TMP_Text returnObjectiveText;
@@ -38,16 +44,15 @@ public class QuestUI : MonoBehaviour
             Instance != this
         )
         {
-            Destroy(gameObject);
+            Destroy(
+                gameObject
+            );
+
             return;
         }
 
         Instance = this;
 
-        /*
-         * A UI da quest precisa acompanhar o jogador
-         * da HUB até a dungeon e depois voltar para a HUB.
-         */
         if (persistBetweenScenes)
         {
             DontDestroyOnLoad(
@@ -74,10 +79,8 @@ public class QuestUI : MonoBehaviour
     private void Update()
     {
         /*
-         * Isso resolve o caso em que o QuestUI
-         * iniciou antes do QuestManager.
-         *
-         * Assim que ele existir, fazemos a inscrição.
+         * Caso a UI inicie antes do QuestManager,
+         * continua tentando até encontrá-lo.
          */
         if (!subscribedToQuestManager)
         {
@@ -106,7 +109,7 @@ public class QuestUI : MonoBehaviour
     }
 
     // ==================================================
-    // ATUALIZA UI
+    // REFRESH
     // ==================================================
 
     public void RefreshUI()
@@ -114,132 +117,217 @@ public class QuestUI : MonoBehaviour
         if (questPanel == null)
             return;
 
-        /*
-         * Se ainda não existe QuestManager,
-         * não temos nada para mostrar.
-         */
         if (QuestManager.Instance == null)
         {
-            questPanel.SetActive(
-                false
-            );
-
+            HideQuestPanel();
             return;
         }
 
-        QuestState state =
-            QuestManager.Instance.SewerQuestState;
+        QuestProgress currentQuest =
+            FindCurrentQuest();
 
-        // ========================================
-        // QUEST NÃO COMEÇOU
-        // ========================================
-
-        if (state == QuestState.NotStarted)
+        /*
+         * Nenhuma quest está ativa ou pronta
+         * para entrega.
+         */
+        if (currentQuest == null)
         {
-            questPanel.SetActive(
-                false
-            );
-
+            HideQuestPanel();
             return;
         }
-
-        // ========================================
-        // QUEST JÁ FOI ENTREGUE
-        // ========================================
-
-        if (state == QuestState.Completed)
-        {
-            questPanel.SetActive(
-                false
-            );
-
-            return;
-        }
-
-        // ========================================
-        // QUEST ATIVA
-        // ========================================
 
         questPanel.SetActive(
             true
         );
 
-        if (questTitleText != null)
-        {
-            questTitleText.text =
-                "Investigação nos Esgotos";
-        }
+        UpdateTitle(
+            currentQuest
+        );
 
-        UpdateGuardObjective();
+        UpdateObjectives(
+            currentQuest
+        );
 
-        UpdateBossObjective();
-
-        UpdateReturnObjective();
+        UpdateReturnObjective(
+            currentQuest
+        );
     }
 
     // ==================================================
-    // GUARDA MORTO
+    // PROCURA A QUEST ATUAL
     // ==================================================
 
-    private void UpdateGuardObjective()
+    private QuestProgress FindCurrentQuest()
     {
-        if (guardObjectiveText == null)
+        /*
+         * Ordem da campanha.
+         *
+         * Procuramos uma quest Active ou
+         * ReadyToTurnIn.
+         */
+
+        QuestId[] questOrder =
+        {
+            QuestId.SewerInvestigation,
+            QuestId.DeeperIntoSewers,
+            QuestId.RatPriest
+        };
+
+        foreach (
+            QuestId questId
+            in questOrder
+        )
+        {
+            QuestProgress quest =
+                QuestManager.Instance.FindQuest(
+                    questId
+                );
+
+            if (quest == null)
+                continue;
+
+            if (
+                quest.State ==
+                QuestState.Active
+            )
+            {
+                return quest;
+            }
+
+            if (
+                quest.State ==
+                QuestState.ReadyToTurnIn
+            )
+            {
+                return quest;
+            }
+        }
+
+        return null;
+    }
+
+    // ==================================================
+    // TITLE
+    // ==================================================
+
+    private void UpdateTitle(
+        QuestProgress quest
+    )
+    {
+        if (questTitleText == null)
             return;
 
-        bool completed =
-            QuestManager.Instance.FoundDeadGuard;
-
-        if (completed)
-        {
-            guardObjectiveText.text =
-                "[X] Descubra o que aconteceu " +
-                "com os guardas.";
-        }
-        else
-        {
-            guardObjectiveText.text =
-                "[ ] Descubra o que aconteceu " +
-                "com os guardas.";
-        }
+        questTitleText.text =
+            quest.Title;
     }
 
     // ==================================================
-    // BOSS
+    // OBJECTIVES
     // ==================================================
 
-    private void UpdateBossObjective()
+    private void UpdateObjectives(
+        QuestProgress quest
+    )
     {
-        if (bossObjectiveText == null)
+        ClearObjectiveTexts();
+
+        IReadOnlyList<QuestObjectiveProgress> objectives =
+            quest.Objectives;
+
+        if (objectives == null)
             return;
 
-        bool completed =
-            QuestManager.Instance.DefeatedDungeonBoss;
-
-        if (completed)
+        if (objectives.Count >= 1)
         {
-            bossObjectiveText.text =
-                "[X] Investigue o que está " +
-                "acontecendo nos esgotos.";
+            SetObjectiveText(
+                objectiveText1,
+                objectives[0]
+            );
         }
-        else
+
+        if (objectives.Count >= 2)
         {
-            bossObjectiveText.text =
-                "[ ] Investigue o que está " +
-                "acontecendo nos esgotos.";
+            SetObjectiveText(
+                objectiveText2,
+                objectives[1]
+            );
         }
     }
 
     // ==================================================
-    // VOLTAR AO CAPITÃO
+    // SET OBJECTIVE TEXT
     // ==================================================
 
-    private void UpdateReturnObjective()
+    private void SetObjectiveText(
+        TMP_Text textComponent,
+        QuestObjectiveProgress objective
+    )
+    {
+        if (textComponent == null)
+            return;
+
+        if (objective == null)
+        {
+            textComponent.gameObject.SetActive(
+                false
+            );
+
+            return;
+        }
+
+        textComponent.gameObject.SetActive(
+            true
+        );
+
+        string checkbox =
+            objective.Completed
+                ? "[X]"
+                : "[ ]";
+
+        textComponent.text =
+            $"{checkbox} {objective.Description}";
+    }
+
+    // ==================================================
+    // LIMPA OBJECTIVES
+    // ==================================================
+
+    private void ClearObjectiveTexts()
+    {
+        if (objectiveText1 != null)
+        {
+            objectiveText1.text =
+                string.Empty;
+
+            objectiveText1.gameObject.SetActive(
+                false
+            );
+        }
+
+        if (objectiveText2 != null)
+        {
+            objectiveText2.text =
+                string.Empty;
+
+            objectiveText2.gameObject.SetActive(
+                false
+            );
+        }
+    }
+
+    // ==================================================
+    // RETURN TO CAPTAIN
+    // ==================================================
+
+    private void UpdateReturnObjective(
+        QuestProgress quest
+    )
     {
         if (returnObjectiveText == null)
             return;
 
         bool readyToTurnIn =
-            QuestManager.Instance.SewerQuestState ==
+            quest.State ==
             QuestState.ReadyToTurnIn;
 
         returnObjectiveText.gameObject.SetActive(
@@ -251,6 +339,17 @@ public class QuestUI : MonoBehaviour
             returnObjectiveText.text =
                 "Volte ao Capitão da Guarda.";
         }
+    }
+
+    // ==================================================
+    // HIDE
+    // ==================================================
+
+    private void HideQuestPanel()
+    {
+        questPanel.SetActive(
+            false
+        );
     }
 
     // ==================================================

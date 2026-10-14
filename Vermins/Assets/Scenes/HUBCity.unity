@@ -131,7 +131,7 @@ GameObject:
   - component: {fileID: 107950821}
   - component: {fileID: 107950820}
   m_Layer: 5
-  m_Name: ObjectiveBoss
+  m_Name: Objective02
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -1578,7 +1578,7 @@ GameObject:
   - component: {fileID: 1497831205}
   - component: {fileID: 1497831204}
   m_Layer: 5
-  m_Name: ObjectiveGuard
+  m_Name: Objective01
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -1838,8 +1838,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::QuestUI
   questPanel: {fileID: 809117077}
   questTitleText: {fileID: 1993280344}
-  guardObjectiveText: {fileID: 1497831204}
-  bossObjectiveText: {fileID: 107950820}
+  objectiveText1: {fileID: 1497831204}
+  objectiveText2: {fileID: 107950820}
   returnObjectiveText: {fileID: 1832578837}
   persistBetweenScenes: 1
 --- !u!1 &1501482359
