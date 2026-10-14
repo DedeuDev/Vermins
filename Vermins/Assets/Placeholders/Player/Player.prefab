@@ -32,6 +32,7 @@ GameObject:
   - component: {fileID: 2915273612807663881}
   - component: {fileID: 3937551716568081162}
   - component: {fileID: 7875504931913089684}
+  - component: {fileID: 7469843910050184080}
   m_Layer: 0
   m_Name: Player
   m_TagString: Player
@@ -145,6 +146,7 @@ MonoBehaviour:
     serializedVersion: 2
     m_Bits: 507
   viewCamera: {fileID: 0}
+  janelaDaEsquiva: 0.2
 --- !u!114 &2527989469152364073
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -190,6 +192,12 @@ MonoBehaviour:
   turnSpeed: 720
   alcanceDaArma: 2.2
   folgaDaPancada: 0.5
+  golpesNoCombo: 3
+  janelaDoCombo: 0.6
+  danoDoFinal: 2
+  chanceDeCritico: 0.1
+  danoDoCritico: 1.5
+  tempoDoFinal: 1.3
   projetil: {fileID: 0}
   oQueBloqueiaVisao:
     serializedVersion: 2
@@ -386,6 +394,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::DestaqueDeAlvo
   contorno: {fileID: 2100000, guid: deec79217cb8c1a469e016ca9ee7f276, type: 2}
+  corDoContornoDeItem: {r: 1, g: 0.95, b: 0.75, a: 1}
   materialDoAnel: {fileID: 2100000, guid: 00be738bd4525bd4fb78dd56f43e258a, type: 2}
   corDoAnel: {r: 0.9, g: 0.15, b: 0.1, a: 0.9}
   espessuraDoAnel: 0.06
@@ -449,6 +458,9 @@ MonoBehaviour:
   corDaMorte: {r: 1, g: 0.6, b: 0.15, a: 1}
   tamanho: 5
   escalaDaMorte: 1.4
+  escalaDoFinal: 1.25
+  corDoCritico: {r: 1, g: 0.85, b: 0.2, a: 1}
+  escalaDoCritico: 1.5
   duracao: 0.8
   subida: 0.9
   folgaAcimaDaCabeca: 0.2
@@ -472,6 +484,26 @@ MonoBehaviour:
   duracaoDaAnimacao: 0.8
   devolveOControle: 0.55
   recarga: 1
+--- !u!114 &7469843910050184080
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7457194079543536127}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0c11738c230c4844aa48199625324c7f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::NivelDoPersonagem
+  xpDoPrimeiroNivel: 150
+  nivelMaximo: 10
+  bonusPorNivel: 0.1
+  corDoAviso: {r: 1, g: 0.8, b: 0.25, a: 1}
+  tamanhoDoAviso: 8
+  duracaoDoAviso: 2
+  subidaDoAviso: 1.2
+  alturaDoAviso: 1.4
 --- !u!1001 &9095150474061651368
 PrefabInstance:
   m_ObjectHideFlags: 0
