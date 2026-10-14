@@ -3,7 +3,7 @@ using UnityEngine;
 using UnityEngine.SceneManagement;
 
 /// <summary>
-/// Leva vida, pocoes, ouro e joias do Player de uma cena pra outra.
+/// Leva vida, XP, pocoes, ouro e joias do Player de uma cena pra outra.
 ///
 /// Cada cena tem o seu proprio Player, e o Awake de cada componente
 /// volta ao valor inicial. Medi em Play: sai da cidade com vida 40, 3
@@ -23,6 +23,7 @@ public static class EstadoEntreCenas
 {
     private static bool temEstado;
     private static float vida;
+    private static int xp;
     private static int pocoes;
     private static int ouro;
     private static int joias;
@@ -63,8 +64,10 @@ public static class EstadoEntreCenas
         var cinto = player.GetComponent<PotionBelt>();
         var carteira = player.GetComponent<GoldWallet>();
         var bolsa = player.GetComponent<JewelPouch>();
+        var nivel = player.GetComponent<NivelDoPersonagem>();
 
         vida = saude.Current;
+        xp = nivel != null ? nivel.Xp : 0;
         pocoes = cinto != null ? cinto.Count : 0;
         ouro = carteira != null ? carteira.Amount : 0;
         joias = bolsa != null ? bolsa.Count : 0;
@@ -106,6 +109,14 @@ public static class EstadoEntreCenas
 
         if (player == null)
             yield break;
+
+        // O XP volta antes da vida. O Revive corta a vida no teto, e o
+        // teto depende do nivel: com o nivel 1 ainda valendo, os 140 de
+        // vida de um nivel 6 voltariam 100.
+        var nivel = player.GetComponent<NivelDoPersonagem>();
+
+        if (nivel != null)
+            nivel.Restaurar(xp);
 
         saude.Revive(vida);
 
