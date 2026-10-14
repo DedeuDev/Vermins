@@ -89,6 +89,14 @@ public class SaveSystem : MonoBehaviour
             data.playerJewelsValue = pouch.TotalValue;
         }
 
+        // Ian: o XP do Player. Gravo so o total: o nivel sai dele.
+        NivelDoPersonagem nivel = player.GetComponent<NivelDoPersonagem>();
+
+        if (nivel != null)
+        {
+            data.playerXp = nivel.Xp;
+        }
+
         string json = JsonUtility.ToJson(data, true);
 
         File.WriteAllText(savePath, json);
@@ -186,6 +194,16 @@ public class SaveSystem : MonoBehaviour
                         pendingLoadData.playerRotY,
                         pendingLoadData.playerRotZ
                     );
+
+                    // Ian: o XP volta antes da vida. O Revive corta a
+                    // vida no teto, e o teto depende do nivel: com o nivel
+                    // 1 ainda valendo, uma vida salva de 150 voltaria 100.
+                    NivelDoPersonagem nivel = player.GetComponent<NivelDoPersonagem>();
+
+                    if (nivel != null)
+                    {
+                        nivel.Restaurar(pendingLoadData.playerXp);
+                    }
 
                     Health health = player.GetComponent<Health>();
 

@@ -3,7 +3,7 @@ using UnityEngine.AI;
 using UnityEngine.InputSystem;
 
 /// <summary>
-/// HUD de debug do jogador: vida, pocoes, ouro, joias, alvo, velocidade e fps num canto da tela.
+/// HUD de debug do jogador: vida, nivel, pocoes, ouro, joias, alvo, velocidade e fps num canto da tela.
 ///
 /// E TEMPORARIO. A UI de verdade e do Rogger - isto aqui existe so pra
 /// gente testar combate enxergando os numeros ate a barra dele ficar
@@ -99,6 +99,7 @@ public class PlayerDebugHUD : MonoBehaviour
     private PotionBelt belt;
     private GoldWallet wallet;
     private JewelPouch pouch;
+    private NivelDoPersonagem nivel;
     private PlayerCombat combat;
     private NavMeshAgent agent;
 
@@ -121,6 +122,7 @@ public class PlayerDebugHUD : MonoBehaviour
     private static readonly GUIContent TetoLigado = new GUIContent("teto ligado");
     private static readonly GUIContent TetoDesligado = new GUIContent("teto desligado");
     private readonly Texto vida = new Texto();
+    private readonly Texto linhaDoNivel = new Texto();
     private readonly Texto pocoes = new Texto();
     private readonly Texto ouro = new Texto();
     private readonly Texto joias = new Texto();
@@ -185,6 +187,7 @@ public class PlayerDebugHUD : MonoBehaviour
         belt = GetComponent<PotionBelt>();
         wallet = GetComponent<GoldWallet>();
         pouch = GetComponent<JewelPouch>();
+        nivel = GetComponent<NivelDoPersonagem>();
 
         cabecalho = new GUIContent($"<b>DEBUG</b>   ({teclaParaEsconder} esconde)");
 
@@ -249,6 +252,15 @@ public class PlayerDebugHUD : MonoBehaviour
 
         if (vida.Mudou(vidaAtual, vidaMaxima))
             vida.Trocar($"Vida   {vidaAtual} / {vidaMaxima}");
+
+        // O XP do proximo nivel sai do nivel, entao nivel e XP bastam pra
+        // saber se o texto mudou.
+        if (nivel != null && linhaDoNivel.Mudou(nivel.Nivel, nivel.Xp))
+        {
+            linhaDoNivel.Trocar(nivel.NoMaximo
+                ? $"Nivel   {nivel.Nivel}  (maximo)   XP {nivel.Xp}"
+                : $"Nivel   {nivel.Nivel}   XP {nivel.Xp} / {nivel.XpDoProximoNivel}");
+        }
 
         if (belt != null && pocoes.Mudou(belt.Count, belt.Capacity))
             pocoes.Trocar($"Pocoes   {belt.Count} / {belt.Capacity}");
@@ -353,16 +365,23 @@ public class PlayerDebugHUD : MonoBehaviour
 
     private float AlturaDoPainel()
     {
-        // O cinto, a carteira e a bolsa sao opcionais no Player; sem eles
-        // a linha so nao aparece.
+        // O cinto, a carteira, a bolsa e o nivel sao opcionais no Player;
+        // sem eles a linha so nao aparece.
         int linhas = 5;
 
         if (belt != null) linhas++;
         if (wallet != null) linhas++;
         if (pouch != null) linhas++;
+        if (nivel != null) linhas++;
 
-        return Margem + linhas * AlturaDoTexto + AlturaDaBarra + Espaco +
-               AlturaDosControles() + Margem;
+        float altura = Margem + linhas * AlturaDoTexto + AlturaDaBarra + Espaco +
+                       AlturaDosControles() + Margem;
+
+        // A barra do XP, embaixo da linha do nivel.
+        if (nivel != null)
+            altura += AlturaDaBarra + Espaco;
+
+        return altura;
     }
 
     private static float AlturaDosControles()
@@ -396,6 +415,13 @@ public class PlayerDebugHUD : MonoBehaviour
         Escrever(vida.Conteudo, x, largura, ref y);
         DesenharBarra(new Rect(x, y, largura, AlturaDaBarra), health.Normalized, new Color(0.75f, 0.15f, 0.12f));
         y += AlturaDaBarra + Espaco;
+
+        if (nivel != null)
+        {
+            Escrever(linhaDoNivel.Conteudo, x, largura, ref y);
+            DesenharBarra(new Rect(x, y, largura, AlturaDaBarra), nivel.ProgressoNoNivel, new Color(0.85f, 0.65f, 0.15f));
+            y += AlturaDaBarra + Espaco;
+        }
 
         if (belt != null) Escrever(pocoes.Conteudo, x, largura, ref y);
         if (wallet != null) Escrever(ouro.Conteudo, x, largura, ref y);

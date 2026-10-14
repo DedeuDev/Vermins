@@ -145,6 +145,10 @@ public class PlayerDeath : MonoBehaviour
 
     private static void Recarregar()
     {
+        // O Player da cena nova nasce com o XP de quando entrei nela, e
+        // nao do zero. Ver NivelDoPersonagem.
+        NivelDoPersonagem.RenascerNaProximaCena();
+
         // Pelo caminho e nao pelo buildIndex. A IA_Test_Scene nao esta
         // no Build Settings e mesmo assim recarregou normal no editor
         // desse jeito. O buildIndex dela no Play veio 3, que e so a
