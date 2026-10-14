@@ -1,3 +1,4 @@
+using TMPro;
 using UnityEngine;
 
 /// <summary>
@@ -42,9 +43,32 @@ public class NivelDoPersonagem : MonoBehaviour
              "+90%, e nao 1,1 elevado a 9.")]
     [SerializeField, Range(0f, 1f)] private float bonusPorNivel = 0.1f;
 
+    [Header("Aviso de nivel")]
+    [Tooltip("Cor do \"Nivel N\" que sobe da cabeca ao subir de nivel.")]
+    [SerializeField] private Color corDoAviso = new Color(1f, 0.8f, 0.25f, 1f);
+
+    [Tooltip("Tamanho da fonte do TextMeshPro no mundo. O numero de dano " +
+             "usa 5; pus maior porque subir de nivel e mais raro e mais " +
+             "importante que um golpe.")]
+    [SerializeField] private float tamanhoDoAviso = 8f;
+
+    [Tooltip("Quanto tempo o aviso fica na tela.")]
+    [SerializeField] private float duracaoDoAviso = 2f;
+
+    [Tooltip("Quanto o aviso sobe, em metros, ate sumir.")]
+    [SerializeField] private float subidaDoAviso = 1.2f;
+
+    [Tooltip("Altura acima do pivo do Player onde o aviso nasce. O pivo " +
+             "fica no peito (baseOffset 0,92, capsula de 2 m), entao com " +
+             "1,4 o texto nasce um pouco acima da cabeca.")]
+    [SerializeField] private float alturaDoAviso = 1.4f;
+
     private PlayerCombat combate;
     private int xp;
     private int nivel = 1;
+
+    private TextMeshPro aviso;
+    private float avisoNasceu = -1f;
 
     public int Xp => xp;
     public int Nivel => nivel;
@@ -89,6 +113,8 @@ public class NivelDoPersonagem : MonoBehaviour
     private void Awake()
     {
         combate = GetComponent<PlayerCombat>();
+
+        CriarAviso();
     }
 
     private void OnEnable()
@@ -99,6 +125,36 @@ public class NivelDoPersonagem : MonoBehaviour
     private void OnDisable()
     {
         combate.OnGolpeAcertou -= AoAcertar;
+
+        // O Update para junto com o componente. Sem isto o aviso ficaria
+        // parado no ar pra sempre.
+        avisoNasceu = -1f;
+
+        if (aviso != null)
+            aviso.gameObject.SetActive(false);
+    }
+
+    private void OnDestroy()
+    {
+        if (aviso != null)
+            Destroy(aviso.gameObject);
+    }
+
+    private void Update()
+    {
+        if (avisoNasceu < 0f)
+            return;
+
+        float t = (Time.time - avisoNasceu) / duracaoDoAviso;
+
+        if (t >= 1f)
+        {
+            avisoNasceu = -1f;
+            aviso.gameObject.SetActive(false);
+            return;
+        }
+
+        DesenharAviso(t);
     }
 
     private void AoAcertar(Health alvo, float dano)
@@ -134,6 +190,7 @@ public class NivelDoPersonagem : MonoBehaviour
         Debug.Log($"[{name}] Subiu pro nivel {nivel} com {xp} de XP.", this);
 
         OnNivelMudou?.Invoke(true);
+        MostrarAviso();
     }
 
     /// <summary>
@@ -174,5 +231,66 @@ public class NivelDoPersonagem : MonoBehaviour
             n++;
 
         return n;
+    }
+
+    /// <summary>
+    /// Monto o texto por codigo, igual o NumerosDeDano, pra o aviso nao
+    /// precisar de prefab nem de Canvas. Fica fora do Player e nao como
+    /// filho: o Player gira pra todo lado no combate e o texto giraria
+    /// junto. Sigo a posicao dele no Update.
+    /// </summary>
+    private void CriarAviso()
+    {
+        var objeto = new GameObject("AvisoDeNivel");
+
+        aviso = objeto.AddComponent<TextMeshPro>();
+        aviso.alignment = TextAlignmentOptions.Center;
+        aviso.fontStyle = FontStyles.Bold;
+        aviso.textWrappingMode = TextWrappingModes.NoWrap;
+        aviso.rectTransform.sizeDelta = new Vector2(8f, 2f);
+
+        // O mesmo contorno escuro do numero de dano, pra ler em cima do
+        // chao claro da cidade e do esgoto escuro.
+        aviso.outlineWidth = 0.25f;
+        aviso.outlineColor = new Color32(20, 12, 8, 255);
+
+        objeto.SetActive(false);
+    }
+
+    private void MostrarAviso()
+    {
+        // A string nova nasce so aqui, uma vez por nivel, e nao por frame.
+        aviso.text = "Nível " + nivel;
+        aviso.fontSize = tamanhoDoAviso;
+        aviso.color = corDoAviso;
+        avisoNasceu = Time.time;
+
+        // A camera nunca gira, entao copiar a rotacao dela uma vez deixa
+        // o texto de frente o tempo todo.
+        Camera cam = Camera.main;
+
+        if (cam != null)
+            aviso.transform.rotation = cam.transform.rotation;
+
+        aviso.gameObject.SetActive(true);
+        DesenharAviso(0f);
+    }
+
+    private void DesenharAviso(float t)
+    {
+        // A mesma curva do NumerosDeDano: sobe rapido e assenta, nasce
+        // grande e encolhe no primeiro quinto do tempo, e so apaga na
+        // segunda metade, pra dar tempo de ler.
+        float subiu = 1f - (1f - t) * (1f - t);
+        float pulo = Mathf.Lerp(1.5f, 1f, Mathf.Clamp01(t / 0.2f));
+        float alfa = 1f - Mathf.Clamp01((t - 0.5f) / 0.5f);
+
+        aviso.transform.position =
+            transform.position + Vector3.up * (alturaDoAviso + subidaDoAviso * subiu);
+        aviso.transform.localScale = Vector3.one * pulo;
+
+        Color c = aviso.color;
+        c.a = alfa;
+        aviso.color = c;
     }
 }
