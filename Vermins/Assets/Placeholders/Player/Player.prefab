@@ -284,6 +284,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::PlayerDebugHUD
   visivel: 1
   teclaParaEsconder: 94
+  iconeDaPocao: {fileID: 2800000, guid: 9aec0f00eee9677419229b03b6a4a6f2, type: 3}
+  iconeDoOuro: {fileID: 2800000, guid: 0adf6811038c59b4e97bed8ea06fe67c, type: 3}
+  iconeDaJoia: {fileID: 2800000, guid: 87cc1a660d089814ab75fd129b5dfeb1, type: 3}
 --- !u!114 &6934464736222207046
 MonoBehaviour:
   m_ObjectHideFlags: 0

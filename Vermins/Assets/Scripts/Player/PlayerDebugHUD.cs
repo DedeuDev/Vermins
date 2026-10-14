@@ -28,6 +28,13 @@ public class PlayerDebugHUD : MonoBehaviour
     [Tooltip("Liga e desliga o HUD, pra ele nao aparecer em print e video.")]
     [SerializeField] private Key teclaParaEsconder = Key.F1;
 
+    [Header("Icones das linhas")]
+    [Tooltip("Os mesmos de Placeholders/Icones. Vazio, a linha ganha um " +
+             "quadradinho na cor do rotulo do item no chao.")]
+    [SerializeField] private Texture2D iconeDaPocao;
+    [SerializeField] private Texture2D iconeDoOuro;
+    [SerializeField] private Texture2D iconeDaJoia;
+
     /// <summary>
     /// Se o mouse esta em cima dos controles do teto de fps.
     ///
@@ -62,7 +69,13 @@ public class PlayerDebugHUD : MonoBehaviour
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
     // Onde o painel fica e a largura dele, na tela de referencia de 1080
     // de altura. A altura sai da soma das linhas, em AlturaDoPainel.
-    private const float PainelX = 16f;
+    //
+    // Fica no canto superior DIREITO. No esquerdo ele ficava por cima do
+    // painel de missao do Eduardo (QuestUI): medi em 1920x1080 o painel
+    // dele de 276 a 764 px do topo, e o meu ia ate uns 430. O dialogo
+    // fica embaixo no centro e o seletor de dungeon no meio, ate x 1477;
+    // o canto direito nao bate em nenhum dos tres.
+    private const float DistanciaDaBorda = 16f;
     private const float PainelY = 16f;
     private const float PainelLargura = 380f;
 
@@ -405,31 +418,37 @@ public class PlayerDebugHUD : MonoBehaviour
 
         CriarEstilos();
 
-        GUI.Box(new Rect(PainelX, PainelY, PainelLargura, AlturaDoPainel()), GUIContent.none);
+        // A largura da tela na referencia muda com a proporcao do monitor,
+        // entao o x do canto direito e calculado aqui, e nao constante.
+        float painelX = Screen.width / escala - PainelLargura - DistanciaDaBorda;
 
-        float x = PainelX + Margem;
+        GUI.Box(new Rect(painelX, PainelY, PainelLargura, AlturaDoPainel()), GUIContent.none);
+
+        float x = painelX + Margem;
         float largura = PainelLargura - 2f * Margem;
         float y = PainelY + Margem;
 
         Escrever(cabecalho, x, largura, ref y);
-        Escrever(vida.Conteudo, x, largura, ref y);
-        DesenharBarra(new Rect(x, y, largura, AlturaDaBarra), health.Normalized, new Color(0.75f, 0.15f, 0.12f));
+        Escrever(vida.Conteudo, x, largura, ref y, null, CorDaVida);
+        DesenharBarra(new Rect(x, y, largura, AlturaDaBarra), health.Normalized, CorDaVida);
         y += AlturaDaBarra + Espaco;
 
         if (nivel != null)
         {
-            Escrever(linhaDoNivel.Conteudo, x, largura, ref y);
-            DesenharBarra(new Rect(x, y, largura, AlturaDaBarra), nivel.ProgressoNoNivel, new Color(0.85f, 0.65f, 0.15f));
+            Escrever(linhaDoNivel.Conteudo, x, largura, ref y, null, CorDoNivel);
+            DesenharBarra(new Rect(x, y, largura, AlturaDaBarra), nivel.ProgressoNoNivel, CorDoNivel);
             y += AlturaDaBarra + Espaco;
         }
 
-        if (belt != null) Escrever(pocoes.Conteudo, x, largura, ref y);
-        if (wallet != null) Escrever(ouro.Conteudo, x, largura, ref y);
-        if (pouch != null) Escrever(joias.Conteudo, x, largura, ref y);
+        // Cores dos rotulos dos itens no chao (Coletavel), pra a pocao do
+        // HUD ter a mesma cor da pocao caida.
+        if (belt != null) Escrever(pocoes.Conteudo, x, largura, ref y, iconeDaPocao, new Color(1f, 0.4f, 0.4f));
+        if (wallet != null) Escrever(ouro.Conteudo, x, largura, ref y, iconeDoOuro, new Color(1f, 0.85f, 0.3f));
+        if (pouch != null) Escrever(joias.Conteudo, x, largura, ref y, iconeDaJoia, new Color(0.45f, 0.85f, 1f));
 
-        Escrever(alvo.Conteudo, x, largura, ref y);
-        Escrever(velocidade.Conteudo, x, largura, ref y);
-        Escrever(linhaDoFps.Conteudo, x, largura, ref y);
+        Escrever(alvo.Conteudo, x, largura, ref y, null, new Color(0.95f, 0.5f, 0.2f));
+        Escrever(velocidade.Conteudo, x, largura, ref y, null, new Color(0.45f, 0.8f, 0.45f));
+        Escrever(linhaDoFps.Conteudo, x, largura, ref y, null, new Color(0.55f, 0.7f, 0.95f));
 
         DesenharControlesDoFps(new Rect(x, y, largura, AlturaDosControles()), escala);
     }
@@ -449,6 +468,30 @@ public class PlayerDebugHUD : MonoBehaviour
     private void Escrever(GUIContent texto, float x, float largura, ref float y)
     {
         GUI.Label(new Rect(x, y, largura, AlturaDoTexto), texto, estilo);
+        y += AlturaDoTexto;
+    }
+
+    // As barras usam a mesma cor do marcador da linha delas.
+    private static readonly Color CorDaVida = new Color(0.75f, 0.15f, 0.12f);
+    private static readonly Color CorDoNivel = new Color(0.85f, 0.65f, 0.15f);
+    private const float TamanhoDoMarcador = 18f;
+
+    /// <summary>
+    /// Linha com um marcador na frente: o icone, quando tem, ou um
+    /// quadradinho na cor. Bate o olho e acha a linha pela cor, sem ler.
+    /// O texto anda pra direita o tamanho do marcador.
+    /// </summary>
+    private void Escrever(GUIContent texto, float x, float largura, ref float y, Texture2D icone, Color cor)
+    {
+        float recuo = TamanhoDoMarcador + 8f;
+        var marcador = new Rect(x + 2f, y + (AlturaDoTexto - TamanhoDoMarcador) * 0.5f, TamanhoDoMarcador, TamanhoDoMarcador);
+
+        if (icone != null)
+            GUI.DrawTexture(marcador, icone, ScaleMode.ScaleToFit, true);
+        else
+            GUI.DrawTexture(marcador, Texture2D.whiteTexture, ScaleMode.StretchToFill, false, 0f, cor, 0f, 4f);
+
+        GUI.Label(new Rect(x + recuo, y, largura - recuo, AlturaDoTexto), texto, estilo);
         y += AlturaDoTexto;
     }
 
