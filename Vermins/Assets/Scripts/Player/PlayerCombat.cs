@@ -43,10 +43,10 @@ public class PlayerCombat : MonoBehaviour
              "perto. O inimigo alcanca 1,5 m, entao o jogador tem uns " +
              "tres golpes antes do bicho encostar - e isso que faz valer " +
              "a pena recuar em vez de ficar parado trocando dano. " +
-             "Duas coisas que ainda nao existem e ficam mais visiveis " +
-             "com o alcance grande: nao tem projetil (o dano acontece na " +
-             "hora, a 9 m de distancia, sem nada sair da mao) e nao tem " +
-             "linha de visao (da pra atacar atraves de parede).")]
+             "O dano sai da bola (campo projetil), e antes de lancar o " +
+             "VisaoLimpa confere parede. Na magia esse teste e so contra " +
+             "a layer do oQueBloqueiaVisao: as paredes da dungeon nao tem " +
+             "collider, entao la a bola ainda passa por elas.")]
     [SerializeField] private float attackRange = 9f;
 
     [Tooltip("Segundos entre um golpe e o proximo. Era 0,8 e subiu pra " +

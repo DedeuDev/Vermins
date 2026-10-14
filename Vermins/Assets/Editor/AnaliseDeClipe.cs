@@ -64,7 +64,7 @@ public sealed class AnaliseDeClipe : IDisposable
     /// </summary>
     private const float LimiarDeApoio = 0.25f;
 
-    private const string ModeloPath = "Assets/Placeholders/Player/PlayerTest.fbx";
+    private const string ModeloPath = MixamoPlayerImport.ModeloPath;
 
     private readonly UnityEngine.SceneManagement.Scene cena;
     private readonly GameObject instancia;

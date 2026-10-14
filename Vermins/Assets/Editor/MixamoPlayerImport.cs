@@ -3,7 +3,7 @@ using UnityEditor;
 using UnityEngine;
 
 /// <summary>
-/// Configura os FBX do Mixamo pro rig do player.
+/// Configura os FBX do Mixamo pro rig do player, que hoje e o Paladino.
 ///
 /// O Mixamo entrega tudo como Generic, com o clipe chamado "mixamo.com"
 /// e sem loop. Do jeito que vem, o Animator nao consegue misturar um
@@ -14,11 +14,20 @@ using UnityEngine;
 /// novo na pasta so precisa rodar isso de novo.
 ///
 /// Menu: Vermins > Player > Configurar FBX do Mixamo
+///
+/// Ate o Paladino entrar, isto apontava pro PlayerTest (o Vampire, da
+/// magia). Os clipes do Paladino foram ajustados sem passar por aqui, e
+/// o menu continuou mexendo so na pasta velha. Antes de trocar eu
+/// simulei o Reconfigurar Tudo do Zero na pasta do Paladino, sem salvar:
+/// dos 15 clipes, 14 saiam iguais ao que esta salvo, e o DiveForward
+/// sairia diferente (ver DeslocamentoNaPose).
 /// </summary>
 public static class MixamoPlayerImport
 {
-    private const string PastaPlayer = "Assets/Placeholders/Player";
-    private const string ModeloPath = PastaPlayer + "/PlayerTest.fbx";
+    private const string PastaAnimacoes = "Assets/Placeholders/Paladino/Animacoes";
+
+    /// <summary>O corpo do player. O AnaliseDeClipe mede nele tambem.</summary>
+    public const string ModeloPath = "Assets/Placeholders/Paladino/Paladino.fbx";
 
     /// <summary>
     /// Animacao que e um ciclo continuo precisa de loop. Se ficar sem,
@@ -109,7 +118,7 @@ public static class MixamoPlayerImport
         if (avatar == null || !avatar.isHuman)
         {
             Debug.LogError(
-                "[Mixamo] O avatar humanoide do PlayerTest nao foi gerado. " +
+                "[Mixamo] O avatar humanoide do Paladino nao foi gerado. " +
                 "Olhe o console: normalmente e osso faltando no rig.");
             return;
         }
@@ -167,7 +176,7 @@ public static class MixamoPlayerImport
         imp.importAnimation = true;
 
         // Cada FBX de animacao do Mixamo vem com uma copia da malha e do
-        // material junto. O corpo que vale e o do PlayerTest, entao aqui
+        // material junto. O corpo que vale e o do Paladino.fbx, entao aqui
         // eu so quero a animacao - o resto vira material duplicado no
         // projeto e confunde na hora de escolher no Inspector.
         imp.materialImportMode = ModelImporterMaterialImportMode.None;
@@ -262,7 +271,7 @@ public static class MixamoPlayerImport
 
     private static IEnumerable<string> CaminhosDasAnimacoes()
     {
-        string[] guids = AssetDatabase.FindAssets("t:Model", new[] { PastaPlayer });
+        string[] guids = AssetDatabase.FindAssets("t:Model", new[] { PastaAnimacoes });
 
         foreach (string guid in guids)
         {
@@ -301,6 +310,13 @@ public static class MixamoPlayerImport
     /// clipe - e guardar isso na pose tiraria o personagem de dentro do
     /// proprio collider. Eles ainda nao estao ligados em estado nenhum,
     /// mas quem for ligar nao vai ter que descobrir isso na marra.
+    ///
+    /// O mergulho da esquiva tambem fica de fora, pelo motivo contrario:
+    /// quem anda os 4 m e a Esquiva, pelo agente. O DiveForward e In
+    /// Place, mas o centro do corpo ainda avanca 0,58 m no mergulho e
+    /// volta a zero no fim. Guardado na pose, o corpo sairia da frente do
+    /// agente e escorregaria de volta levantando; como root motion, o
+    /// Animator joga fora e o corpo fica em cima do agente.
     /// </summary>
     private static bool DeslocamentoNaPose(string nome)
     {
@@ -309,7 +325,7 @@ public static class MixamoPlayerImport
 
         string m = nome.ToLowerInvariant();
 
-        return !m.Contains("jump") && !m.Contains("land");
+        return !m.Contains("jump") && !m.Contains("land") && !m.Contains("dive");
     }
 
     private static bool EhGiro(string nome)
@@ -343,6 +359,9 @@ public static class MixamoPlayerImport
     /// repetir. O personagem parece estar meio de lado quando anda, e a
     /// tentacao e girar os clipes pra endireitar - eu tentei duas vezes,
     /// mirando no root motion e depois no tronco, e as duas pioraram.
+    ///
+    /// Os numeros abaixo sao do Vampire (PlayerTest), que era o modelo
+    /// quando eu medi.
     ///
     /// O motivo esta na coluna da passada aqui embaixo. Sem offset
     /// nenhum, os nove clipes de locomocao varrem o chao EXATAMENTE no

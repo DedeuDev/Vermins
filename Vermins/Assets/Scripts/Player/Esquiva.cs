@@ -59,11 +59,6 @@ public class Esquiva : MonoBehaviour
     private float distanciaLivre;
     private float andado;
 
-    // So desligo a invulnerabilidade que eu mesmo liguei. Se um dia
-    // outra coisa ligar (cena de dialogo, cheat de teste), a esquiva nao
-    // pode apagar no fim do rolamento.
-    private bool euDeiInvulnerabilidade;
-
     /// <summary>
     /// Disparado no aperto, com quanto tempo a animacao tem que durar. O
     /// PlayerAnimator escuta pra tocar o rolamento na velocidade certa.
@@ -91,11 +86,7 @@ public class Esquiva : MonoBehaviour
     {
         // Desligado no meio do rolamento, o jogador ficaria imortal pra
         // sempre.
-        if (euDeiInvulnerabilidade)
-        {
-            health.Invulneravel = false;
-            euDeiInvulnerabilidade = false;
-        }
+        health.DesligarInvulnerabilidade(this);
 
         inicio = -100f;
     }
@@ -145,13 +136,10 @@ public class Esquiva : MonoBehaviour
         inicio = Time.time;
         andado = 0f;
 
-        // So sou dono se ela estava desligada quando comecei. Antes eu me
-        // marcava como dono em todo rolamento: com a invulnerabilidade ja
-        // ligada por fora, o Player rolava e 0,8 s depois ela estava
-        // desligada, e um golpe de 10 tirou 10. Se eu ja era dono (um
-        // rolamento emendado no outro, com a recarga curta), continuo.
-        euDeiInvulnerabilidade = euDeiInvulnerabilidade || !health.Invulneravel;
-        health.Invulneravel = true;
+        // Ligo em meu nome. O Health so desliga quando nenhum dono quiser
+        // mais, entao o fim do rolamento nao apaga a invulnerabilidade de
+        // outra fonte, e outra fonte acabando nao corta a do rolamento.
+        health.LigarInvulnerabilidade(this);
 
         OnEsquivou?.Invoke(duracaoDaAnimacao);
         return true;
@@ -165,12 +153,7 @@ public class Esquiva : MonoBehaviour
         {
             // Invulneravel so enquanto anda. Levantando ele ja pode levar
             // golpe: senao dava pra ficar rolando e nunca apanhar.
-            if (euDeiInvulnerabilidade)
-            {
-                health.Invulneravel = false;
-                euDeiInvulnerabilidade = false;
-            }
-
+            health.DesligarInvulnerabilidade(this);
             return;
         }
 

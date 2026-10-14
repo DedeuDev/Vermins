@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 
 /// <summary>
@@ -37,8 +38,37 @@ public class Health : MonoBehaviour
     /// esquiva do jogador liga isto durante o rolamento. Fica aqui e nao
     /// em quem bate porque tem mais de um jeito de tomar dano (espada,
     /// flecha, poca de veneno) e todos passam pelo TakeDamage.
+    ///
+    /// Nao tem set: quem quer ligar chama LigarInvulnerabilidade com ele
+    /// mesmo de dono, e fica ligado enquanto sobrar algum dono. Antes era
+    /// um bool que todo mundo escrevia, e com duas fontes uma apagava a
+    /// outra. Medi com uma fonte de fora agindo 0,2 s depois do Player
+    /// rolar: se ela ligava, a esquiva desligava no fim do rolamento e o
+    /// efeito dela sumia; se ela desligava, o rolamento perdia a protecao
+    /// e um golpe de 10 tirou 10.
     /// </summary>
-    public bool Invulneravel { get; set; }
+    public bool Invulneravel => donosDaInvulnerabilidade.Count > 0;
+
+    private readonly HashSet<object> donosDaInvulnerabilidade = new HashSet<object>();
+
+    /// <summary>
+    /// Liga a invulnerabilidade em nome do dono. Ligar duas vezes com o
+    /// mesmo dono conta uma so.
+    /// </summary>
+    public void LigarInvulnerabilidade(object dono)
+    {
+        donosDaInvulnerabilidade.Add(dono);
+    }
+
+    /// <summary>
+    /// Tira so o pedido desse dono. Se outro dono ainda quer, continua
+    /// invulneravel. Quem liga tem que desligar tambem no OnDisable, senao
+    /// o personagem fica imortal pra sempre.
+    /// </summary>
+    public void DesligarInvulnerabilidade(object dono)
+    {
+        donosDaInvulnerabilidade.Remove(dono);
+    }
 
     /// <summary>
     /// (vida atual, vida maxima). Dispara em dano, cura e revive.
