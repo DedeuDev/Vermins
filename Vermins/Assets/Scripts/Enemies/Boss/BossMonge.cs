@@ -102,16 +102,13 @@ public class BossMonge : MonoBehaviour
 
     private void ExecutarComportamentoFase2(float distancia)
     {
-        // Na Fase 2 ele fica mais rápido ao se aproximar
         agent.speed = dados.velocidadeAproximacao;
 
-        // Ativa o Escudo de Ki periodicamente
         if (timerEscudoKi >= dados.cooldownEscudoKi && !escudoAtivo)
         {
             StartCoroutine(RotinaEscudoKi());
         }
 
-        // Executa a lógica de perseguição/ataques da fase 1
         ExecutarComportamentoFase1(distancia);
     }
 
@@ -122,7 +119,6 @@ public class BossMonge : MonoBehaviour
         timerAtaqueMelee = 0f;
         Debug.Log("<color=cyan>[MONGE] Executou Ataque Melee!</color>");
 
-        // Aplica dano direto se o Player estiver no alcance
         if (Vector3.Distance(transform.position, player.position) <= dados.alcanceAtaqueMelee)
         {
             Health vidaPlayer = player.GetComponentInParent<Health>();
@@ -141,15 +137,49 @@ public class BossMonge : MonoBehaviour
 
         Debug.Log("<color=orange>[MONGE] Canalizando TERREMOTO!</color>");
 
-        yield return new WaitForSeconds(0.6f);
-
         Vector3 posicaoImpacto = pontoImpactoTerremoto != null ? pontoImpactoTerremoto.position : transform.position;
+        posicaoImpacto.y = 0.05f; // Mantém rente ao chão
+
+        // 1. Criar Indicador Visual Temporário de Canalização no chão
+        GameObject indicadorChao = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
+        Destroy(indicadorChao.GetComponent<Collider>()); // Sem colisão
+        
+        indicadorChao.transform.position = posicaoImpacto;
+        float diametroArea = dados.raioImpactoTerremoto * 2f;
+        indicadorChao.transform.localScale = new Vector3(0.1f, 0.01f, 0.1f); // Começa pequeno
+
+        // Mudar cor do indicador temporário
+        Renderer rendererIndicador = indicadorChao.GetComponent<Renderer>();
+        if (rendererIndicador != null)
+        {
+            rendererIndicador.material.color = new Color(1f, 0.3f, 0f, 0.5f); // Laranja semi-transparente
+        }
+
+        // Animação de crescimento durante a canalização (0.6s)
+        float tempoCanalizacao = 0.6f;
+        float tempoDecorrido = 0f;
+
+        while (tempoDecorrido < tempoCanalizacao)
+        {
+            tempoDecorrido += Time.deltaTime;
+            float progresso = tempoDecorrido / tempoCanalizacao;
+            float escalaAtual = Mathf.Lerp(0.1f, diametroArea, progresso);
+            indicadorChao.transform.localScale = new Vector3(escalaAtual, 0.01f, escalaAtual);
+            yield return null;
+        }
+
+        // Remove o indicador de canalização antes do impacto
+        Destroy(indicadorChao);
+
+        // 2. IMPACTO DO TERREMOTO!
+        Debug.Log("<color=red>[MONGE] IMPACTO DO TERREMOTO!</color>");
 
         if (dados.prefabEfeitoTerremoto != null)
         {
             Instantiate(dados.prefabEfeitoTerremoto, posicaoImpacto, Quaternion.identity);
         }
 
+        // Verifica dano e knockback
         if (Vector3.Distance(posicaoImpacto, player.position) <= dados.raioImpactoTerremoto)
         {
             Health vidaPlayer = player.GetComponentInParent<Health>();
@@ -160,7 +190,7 @@ public class BossMonge : MonoBehaviour
             }
         }
 
-        yield return new WaitForSeconds(0.8f);
+        yield return new WaitForSeconds(0.4f);
         estaExecutandoAcao = false;
     }
 
