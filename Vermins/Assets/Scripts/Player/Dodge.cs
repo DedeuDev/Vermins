@@ -8,8 +8,14 @@ using UnityEngine.AI;
 ///
 /// Quem anda aqui continua sendo o NavMeshAgent, pelo agent.Move. O Move
 /// respeita a borda do NavMesh, entao rolar contra a parede para na
-/// parede em vez de atravessar. O destino tambem e cortado antes pelo
-/// NavMesh.Raycast, pra a animacao nao prometer 4 m e o corpo andar 1.
+/// parede em vez de atravessar.
+///
+/// Copiei o Path of Exile 2: distancia e tempo fixos, mais chao no comeco
+/// que no fim, e a parede so corta o caminho. O corpo chega nela na
+/// velocidade normal, para ali, e o clipe termina no lugar na mesma
+/// velocidade de sempre. Antes eu encolhia a curva ate a parede e ele
+/// rolava em camera lenta; depois encolhi o tempo junto e ele ficava
+/// acelerado.
 ///
 /// A animacao e o DiveForward do Mixamo, que rola no lugar (In Place). O
 /// deslocamento sai todo daqui, e os tempos abaixo foram casados com o
@@ -55,7 +61,8 @@ public class Dodge : MonoBehaviour
     private float andado;
 
     // Velocidade com que o corpo entra e sai do rolamento, na direcao
-    // dele. Correndo e 3,2; parado ou rolando pra tras e zero.
+    // dele. Correndo e a velocidade de corrida; parado ou rolando pra
+    // tras e zero.
     private float entrySpeed;
     private float exitSpeed;
 
@@ -144,12 +151,12 @@ public class Dodge : MonoBehaviour
         // agachado como se estivesse parado.
         entrySpeed = Mathf.Clamp(Vector3.Dot(agent.velocity, direcao), 0f, agent.speed);
 
-        // Contra a parede, o corpo chega parado. Sem parede, ele sai com a
-        // mesma velocidade com que entrou, e quem rolou correndo continua
-        // correndo.
+        // Sem parede, ele sai com a mesma velocidade com que entrou, e quem
+        // rolou correndo continua correndo. Contra a parede ele ja esta
+        // parado nela.
         exitSpeed = distanciaLivre < distancia ? 0f : entrySpeed;
 
-        crouchDistance = Mathf.Min(entrySpeed * inicioDoAvanco, distanciaLivre);
+        crouchDistance = Mathf.Min(entrySpeed * inicioDoAvanco, distancia);
 
         motor.Stop();
 
@@ -187,7 +194,9 @@ public class Dodge : MonoBehaviour
         }
 
         float t = Time.time - inicio;
-        float alvo = DistanciaNoTempo(t);
+
+        // A curva e sempre a dos 4 m; a parede so corta onde ela esta.
+        float alvo = Mathf.Min(DistanciaNoTempo(t), distanciaLivre);
 
         agent.Move(direcao * (alvo - andado));
         andado = alvo;
@@ -207,31 +216,32 @@ public class Dodge : MonoBehaviour
     }
 
     /// <summary>
-    /// Quanto o corpo ja andou t segundos depois do aperto.
+    /// Quanto o corpo ja andou t segundos depois do aperto, sem contar a
+    /// parede.
     ///
-    /// No agachar ele segue no embalo que trouxe. Depois e uma curva
-    /// cubica (Hermite) que sai na velocidade de entrada e chega na de
-    /// saida. Parado, as duas sao zero e ela vira o smoothstep de antes:
-    /// sai do agachado, voa e freia rolando. Correndo, o smoothstep
-    /// derrubava o corpo de 3,2 pra 0 duas vezes, e medi 192 ms por
-    /// rolamento abaixo da velocidade de corrida.
+    /// No agachar ele segue no embalo que trouxe. No mergulho a velocidade
+    /// pula pro pico e dali so diminui ate a de saida, como o rolamento do
+    /// Path of Exile 2, que cobre mais chao no comeco que no fim. E uma
+    /// curva cubica (Hermite): sai a 1,5x a media e chega na de saida.
+    /// Com 1,5x o pico fica igual ao do smoothstep de antes (13,3 parado)
+    /// e a velocidade nunca sobe depois do mergulho.
     ///
-    /// No ultimo frame o tempo passa do fim e eu fecho em 1: antes o resto
-    /// da curva se perdia se o frame pulasse o fim.
+    /// No ultimo frame o tempo passa do fim e eu fecho em 1: o resto da
+    /// curva nao se perde se o frame pular o fim.
     /// </summary>
     private float DistanciaNoTempo(float t)
     {
         if (t < inicioDoAvanco)
             return Mathf.Min(entrySpeed * t, crouchDistance);
 
-        float resto = distanciaLivre - crouchDistance;
+        float resto = distancia - crouchDistance;
         float p = Mathf.Clamp01((t - inicioDoAvanco) / duracaoDoAvanco);
 
-        // Velocidades em metros por "curva inteira". O teto de 2x o resto
-        // garante que a curva nunca volta pra tras, que e o que acontece
-        // com rolamento curto e embalo alto (parede a 0,5 m correndo).
-        float m0 = Mathf.Min(entrySpeed * duracaoDoAvanco, 2f * resto);
-        float m1 = Mathf.Min(exitSpeed * duracaoDoAvanco, 2f * resto);
+        // Velocidades em metros por "curva inteira". A de chegada e a de
+        // entrada mesmo contra a parede: a curva e a do chao aberto, e a
+        // parede so corta.
+        float m0 = 1.5f * resto;
+        float m1 = Mathf.Min(entrySpeed * duracaoDoAvanco, resto);
 
         float p2 = p * p;
         float p3 = p2 * p;
