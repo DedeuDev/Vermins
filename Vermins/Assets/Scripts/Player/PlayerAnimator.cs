@@ -46,8 +46,8 @@ public class PlayerAnimator : MonoBehaviour
 
     [Tooltip("Velocidade em que o pe da corrida pra frente pisa, em m/s. " +
              "Acima dela o blend tree nao tem clipe mais rapido, entao eu " +
-             "acelero a locomocao inteira na mesma proporcao: a 3,2 m/s " +
-             "com 2,58 aqui, ela toca a 1,24x. O numero sai no log do menu " +
+             "acelero a locomocao inteira na mesma proporcao: a 3,8 m/s " +
+             "com 2,58 aqui, ela toca a 1,47x. O numero sai no log do menu " +
              "Vermins/Player/Montar Animator do Paladino - se trocar o " +
              "clipe de corrida, copie de la.")]
     [SerializeField] private float velocidadeDaCorrida = 2.58f;
@@ -646,7 +646,7 @@ public class PlayerAnimator : MonoBehaviour
     /// blend tree so existe no Editor. Nao compensa, porque o corpo quase
     /// sempre corre pra frente dele mesmo - o PlayerMotor gira o corpo pra
     /// onde ele anda em 0,08 s, e numa curva de 90 o desvio medio e 4,3
-    /// graus. A 3,2 m/s isso da 0,24 m/s de lado.
+    /// graus. A 3,8 m/s isso da 0,28 m/s de lado.
     ///
     /// Nunca menos que 1, pelo mesmo motivo do golpe: andando devagar
     /// quem acompanha o pe e o blend, e desacelerar o clipe por cima

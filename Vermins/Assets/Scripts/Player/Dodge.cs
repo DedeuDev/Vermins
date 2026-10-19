@@ -205,7 +205,7 @@ public class Dodge : MonoBehaviour
             return;
 
         // Fim do avanco. Entrego o embalo pro agente: se o clique ainda
-        // estiver segurado, ele segue a 3,2 em vez de arrancar do zero; se
+        // estiver segurado, ele segue correndo em vez de arrancar do zero; se
         // nao, o proprio agente freia. Medi 0,06 s e uns 10 cm de deslize.
         advancing = false;
         agent.velocity = direcao * exitSpeed;

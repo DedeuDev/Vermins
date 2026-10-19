@@ -16,10 +16,11 @@ public class PlayerMotor : MonoBehaviour
              "mas o Paladino nao tem sprint: a corrida mais rapida dele " +
              "pisa a 2,58. Pra andar a 4,13 a animacao teria que tocar a " +
              "1,6x, e parado em 2,58 o jogador ficaria 38% mais lento que " +
-             "antes. 3,2 e o meio-termo: o PlayerAnimator acelera a " +
-             "corrida pra 1,24x (3,2 / 2,58). Pode mexer aqui a vontade, " +
+             "antes. Comecei em 3,2 (corrida a 1,24x) e subi pra 3,8 em " +
+             "19/10 porque o Player parecia lento: o PlayerAnimator acelera " +
+             "a corrida pra 1,47x (3,8 / 2,58). Pode mexer aqui a vontade, " +
              "a animacao acompanha sozinha.")]
-    [SerializeField] private float moveSpeed = 3.2f;
+    [SerializeField] private float moveSpeed = 3.8f;
 
     [Tooltip("Alto de proposito. O caso que decide isto nao e a " +
              "arrancada, e a inversao no meio da corrida: clicar pra " +
