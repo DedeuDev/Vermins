@@ -21,7 +21,7 @@ using UnityEngine;
 /// lado custa do outro.
 /// </summary>
 [CreateAssetMenu(fileName = "NovaBuild", menuName = "Vermins/Build do Personagem")]
-public class AtributosDeBuild : ScriptableObject
+public class BuildAttributes : ScriptableObject
 {
     public const int Orcamento = 20;
     public const int MinimoPorAtributo = 1;

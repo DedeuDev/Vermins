@@ -6,7 +6,7 @@ using UnityEngine.AI;
 ///
 /// Vai em qualquer coisa que tenha Health - hoje o inimigo, depois
 /// barril ou chefe - e nao mexe na IA de ninguem: so escuta o OnDied,
-/// do mesmo jeito que o FlashDeDano escuta o OnDamaged. Por isso o
+/// do mesmo jeito que o DamageFlash escuta o OnDamaged. Por isso o
 /// EnemyFollow do Leo nao precisou mudar.
 ///
 /// Cada item da lista sorteia sozinho. Quando o ouro existir, ele entra
@@ -40,10 +40,10 @@ public class DropOnDeath : MonoBehaviour
     [SerializeField] private float chanceDeEquipamento = 0.15f;
 
     [Tooltip("O prefab do item no chao. O item sorteado e passado pra ele.")]
-    [SerializeField] private ItemNoChao prefabDeEquipamento;
+    [SerializeField] private EquipmentPickup prefabDeEquipamento;
 
     [Tooltip("Os itens que podem cair. A raridade de cada um vem do asset.")]
-    [SerializeField] private ItemDeEquipamento[] equipamentos;
+    [SerializeField] private EquipmentItem[] equipamentos;
 
     // Pesos, e nao porcentagens, pra ninguem precisar fechar 100 ao mexer
     // num so. Com 70, 25 e 5 a soma e 100 e o peso ja e a porcentagem.
@@ -109,34 +109,34 @@ public class DropOnDeath : MonoBehaviour
         if (chanceDeEquipamento <= 0f || Random.value > chanceDeEquipamento)
             return;
 
-        ItemDeEquipamento item = SortearItem(SortearRaridade());
+        EquipmentItem item = SortearItem(SortearRaridade());
 
         if (item == null || !AcharChao(pe, out Vector3 ponto))
             return;
 
-        // O Definir vem antes do Start do Coletavel, que so roda no frame
+        // O Definir vem antes do Start do Pickup, que so roda no frame
         // seguinte, entao o rotulo ja nasce com o nome e a cor do item.
-        ItemNoChao noChao = Instantiate(prefabDeEquipamento, ponto, Quaternion.identity);
+        EquipmentPickup noChao = Instantiate(prefabDeEquipamento, ponto, Quaternion.identity);
         noChao.Definir(item);
     }
 
-    private Raridade SortearRaridade()
+    private Rarity SortearRaridade()
     {
         int total = pesoComum + pesoMagico + pesoRaro;
 
         if (total <= 0)
-            return Raridade.Comum;
+            return Rarity.Comum;
 
         // O Range de int nao inclui o maximo: sai de 0 a total - 1.
         int sorteio = Random.Range(0, total);
 
         if (sorteio < pesoComum)
-            return Raridade.Comum;
+            return Rarity.Comum;
 
         if (sorteio < pesoComum + pesoMagico)
-            return Raridade.Magico;
+            return Rarity.Magico;
 
-        return Raridade.Raro;
+        return Rarity.Raro;
     }
 
     /// <summary>
@@ -144,16 +144,16 @@ public class DropOnDeath : MonoBehaviour
     /// baixo: um raro que nao existe vira magico, e nao "nada". Se nem o
     /// comum existir, sorteia qualquer um da lista.
     /// </summary>
-    private ItemDeEquipamento SortearItem(Raridade raridade)
+    private EquipmentItem SortearItem(Rarity raridade)
     {
         for (int r = (int)raridade; r >= 0; r--)
         {
             // Duas voltas na lista, contando e depois escolhendo, pra nao
             // montar lista nova a cada morte.
             int quantos = 0;
-            foreach (ItemDeEquipamento item in equipamentos)
+            foreach (EquipmentItem item in equipamentos)
             {
-                if (item != null && (int)item.Raridade == r)
+                if (item != null && (int)item.Rarity == r)
                     quantos++;
             }
 
@@ -161,9 +161,9 @@ public class DropOnDeath : MonoBehaviour
                 continue;
 
             int escolhido = Random.Range(0, quantos);
-            foreach (ItemDeEquipamento item in equipamentos)
+            foreach (EquipmentItem item in equipamentos)
             {
-                if (item == null || (int)item.Raridade != r)
+                if (item == null || (int)item.Rarity != r)
                     continue;
 
                 if (escolhido == 0)

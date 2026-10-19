@@ -26,8 +26,8 @@ using UnityEngine;
 /// cinto de 5 custa uns 15.
 /// </summary>
 [RequireComponent(typeof(GoldWallet), typeof(JewelPouch), typeof(PotionBelt))]
-[RequireComponent(typeof(EquipamentoDoPersonagem))]
-public class LojaDoHub : MonoBehaviour
+[RequireComponent(typeof(CharacterEquipment))]
+public class HubShop : MonoBehaviour
 {
     [Header("Compra")]
     [Tooltip("Quanto custa uma pocao. Valor de teste, nao e definitivo.")]
@@ -46,7 +46,7 @@ public class LojaDoHub : MonoBehaviour
     private GoldWallet carteira;
     private JewelPouch bolsa;
     private PotionBelt cinto;
-    private EquipamentoDoPersonagem equipamento;
+    private CharacterEquipment equipamento;
 
     public int PrecoDaPocao => precoDaPocao;
 
@@ -58,19 +58,19 @@ public class LojaDoHub : MonoBehaviour
         carteira = GetComponent<GoldWallet>();
         bolsa = GetComponent<JewelPouch>();
         cinto = GetComponent<PotionBelt>();
-        equipamento = GetComponent<EquipamentoDoPersonagem>();
+        equipamento = GetComponent<CharacterEquipment>();
     }
 
     /// <summary>Quanto a loja paga por este item. Sem item, 0.</summary>
-    public int ValorDeVenda(ItemDeEquipamento item)
+    public int ValorDeVenda(EquipmentItem item)
     {
         if (item == null)
             return 0;
 
-        switch (item.Raridade)
+        switch (item.Rarity)
         {
-            case Raridade.Magico: return vendaMagico;
-            case Raridade.Raro: return vendaRaro;
+            case Rarity.Magico: return vendaMagico;
+            case Rarity.Raro: return vendaRaro;
             default: return vendaComum;
         }
     }
@@ -108,9 +108,9 @@ public class LojaDoHub : MonoBehaviour
     /// baixa vida e dano na hora, pelo OnEquipamentoMudou de sempre; a vida
     /// atual so e cortada se passar do teto novo.
     /// </summary>
-    public bool VenderEquipado(SlotDeEquipamento slot)
+    public bool VenderEquipado(EquipmentSlot slot)
     {
-        ItemDeEquipamento vendido = equipamento.Desequipar(slot);
+        EquipmentItem vendido = equipamento.Desequipar(slot);
         if (vendido == null)
             return false;
 
@@ -140,15 +140,15 @@ public class LojaDoHub : MonoBehaviour
     }
 
     [ContextMenu("Vender arma")]
-    private void MenuVenderArma() => LogVenda(SlotDeEquipamento.Arma);
+    private void MenuVenderArma() => LogVenda(EquipmentSlot.Arma);
 
     [ContextMenu("Vender armadura")]
-    private void MenuVenderArmadura() => LogVenda(SlotDeEquipamento.Armadura);
+    private void MenuVenderArmadura() => LogVenda(EquipmentSlot.Armadura);
 
     [ContextMenu("Vender anel")]
-    private void MenuVenderAnel() => LogVenda(SlotDeEquipamento.Anel);
+    private void MenuVenderAnel() => LogVenda(EquipmentSlot.Anel);
 
-    private void LogVenda(SlotDeEquipamento slot)
+    private void LogVenda(EquipmentSlot slot)
     {
         Debug.Log($"[Loja] Vender {slot}: {VenderEquipado(slot)} (ouro {carteira.Amount})", this);
     }

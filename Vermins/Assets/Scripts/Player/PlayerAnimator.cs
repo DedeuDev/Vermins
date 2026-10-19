@@ -121,7 +121,7 @@ public class PlayerAnimator : MonoBehaviour
     private NavMeshAgent agent;
     private Health health;
     private PlayerCombat combate;
-    private Esquiva esquiva;
+    private Dodge esquiva;
 
     // Indice da camada da reacao, resolvido uma vez. Guardo porque
     // GetLayerIndex faz busca por nome e eu leio isto todo frame.
@@ -166,7 +166,7 @@ public class PlayerAnimator : MonoBehaviour
         agent = GetComponent<NavMeshAgent>();
         health = GetComponent<Health>();
         combate = GetComponent<PlayerCombat>();
-        esquiva = GetComponent<Esquiva>();
+        esquiva = GetComponent<Dodge>();
 
         if (animator == null)
             animator = GetComponentInChildren<Animator>();
@@ -473,7 +473,7 @@ public class PlayerAnimator : MonoBehaviour
     }
 
     /// <summary>
-    /// A Esquiva avisa o aperto, com quanto tempo o rolamento tem que
+    /// O Dodge avisa o aperto, com quanto tempo o rolamento tem que
     /// durar na tela. O clipe tem 1,63 s; a esquiva pede 0,8, entao ele
     /// toca a ~2x.
     ///

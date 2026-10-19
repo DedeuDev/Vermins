@@ -6,8 +6,8 @@ using UnityEngine;
 /// pocao. Quem herda so diz o que entregar e pra quem, no Entregar.
 ///
 /// Fiz depois do terceiro coletavel. Os tres repetiam a mesma montagem e
-/// a mesma trava contra entrega dupla, e o CursorContextual tinha que
-/// listar um por um. Coletavel novo herda daqui e ja ganha tudo isso.
+/// a mesma trava contra entrega dupla, e o ContextualCursor tinha que
+/// listar um por um. Pickup novo herda daqui e ja ganha tudo isso.
 ///
 /// O Rigidbody kinematic fica aqui, e nao no jogador. Trigger so dispara
 /// se um dos dois lados tiver Rigidbody, e o NavMeshAgent do jogador nao
@@ -15,7 +15,7 @@ using UnityEngine;
 /// pela posicao dele. E a mesma regra da flecha do boss.
 /// </summary>
 [RequireComponent(typeof(Rigidbody), typeof(SphereCollider))]
-public abstract class Coletavel : MonoBehaviour
+public abstract class Pickup : MonoBehaviour
 {
     // Onde o nome fica, acima do pivo do item, e o tamanho da letra no
     // mundo. Os itens sao todos do mesmo porte, entao vale pra todos.
@@ -58,7 +58,7 @@ public abstract class Coletavel : MonoBehaviour
         objeto.transform.localPosition = Vector3.up * AlturaDoRotulo;
 
         // A camera nunca gira, entao basta copiar a rotacao dela uma vez
-        // pro texto ficar de frente. Mesmo jeito do NumerosDeDano.
+        // pro texto ficar de frente. Mesmo jeito do DamageNumbers.
         Camera cam = Camera.main;
 
         if (cam != null)

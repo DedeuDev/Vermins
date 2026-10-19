@@ -5,9 +5,9 @@ using UnityEngine;
 ///
 /// So quem tem GoldWallet pega, entao inimigo passa por cima sem levar.
 /// A montagem do trigger e a trava contra entrega dupla estao no
-/// Coletavel.
+/// Pickup.
 /// </summary>
-public class GoldPickup : Coletavel
+public class GoldPickup : Pickup
 {
     [Tooltip("Menor quantia que este monte pode valer. Valor de teste, " +
              "quem vai calibrar e a loja.")]

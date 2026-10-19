@@ -13,7 +13,7 @@ using UnityEngine;
 /// anel no clique, senao ele ficaria nascendo em baixo do cursor o
 /// tempo todo enquanto a pessoa arrasta.
 /// </summary>
-public class MarcadorDeDestino : MonoBehaviour
+public class MoveMarker : MonoBehaviour
 {
     [Tooltip("Material transparente que aceita cor de vertice (URP " +
              "Particles/Unlit). E a cor do LineRenderer que da o fade.")]
@@ -47,7 +47,7 @@ public class MarcadorDeDestino : MonoBehaviour
 
     private void Awake()
     {
-        var objeto = new GameObject("MarcadorDeDestino");
+        var objeto = new GameObject("MoveMarker");
 
         // Deitado no chao: com o alinhamento TransformZ a linha fica de
         // frente pro Z local, e girando 90 no X esse Z aponta pra cima.

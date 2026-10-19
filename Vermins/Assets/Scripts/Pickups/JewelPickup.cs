@@ -4,9 +4,9 @@ using UnityEngine;
 /// Joia no chao. Quem encosta e tem bolsa de joias leva.
 ///
 /// A montagem do trigger e a trava contra entrega dupla estao no
-/// Coletavel.
+/// Pickup.
 /// </summary>
-public class JewelPickup : Coletavel
+public class JewelPickup : Pickup
 {
     [Tooltip("Menor valor de venda desta joia, em ouro. Valor de teste, " +
              "quem vai calibrar e a loja.")]

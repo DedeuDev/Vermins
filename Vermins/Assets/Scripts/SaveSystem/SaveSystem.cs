@@ -90,7 +90,7 @@ public class SaveSystem : MonoBehaviour
         }
 
         // Ian: o XP do Player. Gravo so o total: o nivel sai dele.
-        NivelDoPersonagem nivel = player.GetComponent<NivelDoPersonagem>();
+        CharacterLevel nivel = player.GetComponent<CharacterLevel>();
 
         if (nivel != null)
         {
@@ -98,13 +98,13 @@ public class SaveSystem : MonoBehaviour
         }
 
         // Ian: o equipamento vestido, pelo nome do asset.
-        EquipamentoDoPersonagem equipamento = player.GetComponent<EquipamentoDoPersonagem>();
+        CharacterEquipment equipamento = player.GetComponent<CharacterEquipment>();
 
         if (equipamento != null)
         {
-            data.playerArma = ItemDeEquipamento.NomeNoSave(equipamento.NoSlot(SlotDeEquipamento.Arma));
-            data.playerArmadura = ItemDeEquipamento.NomeNoSave(equipamento.NoSlot(SlotDeEquipamento.Armadura));
-            data.playerAnel = ItemDeEquipamento.NomeNoSave(equipamento.NoSlot(SlotDeEquipamento.Anel));
+            data.playerArma = EquipmentItem.NomeNoSave(equipamento.NoSlot(EquipmentSlot.Arma));
+            data.playerArmadura = EquipmentItem.NomeNoSave(equipamento.NoSlot(EquipmentSlot.Armadura));
+            data.playerAnel = EquipmentItem.NomeNoSave(equipamento.NoSlot(EquipmentSlot.Anel));
         }
 
         string json = JsonUtility.ToJson(data, true);
@@ -208,7 +208,7 @@ public class SaveSystem : MonoBehaviour
                     // Ian: o XP volta antes da vida. O Revive corta a
                     // vida no teto, e o teto depende do nivel: com o nivel
                     // 1 ainda valendo, uma vida salva de 150 voltaria 100.
-                    NivelDoPersonagem nivel = player.GetComponent<NivelDoPersonagem>();
+                    CharacterLevel nivel = player.GetComponent<CharacterLevel>();
 
                     if (nivel != null)
                     {
@@ -219,14 +219,14 @@ public class SaveSystem : MonoBehaviour
                     // Vitalidade do item sobe o teto, e sem ela a vida
                     // salva seria cortada. Nome que nao existir mais vira
                     // slot vazio, com aviso.
-                    EquipamentoDoPersonagem equipamento = player.GetComponent<EquipamentoDoPersonagem>();
+                    CharacterEquipment equipamento = player.GetComponent<CharacterEquipment>();
 
                     if (equipamento != null)
                     {
                         equipamento.Restaurar(
-                            ItemDeEquipamento.PeloNome(pendingLoadData.playerArma),
-                            ItemDeEquipamento.PeloNome(pendingLoadData.playerArmadura),
-                            ItemDeEquipamento.PeloNome(pendingLoadData.playerAnel)
+                            EquipmentItem.PeloNome(pendingLoadData.playerArma),
+                            EquipmentItem.PeloNome(pendingLoadData.playerArmadura),
+                            EquipmentItem.PeloNome(pendingLoadData.playerAnel)
                         );
                     }
 

@@ -17,7 +17,7 @@ using UnityEngine;
 /// </summary>
 [RequireComponent(typeof(Health))]
 [DisallowMultipleComponent]
-public class FlashDeDano : MonoBehaviour
+public class DamageFlash : MonoBehaviour
 {
     [SerializeField] private Color cor = Color.red;
 

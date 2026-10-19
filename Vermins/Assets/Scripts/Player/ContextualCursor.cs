@@ -13,7 +13,7 @@ using UnityEngine;
 /// So chamo o Cursor.SetCursor quando o tipo muda, nao todo frame.
 /// </summary>
 [RequireComponent(typeof(PlayerController))]
-public class CursorContextual : MonoBehaviour
+public class ContextualCursor : MonoBehaviour
 {
     private enum Tipo { Normal, Ataque, Conversa, Pegar }
 
@@ -30,15 +30,15 @@ public class CursorContextual : MonoBehaviour
 
     /// <summary>
     /// O inimigo que esta embaixo do mouse neste frame, ou null. O
-    /// DestaqueDeAlvo le daqui pra nao refazer os mesmos raios.
+    /// TargetHighlight le daqui pra nao refazer os mesmos raios.
     /// </summary>
     public Health InimigoSobOMouse { get; private set; }
 
     /// <summary>
     /// O item no chao que esta embaixo do mouse neste frame, ou null. O
-    /// DestaqueDeAlvo le daqui pra por o contorno nele.
+    /// TargetHighlight le daqui pra por o contorno nele.
     /// </summary>
-    public Coletavel ColetavelSobOMouse { get; private set; }
+    public Pickup ColetavelSobOMouse { get; private set; }
 
     private PlayerController controller;
     private Health health;
@@ -112,7 +112,7 @@ public class CursorContextual : MonoBehaviour
         for (int i = 0; i < quantos; i++)
         {
             Collider c = acertos[i].collider;
-            Coletavel item = c.GetComponentInParent<Coletavel>();
+            Pickup item = c.GetComponentInParent<Pickup>();
 
             if (item != null)
             {

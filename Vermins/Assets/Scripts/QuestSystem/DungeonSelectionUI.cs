@@ -423,7 +423,7 @@ public class DungeonSelectionUI : MonoBehaviour
         // de cena, igual o SceneTransitionInteractable faz. Sem isso o
         // Player da dungeon nasce zerado: medi saindo da cidade com 40 de
         // vida, 3 pocoes, 37 de ouro e 2 joias e chegando com 100, 0, 0, 0.
-        EstadoEntreCenas.Guardar();
+        CrossSceneState.Guardar();
 
         SceneManager.LoadScene(
             sceneName

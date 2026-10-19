@@ -312,7 +312,7 @@ public static class MixamoPlayerImport
     /// mas quem for ligar nao vai ter que descobrir isso na marra.
     ///
     /// O mergulho da esquiva tambem fica de fora, pelo motivo contrario:
-    /// quem anda os 4 m e a Esquiva, pelo agente. O DiveForward e In
+    /// quem anda os 4 m e o Dodge, pelo agente. O DiveForward e In
     /// Place, mas o centro do corpo ainda avanca 0,58 m no mergulho e
     /// volta a zero no fim. Guardado na pose, o corpo sairia da frente do
     /// agente e escorregaria de volta levantando; como root motion, o

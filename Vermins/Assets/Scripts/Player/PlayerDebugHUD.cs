@@ -17,7 +17,7 @@ using UnityEngine.InputSystem;
 /// escolha nao e salva e volta pro padrao quando o jogo abre de novo.
 ///
 /// O F2 abre a loja de debug, um segundo painel a esquerda com botoes
-/// que chamam a LojaDoHub. Serve pra testar a conta da loja antes da
+/// que chamam a HubShop. Serve pra testar a conta da loja antes da
 /// tela do Rogger existir, e sai junto com este HUD.
 ///
 /// So desenha no editor e em Development Build. A classe continua
@@ -127,9 +127,9 @@ public class PlayerDebugHUD : MonoBehaviour
     private PotionBelt belt;
     private GoldWallet wallet;
     private JewelPouch pouch;
-    private NivelDoPersonagem nivel;
-    private EquipamentoDoPersonagem equipamento;
-    private LojaDoHub loja;
+    private CharacterLevel nivel;
+    private CharacterEquipment equipamento;
+    private HubShop loja;
     private PlayerCombat combat;
     private NavMeshAgent agent;
 
@@ -227,9 +227,9 @@ public class PlayerDebugHUD : MonoBehaviour
         belt = GetComponent<PotionBelt>();
         wallet = GetComponent<GoldWallet>();
         pouch = GetComponent<JewelPouch>();
-        nivel = GetComponent<NivelDoPersonagem>();
-        equipamento = GetComponent<EquipamentoDoPersonagem>();
-        loja = GetComponent<LojaDoHub>();
+        nivel = GetComponent<CharacterLevel>();
+        equipamento = GetComponent<CharacterEquipment>();
+        loja = GetComponent<HubShop>();
 
         cabecalho = new GUIContent($"<b>DEBUG</b>   ({teclaParaEsconder} esconde)");
         cabecalhoDaLoja = new GUIContent($"<b>LOJA</b> (debug)   ({teclaDaLoja} fecha)");
@@ -249,7 +249,7 @@ public class PlayerDebugHUD : MonoBehaviour
         if (teclado != null && teclado[teclaParaEsconder].wasPressedThisFrame)
             visivel = !visivel;
 
-        // Sem LojaDoHub no Player, o F2 nao abre nada.
+        // Sem HubShop no Player, o F2 nao abre nada.
         if (loja != null && teclado != null && teclado[teclaDaLoja].wasPressedThisFrame)
             lojaAberta = !lojaAberta;
 
@@ -327,11 +327,11 @@ public class PlayerDebugHUD : MonoBehaviour
 
         AtualizarFps();
 
-        if (teto.Mudou(LimiteDeFps.Fps))
-            teto.Trocar(LimiteDeFps.Fps.ToString());
+        if (teto.Mudou(FpsLimiter.Fps))
+            teto.Trocar(FpsLimiter.Fps.ToString());
 
-        if (padrao.Mudou(LimiteDeFps.FpsPadrao))
-            padrao.Trocar($"padrao {LimiteDeFps.FpsPadrao}");
+        if (padrao.Mudou(FpsLimiter.FpsPadrao))
+            padrao.Trocar($"padrao {FpsLimiter.FpsPadrao}");
 
         if (Time.unscaledTime < proximosTextosQueCorrem)
             return;
@@ -350,11 +350,11 @@ public class PlayerDebugHUD : MonoBehaviour
         // que vira dano e vida.
         int ocupados = 0;
 
-        if (equipamento.NoSlot(SlotDeEquipamento.Arma) != null) ocupados++;
-        if (equipamento.NoSlot(SlotDeEquipamento.Armadura) != null) ocupados++;
-        if (equipamento.NoSlot(SlotDeEquipamento.Anel) != null) ocupados++;
+        if (equipamento.NoSlot(EquipmentSlot.Arma) != null) ocupados++;
+        if (equipamento.NoSlot(EquipmentSlot.Armadura) != null) ocupados++;
+        if (equipamento.NoSlot(EquipmentSlot.Anel) != null) ocupados++;
 
-        PontosExtras pontos = equipamento.PontosSomados;
+        BonusPoints pontos = equipamento.PontosSomados;
 
         if (linhaDoEquipamento.Mudou(ocupados, pontos.Poder, pontos.Celeridade, pontos.Vitalidade))
             linhaDoEquipamento.Trocar($"Equip   {ocupados}/3   P+{pontos.Poder} C+{pontos.Celeridade} V+{pontos.Vitalidade}");
@@ -368,16 +368,16 @@ public class PlayerDebugHUD : MonoBehaviour
         if (botaoDasJoias.Mudou(pouch.Count, loja.ValorDasJoias))
             botaoDasJoias.Trocar($"Vender {pouch.Count} joias   ({loja.ValorDasJoias})");
 
-        AtualizarBotaoDoSlot(botaoDaArma, SlotDeEquipamento.Arma);
-        AtualizarBotaoDoSlot(botaoDaArmadura, SlotDeEquipamento.Armadura);
-        AtualizarBotaoDoSlot(botaoDoAnel, SlotDeEquipamento.Anel);
+        AtualizarBotaoDoSlot(botaoDaArma, EquipmentSlot.Arma);
+        AtualizarBotaoDoSlot(botaoDaArmadura, EquipmentSlot.Armadura);
+        AtualizarBotaoDoSlot(botaoDoAnel, EquipmentSlot.Anel);
     }
 
-    private void AtualizarBotaoDoSlot(Texto botao, SlotDeEquipamento slot)
+    private void AtualizarBotaoDoSlot(Texto botao, EquipmentSlot slot)
     {
         // O id do item entra na comparacao porque dois itens da mesma
         // raridade tem o mesmo preco e nomes diferentes.
-        ItemDeEquipamento item = equipamento.NoSlot(slot);
+        EquipmentItem item = equipamento.NoSlot(slot);
         int id = item != null ? item.GetInstanceID() : 0;
         int preco = loja.ValorDeVenda(item);
 
@@ -391,13 +391,13 @@ public class PlayerDebugHUD : MonoBehaviour
 
     private void AtualizarFps()
     {
-        // Media contra o teto do LimiteDeFps, e o frame mais demorado
+        // Media contra o teto do FpsLimiter, e o frame mais demorado
         // da mesma janela. A media mostra que o teto esta valendo; o pior
         // frame e o que denuncia engasgo, que a media esconde.
         int media = Mathf.RoundToInt(fps);
         int pior = Mathf.RoundToInt(piorFrame * 10000f);
-        int tetoEmVigor = LimiteDeFps.TetoEmVigor;
-        int vsync = LimiteDeFps.VSync ? 1 : 0;
+        int tetoEmVigor = FpsLimiter.TetoEmVigor;
+        int vsync = FpsLimiter.VSync ? 1 : 0;
 
         if (!linhaDoFps.Mudou(media, pior, tetoEmVigor, vsync))
             return;
@@ -532,14 +532,14 @@ public class PlayerDebugHUD : MonoBehaviour
             y += AlturaDaBarra + Espaco;
         }
 
-        // Cores dos rotulos dos itens no chao (Coletavel), pra a pocao do
+        // Cores dos rotulos dos itens no chao (Pickup), pra a pocao do
         // HUD ter a mesma cor da pocao caida.
         if (belt != null) Escrever(pocoes.Conteudo, x, largura, ref y, iconeDaPocao, new Color(1f, 0.4f, 0.4f));
         if (wallet != null) Escrever(ouro.Conteudo, x, largura, ref y, iconeDoOuro, new Color(1f, 0.85f, 0.3f));
         if (pouch != null) Escrever(joias.Conteudo, x, largura, ref y, iconeDaJoia, new Color(0.45f, 0.85f, 1f));
 
         // Azul do item magico, pra a linha nao se confundir com a do ouro.
-        if (equipamento != null) Escrever(linhaDoEquipamento.Conteudo, x, largura, ref y, null, ItemDeEquipamento.CorDaRaridade(Raridade.Magico));
+        if (equipamento != null) Escrever(linhaDoEquipamento.Conteudo, x, largura, ref y, null, EquipmentItem.CorDaRaridade(Rarity.Magico));
 
         Escrever(alvo.Conteudo, x, largura, ref y, null, new Color(0.95f, 0.5f, 0.2f));
         Escrever(velocidade.Conteudo, x, largura, ref y, null, new Color(0.45f, 0.8f, 0.45f));
@@ -562,7 +562,7 @@ public class PlayerDebugHUD : MonoBehaviour
     /// ate x 1477) sem atrapalhar ninguem que nao pediu.
     ///
     /// Botao que nao daria certo fica apagado, mas a conta continua sendo
-    /// da LojaDoHub: o apagado e so dica, e quem recusa de verdade e ela.
+    /// da HubShop: o apagado e so dica, e quem recusa de verdade e ela.
     /// </summary>
     private void DesenharLoja(float painelX, float escala)
     {
@@ -587,9 +587,9 @@ public class PlayerDebugHUD : MonoBehaviour
         if (BotaoDaLoja(botaoDasJoias.Conteudo, x, largura, ref y))
             loja.VenderJoias();
 
-        BotaoDeVenda(botaoDaArma, SlotDeEquipamento.Arma, habilitado, x, largura, ref y);
-        BotaoDeVenda(botaoDaArmadura, SlotDeEquipamento.Armadura, habilitado, x, largura, ref y);
-        BotaoDeVenda(botaoDoAnel, SlotDeEquipamento.Anel, habilitado, x, largura, ref y);
+        BotaoDeVenda(botaoDaArma, EquipmentSlot.Arma, habilitado, x, largura, ref y);
+        BotaoDeVenda(botaoDaArmadura, EquipmentSlot.Armadura, habilitado, x, largura, ref y);
+        BotaoDeVenda(botaoDoAnel, EquipmentSlot.Anel, habilitado, x, largura, ref y);
 
         GUI.enabled = habilitado;
         if (BotaoDaLoja(GanharOuro, x, largura, ref y))
@@ -602,7 +602,7 @@ public class PlayerDebugHUD : MonoBehaviour
             painel.height * escala);
     }
 
-    private void BotaoDeVenda(Texto botao, SlotDeEquipamento slot, bool habilitado, float x, float largura, ref float y)
+    private void BotaoDeVenda(Texto botao, EquipmentSlot slot, bool habilitado, float x, float largura, ref float y)
     {
         GUI.enabled = habilitado && equipamento.NoSlot(slot) != null;
 
@@ -665,45 +665,45 @@ public class PlayerDebugHUD : MonoBehaviour
 
         // Botao em vez de caixa de marcar: a caixa do OnGUI tem 12 pixels
         // e nao da pra ver de longe se esta marcada.
-        GUIContent textoDoVSync = LimiteDeFps.VSync ? VSyncLigado : VSyncDesligado;
+        GUIContent textoDoVSync = FpsLimiter.VSync ? VSyncLigado : VSyncDesligado;
 
         if (GUI.Button(new Rect(area.x, y, area.width, AlturaDoBotao), textoDoVSync, estiloDoBotao))
-            LimiteDeFps.VSync = !LimiteDeFps.VSync;
+            FpsLimiter.VSync = !FpsLimiter.VSync;
 
         y += AlturaDoBotao + Espaco;
 
         // Com o vsync ligado o teto nao vale. Deixo os controles dele
         // apagados em vez de sumir, pra o painel nao pular de tamanho.
         bool habilitado = GUI.enabled;
-        GUI.enabled = habilitado && !LimiteDeFps.VSync;
+        GUI.enabled = habilitado && !FpsLimiter.VSync;
 
-        GUIContent textoDoTeto = LimiteDeFps.Ligado ? TetoLigado : TetoDesligado;
+        GUIContent textoDoTeto = FpsLimiter.Ligado ? TetoLigado : TetoDesligado;
 
         if (GUI.Button(new Rect(area.x, y, 150f, AlturaDoBotao), textoDoTeto, estiloDoBotao))
-            LimiteDeFps.Ligado = !LimiteDeFps.Ligado;
+            FpsLimiter.Ligado = !FpsLimiter.Ligado;
 
         GUI.Label(new Rect(area.x + 156f, y - 2f, 80f, AlturaDoTexto), teto.Conteudo, estilo);
 
         if (GUI.Button(new Rect(area.xMax - 110f, y, 110f, AlturaDoBotao), padrao.Conteudo, estiloDoBotao))
-            LimiteDeFps.Fps = LimiteDeFps.FpsPadrao;
+            FpsLimiter.Fps = FpsLimiter.FpsPadrao;
 
         y += AlturaDoBotao + Espaco;
 
-        int maximo = LimiteDeFps.TaxaDoMonitor > 0
-            ? LimiteDeFps.TaxaDoMonitor
+        int maximo = FpsLimiter.TaxaDoMonitor > 0
+            ? FpsLimiter.TaxaDoMonitor
             : TetoMaximoSemMonitor;
 
         // Comparo com o numero ja preso na faixa do slider. Um teto fora
         // dela (monitor de 24 Hz, por exemplo) seria reescrito so por
         // ter sido desenhado, sem ninguem encostar no mouse.
-        int mostrado = Mathf.Clamp(LimiteDeFps.Fps, TetoMinimo, maximo);
+        int mostrado = Mathf.Clamp(FpsLimiter.Fps, TetoMinimo, maximo);
 
         int escolhido = Mathf.RoundToInt(GUI.HorizontalSlider(
             new Rect(area.x, y, area.width, AlturaDoSlider),
             mostrado, TetoMinimo, maximo, estiloDoTrilho, estiloDoPino));
 
         if (escolhido != mostrado)
-            LimiteDeFps.Fps = escolhido;
+            FpsLimiter.Fps = escolhido;
 
         GUI.enabled = habilitado;
 

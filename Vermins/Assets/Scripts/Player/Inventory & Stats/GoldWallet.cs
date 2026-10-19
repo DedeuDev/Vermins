@@ -4,7 +4,7 @@ using UnityEngine;
 /// O ouro que o jogador carrega.
 ///
 /// Diferente do cinto de pocao, aqui nao tem limite: ouro no chao que o
-/// jogador nao consegue pegar so irrita. Quem gasta e a LojaDoHub
+/// jogador nao consegue pegar so irrita. Quem gasta e a HubShop
 /// (secao 4.4 do GDR), pelo TryGastar.
 /// </summary>
 public class GoldWallet : MonoBehaviour

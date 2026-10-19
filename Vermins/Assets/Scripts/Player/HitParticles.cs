@@ -11,7 +11,7 @@ using UnityEngine;
 /// mundo) pra as gotas que ja sairam nao andarem junto com o personagem.
 /// </summary>
 [RequireComponent(typeof(PlayerCombat))]
-public class ParticulaDeImpacto : MonoBehaviour
+public class HitParticles : MonoBehaviour
 {
     [Tooltip("Material de particula com textura redonda e cor de vertice.")]
     [SerializeField] private Material material;
@@ -131,7 +131,7 @@ public class ParticulaDeImpacto : MonoBehaviour
 
     private ParticleSystem CriarSistema()
     {
-        var objeto = new GameObject("ParticulaDeImpacto");
+        var objeto = new GameObject("HitParticles");
         var ps = objeto.AddComponent<ParticleSystem>();
 
         // Parar antes de mexer: o sistema nasce tocando e algumas
