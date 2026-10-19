@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-public enum SlotDeEquipamento
+public enum EquipmentSlot
 {
     Arma,
     Armadura,
@@ -12,7 +12,7 @@ public enum SlotDeEquipamento
 /// Em ordem do mais fraco pro mais forte, pra que comparar raridade com
 /// "maior que" funcione quando o drop precisar.
 /// </summary>
-public enum Raridade
+public enum Rarity
 {
     Comum,
     Magico,
@@ -23,15 +23,15 @@ public enum Raridade
 /// Pontos de atributo que vem de fora da build. Hoje so o equipamento
 /// soma; se uma habilidade der buff na fase 3, entra pelo mesmo lugar.
 ///
-/// Nao tem Alcance de proposito (ver o ItemDeEquipamento).
+/// Nao tem Alcance de proposito (ver o EquipmentItem).
 /// </summary>
-public readonly struct PontosExtras
+public readonly struct BonusPoints
 {
     public readonly int Poder;
     public readonly int Celeridade;
     public readonly int Vitalidade;
 
-    public PontosExtras(int poder, int celeridade, int vitalidade)
+    public BonusPoints(int poder, int celeridade, int vitalidade)
     {
         Poder = poder;
         Celeridade = celeridade;
@@ -40,9 +40,9 @@ public readonly struct PontosExtras
 
     public int Total => Poder + Celeridade + Vitalidade;
 
-    public static PontosExtras operator +(PontosExtras a, PontosExtras b)
+    public static BonusPoints operator +(BonusPoints a, BonusPoints b)
     {
-        return new PontosExtras(
+        return new BonusPoints(
             a.Poder + b.Poder,
             a.Celeridade + b.Celeridade,
             a.Vitalidade + b.Vitalidade);
@@ -55,7 +55,7 @@ public readonly struct PontosExtras
 ///
 /// A secao 4.3 do GDR diz que o equipamento soma por cima dos atributos,
 /// entao o item nao tem dano nem vida proprios. Ele tem pontos, e quem
-/// transforma ponto em numero continua sendo o AtributosDeBuild. Assim um
+/// transforma ponto em numero continua sendo o BuildAttributes. Assim um
 /// ponto de anel vale exatamente um ponto de build, e a conta e uma so.
 ///
 /// SEM ALCANCE DE PROPOSITO. Com Alcance 5 o Player ja bate de 9 m, e o
@@ -67,7 +67,7 @@ public readonly struct PontosExtras
 /// build. Quando o drop sortear item (2.2b), e daqui que ele tira o teto.
 /// </summary>
 [CreateAssetMenu(fileName = "NovoItem", menuName = "Vermins/Item de Equipamento")]
-public class ItemDeEquipamento : ScriptableObject
+public class EquipmentItem : ScriptableObject
 {
     // O teto do raro. Somando com a build, o atributo pode passar de 10:
     // o 10 e o limite da escolha da build, e o equipamento e a recompensa
@@ -76,8 +76,8 @@ public class ItemDeEquipamento : ScriptableObject
 
     [Header("Identidade")]
     [SerializeField] private string nomeDoItem = "Sem nome";
-    [SerializeField] private SlotDeEquipamento slot;
-    [SerializeField] private Raridade raridade;
+    [SerializeField] private EquipmentSlot slot;
+    [SerializeField] private Rarity raridade;
 
     [Header("Pontos (somam ate o teto da raridade)")]
     [Tooltip("Vira dano por golpe, igual ao Poder da build.")]
@@ -94,18 +94,18 @@ public class ItemDeEquipamento : ScriptableObject
     [SerializeField] private int vitalidade;
 
     public string NomeDoItem => string.IsNullOrWhiteSpace(nomeDoItem) ? name : nomeDoItem;
-    public SlotDeEquipamento Slot => slot;
-    public Raridade Raridade => raridade;
+    public EquipmentSlot Slot => slot;
+    public Rarity Rarity => raridade;
 
-    public PontosExtras Pontos => new PontosExtras(poder, celeridade, vitalidade);
+    public BonusPoints Pontos => new BonusPoints(poder, celeridade, vitalidade);
 
     /// <summary>Quantos pontos um item desta raridade pode somar no total.</summary>
-    public static int PontosDaRaridade(Raridade raridade)
+    public static int PontosDaRaridade(Rarity raridade)
     {
         switch (raridade)
         {
-            case Raridade.Magico: return 2;
-            case Raridade.Raro: return 3;
+            case Rarity.Magico: return 2;
+            case Rarity.Raro: return 3;
             default: return 1;
         }
     }
@@ -116,9 +116,9 @@ public class ItemDeEquipamento : ScriptableObject
     // soltar o arquivo na pasta, sem lembrar de ligar nada. O custo e que
     // renomear um asset faz ele sumir dos saves antigos (o slot volta
     // vazio, com aviso).
-    private const string PastaNoResources = "Itens";
+    private const string PastaNoResources = "Items";
 
-    private static Dictionary<string, ItemDeEquipamento> porNome;
+    private static Dictionary<string, EquipmentItem> porNome;
 
     // Campo estatico nao zera sozinho quando o editor entra em Play sem
     // recarregar o dominio. Sem isto, um item criado entre dois Play nao
@@ -134,20 +134,20 @@ public class ItemDeEquipamento : ScriptableObject
     /// devolve null (slot vazio). Monta o dicionario na primeira chamada:
     /// so roda no load, nunca por frame.
     /// </summary>
-    public static ItemDeEquipamento PeloNome(string nomeDoAsset)
+    public static EquipmentItem PeloNome(string nomeDoAsset)
     {
         if (string.IsNullOrEmpty(nomeDoAsset))
             return null;
 
         if (porNome == null)
         {
-            porNome = new Dictionary<string, ItemDeEquipamento>();
+            porNome = new Dictionary<string, EquipmentItem>();
 
-            foreach (ItemDeEquipamento item in Resources.LoadAll<ItemDeEquipamento>(PastaNoResources))
+            foreach (EquipmentItem item in Resources.LoadAll<EquipmentItem>(PastaNoResources))
                 porNome[item.name] = item;
         }
 
-        if (porNome.TryGetValue(nomeDoAsset, out ItemDeEquipamento achado))
+        if (porNome.TryGetValue(nomeDoAsset, out EquipmentItem achado))
             return achado;
 
         Debug.LogWarning(
@@ -157,7 +157,7 @@ public class ItemDeEquipamento : ScriptableObject
     }
 
     /// <summary>O que o save grava: o nome do asset, ou vazio sem item.</summary>
-    public static string NomeNoSave(ItemDeEquipamento item)
+    public static string NomeNoSave(EquipmentItem item)
     {
         return item != null ? item.name : string.Empty;
     }
@@ -167,12 +167,12 @@ public class ItemDeEquipamento : ScriptableObject
     /// Fica aqui, e nao no rotulo do chao, porque o HUD e a tela de
     /// inventario do Rogger vao precisar da mesma cor.
     /// </summary>
-    public static Color CorDaRaridade(Raridade raridade)
+    public static Color CorDaRaridade(Rarity raridade)
     {
         switch (raridade)
         {
-            case Raridade.Magico: return new Color(0.45f, 0.6f, 1f);
-            case Raridade.Raro: return new Color(1f, 0.9f, 0.25f);
+            case Rarity.Magico: return new Color(0.45f, 0.6f, 1f);
+            case Rarity.Raro: return new Color(1f, 0.9f, 0.25f);
             default: return Color.white;
         }
     }

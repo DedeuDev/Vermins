@@ -18,7 +18,7 @@ using UnityEngine;
 /// lanca passa o dano e o dono, e nada aqui dentro sabe quem e jogador.
 /// </summary>
 [DisallowMultipleComponent]
-public class Projetil : MonoBehaviour
+public class Projectile : MonoBehaviour
 {
     [Header("Voo")]
     [Tooltip("Metros por segundo. Com 18 a bola cruza os 9 m de alcance " +

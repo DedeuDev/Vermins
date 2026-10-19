@@ -14,8 +14,8 @@ public class BossStats : MonoBehaviour
 
     void Awake()
     {
-        if (GetComponent<VidaDoBoss>() == null)
-            gameObject.AddComponent<VidaDoBoss>();
+        if (GetComponent<BossHealth>() == null)
+            gameObject.AddComponent<BossHealth>();
     }
 
     void Start()

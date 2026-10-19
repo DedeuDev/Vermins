@@ -12,7 +12,7 @@ using UnityEngine;
 /// no meio do impacto e o impacto terminar despausaria o menu.
 /// </summary>
 [RequireComponent(typeof(PlayerCombat))]
-public class ImpactoDoGolpe : MonoBehaviour
+public class HitImpact : MonoBehaviour
 {
     [Header("Pausa no impacto")]
     [Tooltip("Quanto tempo o jogador e o alvo ficam congelados no acerto. " +

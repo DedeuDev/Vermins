@@ -19,12 +19,12 @@ using UnityEngine.SceneManagement;
 /// So quem chama o Guardar e a passagem entre cenas. Morrer, comecar
 /// jogo novo e carregar o save nao passam por aqui de proposito: quem
 /// morre renasce do zero, e o load do save aplica o que esta no arquivo.
-/// A excecao e o XP da morte, que o NivelDoPersonagem cuida sozinho.
+/// A excecao e o XP da morte, que o CharacterLevel cuida sozinho.
 ///
 /// O equipamento vai como referencia ao asset, e nao pelo nome como no
 /// save: a memoria estatica nao sai do jogo, entao nao precisa virar texto.
 /// </summary>
-public static class EstadoEntreCenas
+public static class CrossSceneState
 {
     private static bool temEstado;
     private static float vida;
@@ -33,9 +33,9 @@ public static class EstadoEntreCenas
     private static int ouro;
     private static int joias;
     private static int valorDasJoias;
-    private static ItemDeEquipamento arma;
-    private static ItemDeEquipamento armadura;
-    private static ItemDeEquipamento anel;
+    private static EquipmentItem arma;
+    private static EquipmentItem armadura;
+    private static EquipmentItem anel;
 
     // Campo estatico nao zera sozinho quando o editor entra em Play sem
     // recarregar o dominio, e a inscricao no sceneLoaded dobraria. Por
@@ -75,8 +75,8 @@ public static class EstadoEntreCenas
         var cinto = player.GetComponent<PotionBelt>();
         var carteira = player.GetComponent<GoldWallet>();
         var bolsa = player.GetComponent<JewelPouch>();
-        var nivel = player.GetComponent<NivelDoPersonagem>();
-        var equipamento = player.GetComponent<EquipamentoDoPersonagem>();
+        var nivel = player.GetComponent<CharacterLevel>();
+        var equipamento = player.GetComponent<CharacterEquipment>();
 
         vida = saude.Current;
         xp = nivel != null ? nivel.Xp : 0;
@@ -84,9 +84,9 @@ public static class EstadoEntreCenas
         ouro = carteira != null ? carteira.Amount : 0;
         joias = bolsa != null ? bolsa.Count : 0;
         valorDasJoias = bolsa != null ? bolsa.TotalValue : 0;
-        arma = equipamento != null ? equipamento.NoSlot(SlotDeEquipamento.Arma) : null;
-        armadura = equipamento != null ? equipamento.NoSlot(SlotDeEquipamento.Armadura) : null;
-        anel = equipamento != null ? equipamento.NoSlot(SlotDeEquipamento.Anel) : null;
+        arma = equipamento != null ? equipamento.NoSlot(EquipmentSlot.Arma) : null;
+        armadura = equipamento != null ? equipamento.NoSlot(EquipmentSlot.Armadura) : null;
+        anel = equipamento != null ? equipamento.NoSlot(EquipmentSlot.Anel) : null;
 
         temEstado = true;
     }
@@ -116,7 +116,7 @@ public static class EstadoEntreCenas
     }
 
     // O sceneLoaded chega depois dos Awake e antes dos Start. O
-    // AtributosDoPersonagem aplica a build no Start e enche a vida, entao
+    // CharacterAttributes aplica a build no Start e enche a vida, entao
     // se eu devolvesse aqui mesmo ele passaria por cima. Espero um frame.
     private static IEnumerator Devolver(GameObject player, Health saude)
     {
@@ -128,7 +128,7 @@ public static class EstadoEntreCenas
         // O XP volta antes da vida. O Revive corta a vida no teto, e o
         // teto depende do nivel: com o nivel 1 ainda valendo, os 140 de
         // vida de um nivel 6 voltariam 100.
-        var nivel = player.GetComponent<NivelDoPersonagem>();
+        var nivel = player.GetComponent<CharacterLevel>();
 
         if (nivel != null)
             nivel.Restaurar(xp);
@@ -136,7 +136,7 @@ public static class EstadoEntreCenas
         // O equipamento tambem volta antes da vida, pelo mesmo motivo: a
         // Vitalidade do item sobe o teto. Com uma armadura de V+3, a vida
         // acima do teto sem ela seria cortada.
-        var equipamento = player.GetComponent<EquipamentoDoPersonagem>();
+        var equipamento = player.GetComponent<CharacterEquipment>();
 
         if (equipamento != null)
             equipamento.Restaurar(arma, armadura, anel);

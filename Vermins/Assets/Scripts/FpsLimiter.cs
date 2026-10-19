@@ -50,7 +50,7 @@ using UnityEngine.LowLevel;
 /// Fica numa classe estatica, sem objeto em cena, pra valer do menu em
 /// diante sem eu ter que por componente em cada cena.
 /// </summary>
-public static class LimiteDeFps
+public static class FpsLimiter
 {
     // Zero acompanha o monitor. Qualquer outro numero vira teto fixo,
     // pra quem quiser travar em 60 de proposito.
@@ -289,7 +289,7 @@ public static class LimiteDeFps
 
         var espera = new PlayerLoopSystem
         {
-            type = typeof(LimiteDeFps),
+            type = typeof(FpsLimiter),
             updateDelegate = Esperar
         };
 
@@ -435,7 +435,7 @@ public static class LimiteDeFps
 
         foreach (PlayerLoopSystem filho in sistema.subSystemList)
         {
-            if (filho.type == typeof(LimiteDeFps))
+            if (filho.type == typeof(FpsLimiter))
                 continue;
 
             PlayerLoopSystem copia = filho;

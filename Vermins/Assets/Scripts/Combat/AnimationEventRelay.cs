@@ -20,7 +20,7 @@ using UnityEngine;
 /// ataque, senao um dos dois golpes sai sem bola.
 /// </summary>
 [DisallowMultipleComponent]
-public class EventoDeAnimacao : MonoBehaviour
+public class AnimationEventRelay : MonoBehaviour
 {
     private PlayerCombat combate;
 

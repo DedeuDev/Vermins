@@ -36,7 +36,7 @@ public class PlayerCombat : MonoBehaviour
     [Header("Ataque")]
     [Tooltip("SO VALE COM PROJETIL (magia). No corpo a corpo quem manda e o " +
              "alcanceDaArma, la embaixo. E a build sobrescreve este numero " +
-             "no Start, pelo AtributosDoPersonagem - mexer aqui na cena so " +
+             "no Start, pelo CharacterAttributes - mexer aqui na cena so " +
              "tem efeito sem build ligada. " +
              "Distancia de centro a centro. Era 2, de corpo a corpo, e " +
              "subiu pra 9 porque o jogador lanca magia e nao bate de " +
@@ -114,7 +114,7 @@ public class PlayerCombat : MonoBehaviour
     [Header("Magia")]
     [Tooltip("A bola que sai da mao. Vazio = corpo a corpo: o dano sai " +
              "no evento AcertarGolpe e o alcance passa a ser o da arma.")]
-    [SerializeField] private Projetil projetil;
+    [SerializeField] private Projectile projetil;
 
     [Tooltip("Contra o que testar se a visao esta limpa. Deixei so o " +
              "Obstaculo porque no blockout as 50 paredes estao nele e o " +
@@ -434,7 +434,7 @@ public class PlayerCombat : MonoBehaviour
 
     /// <summary>
     /// Faz a bola nascer. Quem chama e o Animation Event do clipe de
-    /// magia, atraves do EventoDeAnimacao que mora no modelo - o Mecanim
+    /// magia, atraves do AnimationEventRelay que mora no modelo - o Mecanim
     /// so alcanca componente que esteja no mesmo objeto do Animator.
     ///
     /// A mira e calculada AGORA e nao no comeco do golpe. Ou seja: a
@@ -474,7 +474,7 @@ public class PlayerCombat : MonoBehaviour
             ? alvoDoCast.transform.position
             : origem + transform.forward;
 
-        Projetil bola = Instantiate(projetil, origem, Quaternion.identity);
+        Projectile bola = Instantiate(projetil, origem, Quaternion.identity);
         bola.Lancar(mira - origem, weapon.Damage, gameObject);
     }
 

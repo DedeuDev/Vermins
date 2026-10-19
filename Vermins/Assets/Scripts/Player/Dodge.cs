@@ -20,7 +20,7 @@ using UnityEngine.AI;
 [RequireComponent(typeof(NavMeshAgent))]
 [RequireComponent(typeof(PlayerMotor))]
 [RequireComponent(typeof(Health))]
-public class Esquiva : MonoBehaviour
+public class Dodge : MonoBehaviour
 {
     [Tooltip("Quanto o rolamento anda, em metros, se nada estiver no " +
              "caminho.")]
@@ -116,7 +116,7 @@ public class Esquiva : MonoBehaviour
             ? Vector3.Distance(transform.position, hit.position)
             : distancia;
 
-        // Esquiva corta tudo: o golpe no meio, o alvo, a ida ate o NPC e o
+        // Dodge corta tudo: o golpe no meio, o alvo, a ida ate o NPC e o
         // caminho que o agente estava fazendo.
         if (combat != null)
         {

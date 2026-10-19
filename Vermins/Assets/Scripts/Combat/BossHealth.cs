@@ -15,7 +15,7 @@ using UnityEngine;
 /// </summary>
 [RequireComponent(typeof(Health))]
 [RequireComponent(typeof(BossStats))]
-public class VidaDoBoss : MonoBehaviour
+public class BossHealth : MonoBehaviour
 {
     private Health health;
     private BossStats stats;

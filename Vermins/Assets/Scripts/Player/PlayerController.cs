@@ -50,7 +50,7 @@ public class PlayerController : MonoBehaviour
     private PlayerCombat combat;
     private PotionBelt belt;
     private PlayerInteractor interactor;
-    private Esquiva esquiva;
+    private Dodge esquiva;
 
     /// <summary>
     /// O que o clique decidiu quando o botao desceu. Segurar o botao
@@ -91,7 +91,7 @@ public class PlayerController : MonoBehaviour
         combat = GetComponent<PlayerCombat>();
         belt = GetComponent<PotionBelt>();
         interactor = GetComponent<PlayerInteractor>();
-        esquiva = GetComponent<Esquiva>();
+        esquiva = GetComponent<Dodge>();
         input = new InputSystem_Actions();
 
         if (viewCamera == null)
@@ -152,7 +152,7 @@ public class PlayerController : MonoBehaviour
         if (viewCamera == null)
             return;
 
-        // Esquiva vai pro lado do mouse, esteja ele no chao, num inimigo
+        // Dodge vai pro lado do mouse, esteja ele no chao, num inimigo
         // ou em cima da UI - e tecla, nao clique.
         if (esquiva != null)
             TentarEsquivaGuardada();
@@ -252,7 +252,7 @@ public class PlayerController : MonoBehaviour
     }
 
     /// <summary>
-    /// Esquiva e tecla: vai pro lado do mouse, esteja ele no chao, num
+    /// Dodge e tecla: vai pro lado do mouse, esteja ele no chao, num
     /// inimigo ou em cima da UI. Apertada na recarga, fica guardada pela
     /// janelaDaEsquiva e sai sozinha quando der, pro lado em que o mouse
     /// estava no aperto.
@@ -283,7 +283,7 @@ public class PlayerController : MonoBehaviour
 
     /// <summary>
     /// O que um clique faria agora, sem dar ordem nenhuma. O
-    /// CursorContextual usa isto pra trocar o cursor. Passa pelos mesmos
+    /// ContextualCursor usa isto pra trocar o cursor. Passa pelos mesmos
     /// testes do DecidirOrdem e na mesma ordem, entao o cursor nunca
     /// promete uma coisa e o clique faz outra.
     /// </summary>

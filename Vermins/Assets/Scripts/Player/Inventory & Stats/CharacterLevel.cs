@@ -18,14 +18,14 @@ using UnityEngine;
 /// numero.
 ///
 /// Este script nao mexe em vida nem em dano. Quem aplica o bonus e o
-/// AtributosDoPersonagem, junto com a build - ver la o porque.
+/// CharacterAttributes, junto com a build - ver la o porque.
 ///
 /// So o corpo a corpo da XP: a magia nao dispara o OnGolpeAcertou. Hoje
 /// isso nao pesa porque o PlayerMagia.prefab esta guardado.
 /// </summary>
 [DisallowMultipleComponent]
 [RequireComponent(typeof(PlayerCombat))]
-public class NivelDoPersonagem : MonoBehaviour
+public class CharacterLevel : MonoBehaviour
 {
     [Header("Curva")]
     [Tooltip("XP pra passar do nivel 1 pro 2. Do nivel n pro n+1 custa " +
@@ -148,7 +148,7 @@ public class NivelDoPersonagem : MonoBehaviour
         // cena, e perco so o que ganhei nesta tentativa.
         //
         // Faco aqui no Awake de proposito. Todo Awake termina antes do
-        // Start do AtributosDoPersonagem, entao a build ja aplica o nivel
+        // Start do CharacterAttributes, entao a build ja aplica o nivel
         // certo e enche a vida dele, sem precisar de evento.
         if (renascer)
         {
@@ -297,7 +297,7 @@ public class NivelDoPersonagem : MonoBehaviour
     }
 
     /// <summary>
-    /// Monto o texto por codigo, igual o NumerosDeDano, pra o aviso nao
+    /// Monto o texto por codigo, igual o DamageNumbers, pra o aviso nao
     /// precisar de prefab nem de Canvas. Fica fora do Player e nao como
     /// filho: o Player gira pra todo lado no combate e o texto giraria
     /// junto. Sigo a posicao dele no Update.
@@ -341,7 +341,7 @@ public class NivelDoPersonagem : MonoBehaviour
 
     private void DesenharAviso(float t)
     {
-        // A mesma curva do NumerosDeDano: sobe rapido e assenta, nasce
+        // A mesma curva do DamageNumbers: sobe rapido e assenta, nasce
         // grande e encolhe no primeiro quinto do tempo, e so apaga na
         // segunda metade, pra dar tempo de ler.
         float subiu = 1f - (1f - t) * (1f - t);

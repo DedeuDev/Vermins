@@ -191,7 +191,7 @@ public static class PlayerAnimatorSetup
     /// <summary>
     /// Multiplicador de velocidade da esquiva. O rolamento do Mixamo dura
     /// 1,63 s, longo demais pra desviar de golpe, e quem decide quanto a
-    /// esquiva dura e o componente Esquiva. Entao, igual ao golpe, a
+    /// esquiva dura e o componente Dodge. Entao, igual ao golpe, a
     /// velocidade vem por parametro e o PlayerAnimator calcula.
     /// </summary>
     public const string ParamVelEsquiva = "VelEsquiva";

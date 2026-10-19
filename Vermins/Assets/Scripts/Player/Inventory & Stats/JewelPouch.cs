@@ -6,7 +6,7 @@ using UnityEngine;
 /// Joia nao e ouro com outro desenho: e loot pra vender. A secao 4.4 do
 /// GDR diz que a loja do hub compra "loot nao utilizado", e isso e o que
 /// transforma exploracao em preparacao. Entao a joia fica guardada aqui
-/// com o valor dela, e so vira ouro quando a LojaDoHub compra.
+/// com o valor dela, e so vira ouro quando a HubShop compra.
 ///
 /// Guardo a quantidade e o valor somado, e nao a lista de joias, porque
 /// hoje toda joia e igual e so muda o preco. Quando existir tipo de joia

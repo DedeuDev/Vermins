@@ -9,12 +9,12 @@ using UnityEngine;
 /// vermelho no pe, que pulsa e segue ele ate morrer ou o jogador
 /// desistir.
 ///
-/// O inimigo sob o mouse vem do CursorContextual, que ja faz os raios do
+/// O inimigo sob o mouse vem do ContextualCursor, que ja faz os raios do
 /// clique. Rodo no LateUpdate pra ler o que ele achou neste frame.
 /// </summary>
-[RequireComponent(typeof(CursorContextual))]
+[RequireComponent(typeof(ContextualCursor))]
 [RequireComponent(typeof(PlayerCombat))]
-public class DestaqueDeAlvo : MonoBehaviour
+public class TargetHighlight : MonoBehaviour
 {
     [Header("Contorno no inimigo sob o mouse")]
     [Tooltip("Material com o shader Vermins/Contorno.")]
@@ -49,7 +49,7 @@ public class DestaqueDeAlvo : MonoBehaviour
     [Tooltip("Folga acima do chao pra o anel nao piscar dentro dele.")]
     [SerializeField] private float alturaAcimaDoChao = 0.03f;
 
-    private CursorContextual cursor;
+    private ContextualCursor cursor;
     private PlayerCombat combat;
 
     // Quem esta com contorno agora, e os materiais que cada renderer dele
@@ -69,7 +69,7 @@ public class DestaqueDeAlvo : MonoBehaviour
 
     private void Awake()
     {
-        cursor = GetComponent<CursorContextual>();
+        cursor = GetComponent<ContextualCursor>();
         combat = GetComponent<PlayerCombat>();
 
         if (contorno != null)
@@ -78,7 +78,7 @@ public class DestaqueDeAlvo : MonoBehaviour
             contornoDeItem.SetColor("_CorDoContorno", corDoContornoDeItem);
         }
 
-        // Mesma montagem do MarcadorDeDestino: fora do Player, deitado no
+        // Mesma montagem do MoveMarker: fora do Player, deitado no
         // chao com o alinhamento TransformZ.
         var objeto = new GameObject("AnelDoAlvo");
         objeto.transform.rotation = Quaternion.Euler(90f, 0f, 0f);

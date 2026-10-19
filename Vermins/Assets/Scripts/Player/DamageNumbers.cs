@@ -15,7 +15,7 @@ using UnityEngine;
 /// Se todos estiverem ocupados, o mais velho e reciclado.
 /// </summary>
 [RequireComponent(typeof(PlayerCombat))]
-public class NumerosDeDano : MonoBehaviour
+public class DamageNumbers : MonoBehaviour
 {
     [SerializeField] private Color corNormal = new Color(1f, 0.97f, 0.9f, 1f);
     [SerializeField] private Color corDaMorte = new Color(1f, 0.6f, 0.15f, 1f);
@@ -69,7 +69,7 @@ public class NumerosDeDano : MonoBehaviour
     {
         combat = GetComponent<PlayerCombat>();
 
-        raiz = new GameObject("NumerosDeDano").transform;
+        raiz = new GameObject("DamageNumbers").transform;
 
         for (int i = 0; i < quantosTextos; i++)
             numeros.Add(CriarNumero(i));
