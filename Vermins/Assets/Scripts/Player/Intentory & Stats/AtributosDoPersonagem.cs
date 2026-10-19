@@ -18,6 +18,11 @@ using UnityEngine;
 /// Build e nivel mexem nos mesmos dois numeros, entao quem escreve tem
 /// que ser um so: com dois scripts escrevendo, o resultado dependeria de
 /// qual chegou por ultimo.
+///
+/// O equipamento entra pelo mesmo motivo. A conta e (build + pontos do
+/// equipamento) x bonus do nivel: o equipamento soma no ponto, antes do
+/// nivel, entao um ponto de anel no nivel 10 vale o mesmo que um ponto
+/// de build no nivel 10.
 /// </summary>
 [DisallowMultipleComponent]
 public class AtributosDoPersonagem : MonoBehaviour
@@ -37,23 +42,33 @@ public class AtributosDoPersonagem : MonoBehaviour
     // bonus fica em 1.
     private NivelDoPersonagem nivel;
 
+    // Opcional pelo mesmo motivo: sem ele, os pontos extras ficam em zero.
+    private EquipamentoDoPersonagem equipamento;
+
     public AtributosDeBuild Build => build;
 
     private void Awake()
     {
         nivel = GetComponent<NivelDoPersonagem>();
+        equipamento = GetComponent<EquipamentoDoPersonagem>();
     }
 
     private void OnEnable()
     {
         if (nivel != null)
             nivel.OnNivelMudou += AoMudarDeNivel;
+
+        if (equipamento != null)
+            equipamento.OnEquipamentoMudou += AoMudarDeEquipamento;
     }
 
     private void OnDisable()
     {
         if (nivel != null)
             nivel.OnNivelMudou -= AoMudarDeNivel;
+
+        if (equipamento != null)
+            equipamento.OnEquipamentoMudou -= AoMudarDeEquipamento;
     }
 
     /// <summary>
@@ -87,6 +102,16 @@ public class AtributosDoPersonagem : MonoBehaviour
         Aplicar(subiuJogando);
     }
 
+    /// <summary>
+    /// Trocar de equipamento nunca enche a vida: o teto muda e a vida
+    /// atual fica onde estava. Se enchesse, tirar e por um anel no meio
+    /// da luta viraria cura infinita.
+    /// </summary>
+    private void AoMudarDeEquipamento()
+    {
+        Aplicar(false);
+    }
+
     private void Aplicar(bool encherAVida)
     {
         if (build == null)
@@ -114,18 +139,19 @@ public class AtributosDoPersonagem : MonoBehaviour
         // e multiplicar em cima faria os 10% por nivel virarem composto.
         // No nivel 10 seriam +136% em vez de +90%.
         float bonus = nivel != null ? nivel.Multiplicador : 1f;
+        PontosExtras extra = equipamento != null ? equipamento.PontosSomados : default;
 
         if (vida != null)
-            vida.DefinirVidaMaxima(build.VidaMaxima * bonus, encherAVida);
+            vida.DefinirVidaMaxima(build.VidaMaximaCom(extra.Vitalidade) * bonus, encherAVida);
 
         if (arma != null)
-            arma.Damage = build.Dano * bonus;
+            arma.Damage = build.DanoCom(extra.Poder) * bonus;
 
         // O PlayerCombat so existe no jogador. Um inimigo pode usar este
         // mesmo componente pra vida e dano sem ter os outros dois.
         if (combate != null)
         {
-            combate.AttackCooldown = build.Cooldown;
+            combate.AttackCooldown = build.CooldownCom(extra.Celeridade);
             combate.AttackRange = build.AlcanceEmMetros;
         }
 
