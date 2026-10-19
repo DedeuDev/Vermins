@@ -67,6 +67,11 @@ public class PlayerAnimator : MonoBehaviour
              "no gesto enquanto o corpo ja anda.")]
     [SerializeField] private float corteDoGolpe = 0.1f;
 
+    [Tooltip("Segundos do blend quando o jogador sai andando no fim do " +
+             "rolamento. Sem isto o clipe esperava o exit time de 85% e " +
+             "medi 240 ms do corpo correndo na pose de levantar.")]
+    [SerializeField] private float rollCutFade = 0.1f;
+
     private static readonly int SpeedId = Animator.StringToHash("Speed");
     private static readonly int VelXId = Animator.StringToHash("VelX");
     private static readonly int VelZId = Animator.StringToHash("VelZ");
@@ -87,6 +92,10 @@ public class PlayerAnimator : MonoBehaviour
     // EstadoLocomocao do PlayerAnimatorSetup, que e quem cria os dois.
     private static readonly int EstadoAtaqueId = Animator.StringToHash("Ataque");
     private static readonly int EstadoLocomocaoId = Animator.StringToHash("Locomocao");
+
+    // O estado do rolamento. O nome fica em portugues porque e o do
+    // controller.
+    private static readonly int DodgeStateId = Animator.StringToHash("Esquiva");
 
     // O estado parado da camada da reacao. Mesmo nome do EstadoVazio do
     // PlayerAnimatorSetup.
@@ -531,6 +540,36 @@ public class PlayerAnimator : MonoBehaviour
     }
 
     /// <summary>
+    /// Corta o fim do rolamento quando o jogador ja voltou a mandar e o
+    /// corpo esta andando. Parado, deixo o clipe terminar de levantar
+    /// sozinho, que e o caso em que o levantar aparece.
+    ///
+    /// CrossFade no codigo pelo mesmo motivo do CortarGolpe: uma
+    /// transicao com condicao de Speed no controller dependeria do
+    /// moduloSuave, que vem do zero e so passaria do corte depois.
+    /// Devolve true no frame em que cortou.
+    /// </summary>
+    private bool LeaveRollWhenMoving(Vector3 velocidade)
+    {
+        if (esquiva == null || esquiva.EmEsquiva || velocidade.sqrMagnitude <= 0f)
+            return false;
+
+        // So com ordem de andar. Sem ela o agente ainda desliza 1 ou 2
+        // frames no embalo que o Dodge entrega, e isso nao e sair andando.
+        if (!agent.hasPath && !agent.pathPending)
+            return false;
+
+        if (animator.IsInTransition(0))
+            return false;
+
+        if (animator.GetCurrentAnimatorStateInfo(0).shortNameHash != DodgeStateId)
+            return false;
+
+        animator.CrossFadeInFixedTime(EstadoLocomocaoId, rollCutFade, 0);
+        return true;
+    }
+
+    /// <summary>
     /// Se o corpo esta no golpe ou entrando nele. Saindo dele pra
     /// locomocao (passou dos 80%) ou pra morte nao conta: o gesto que
     /// importa ja acabou.
@@ -558,6 +597,16 @@ public class PlayerAnimator : MonoBehaviour
 
         if (velocidade.sqrMagnitude > 0f)
             direcaoMundo = velocidade.normalized;
+
+        // Saindo do rolamento ja na corrida, o blend comeca na velocidade
+        // de verdade. O agente ficou em zero o rolamento inteiro (o Move
+        // nao mexe no velocity), e subir de zero mostraria um passo de
+        // parado no meio da corrida.
+        if (LeaveRollWhenMoving(velocidade))
+        {
+            moduloSuave = velocidade.magnitude;
+            aceleracaoSuave = 0f;
+        }
 
         moduloSuave = Mathf.SmoothDamp(
             moduloSuave,

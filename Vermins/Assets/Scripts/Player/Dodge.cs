@@ -39,11 +39,6 @@ public class Dodge : MonoBehaviour
              "e o PlayerAnimator acelera ele pra caber aqui.")]
     [SerializeField] private float duracaoDaAnimacao = 0.8f;
 
-    [Tooltip("Quando o jogador volta a mandar no personagem, contado do " +
-             "aperto. Um pouco depois do fim do avanco: o resto do clipe e " +
-             "ele levantando, e ai ja pode sair andando.")]
-    [SerializeField] private float devolveOControle = 0.55f;
-
     [Tooltip("Tempo minimo entre uma esquiva e a proxima, contado do " +
              "aperto.")]
     [SerializeField] private float recarga = 1f;
@@ -59,6 +54,17 @@ public class Dodge : MonoBehaviour
     private float distanciaLivre;
     private float andado;
 
+    // Velocidade com que o corpo entra e sai do rolamento, na direcao
+    // dele. Correndo e 3,2; parado ou rolando pra tras e zero.
+    private float entrySpeed;
+    private float exitSpeed;
+
+    // Distancia andada no agachar, antes da curva comecar.
+    private float crouchDistance;
+
+    // Se o avanco ainda nao entregou o corpo de volta pro agente.
+    private bool advancing;
+
     /// <summary>
     /// Disparado no aperto, com quanto tempo a animacao tem que durar. O
     /// PlayerAnimator escuta pra tocar o rolamento na velocidade certa.
@@ -68,8 +74,11 @@ public class Dodge : MonoBehaviour
     /// <summary>
     /// Verdadeiro enquanto o jogador nao manda no personagem. O
     /// PlayerController ignora clique nesse tempo.
+    ///
+    /// Acaba junto com o avanco. Antes voltava 0,05 s depois, e medi o
+    /// corpo parado 4 frames esperando o clique segurado valer.
     /// </summary>
-    public bool EmEsquiva => Time.time < inicio + devolveOControle;
+    public bool EmEsquiva => Time.time < inicio + inicioDoAvanco + duracaoDoAvanco;
 
     public bool Pronta => Time.time >= inicio + recarga;
 
@@ -89,6 +98,7 @@ public class Dodge : MonoBehaviour
         health.DesligarInvulnerabilidade(this);
 
         inicio = -100f;
+        advancing = false;
     }
 
     /// <summary>
@@ -110,10 +120,12 @@ public class Dodge : MonoBehaviour
         direcao = dir.normalized;
 
         // Corto o destino no NavMesh antes de sair, pra o rolamento parar
-        // na parede e nao escorregar por ela.
+        // na parede e nao escorregar por ela. Meco so no plano: o pivo fica
+        // 0,92 m acima do NavMesh, e em 3D essa altura entrava na conta.
+        // Parede a 0,5 m: planejava 1,04 m e batia na borda a 3,5 m/s.
         Vector3 fim = transform.position + direcao * distancia;
         distanciaLivre = NavMesh.Raycast(transform.position, fim, out NavMeshHit hit, NavMesh.AllAreas)
-            ? Vector3.Distance(transform.position, hit.position)
+            ? Vector3.ProjectOnPlane(hit.position - transform.position, Vector3.up).magnitude
             : distancia;
 
         // Dodge corta tudo: o golpe no meio, o alvo, a ida ate o NPC e o
@@ -127,7 +139,23 @@ public class Dodge : MonoBehaviour
         if (interactor != null)
             interactor.ClearTarget();
 
+        // O embalo que o corpo traz, so na direcao do rolamento. Leio antes
+        // do Stop. Rolar pra tras de uma corrida da zero: ai ele sai do
+        // agachado como se estivesse parado.
+        entrySpeed = Mathf.Clamp(Vector3.Dot(agent.velocity, direcao), 0f, agent.speed);
+
+        // Contra a parede, o corpo chega parado. Sem parede, ele sai com a
+        // mesma velocidade com que entrou, e quem rolou correndo continua
+        // correndo.
+        exitSpeed = distanciaLivre < distancia ? 0f : entrySpeed;
+
+        crouchDistance = Mathf.Min(entrySpeed * inicioDoAvanco, distanciaLivre);
+
         motor.Stop();
+
+        // O Stop so freia: o agente continuava andando sozinho por 4
+        // frames (3,2, 2,1 e 1,0 m/s) por cima do Move. Zero na hora.
+        agent.velocity = Vector3.zero;
 
         // Vira de uma vez. O giro amortecido do PlayerMotor leva quase
         // 0,1 s, e nesse tempo o corpo ja estaria rolando de lado.
@@ -135,6 +163,7 @@ public class Dodge : MonoBehaviour
 
         inicio = Time.time;
         andado = 0f;
+        advancing = true;
 
         // Ligo em meu nome. O Health so desliga quando nenhum dono quiser
         // mais, entao o fim do rolamento nao apaga a invulnerabilidade de
@@ -147,25 +176,70 @@ public class Dodge : MonoBehaviour
 
     private void Update()
     {
-        float t = Time.time - inicio;
+        if (!advancing)
+            return;
 
-        if (t > inicioDoAvanco + duracaoDoAvanco)
+        if (!agent.isOnNavMesh)
         {
-            // Invulneravel so enquanto anda. Levantando ele ja pode levar
-            // golpe: senao dava pra ficar rolando e nunca apanhar.
+            advancing = false;
             health.DesligarInvulnerabilidade(this);
             return;
         }
 
-        if (t < inicioDoAvanco || !agent.isOnNavMesh)
-            return;
-
-        // Rapido no meio e devagar nas pontas (smoothstep), que e como o
-        // corpo do clipe se mexe: sai do agachado, voa e freia rolando.
-        float p = Mathf.Clamp01((t - inicioDoAvanco) / duracaoDoAvanco);
-        float alvo = p * p * (3f - 2f * p) * distanciaLivre;
+        float t = Time.time - inicio;
+        float alvo = DistanciaNoTempo(t);
 
         agent.Move(direcao * (alvo - andado));
         andado = alvo;
+
+        if (t < inicioDoAvanco + duracaoDoAvanco)
+            return;
+
+        // Fim do avanco. Entrego o embalo pro agente: se o clique ainda
+        // estiver segurado, ele segue a 3,2 em vez de arrancar do zero; se
+        // nao, o proprio agente freia. Medi 0,06 s e uns 10 cm de deslize.
+        advancing = false;
+        agent.velocity = direcao * exitSpeed;
+
+        // Invulneravel so enquanto anda. Levantando ele ja pode levar
+        // golpe: senao dava pra ficar rolando e nunca apanhar.
+        health.DesligarInvulnerabilidade(this);
+    }
+
+    /// <summary>
+    /// Quanto o corpo ja andou t segundos depois do aperto.
+    ///
+    /// No agachar ele segue no embalo que trouxe. Depois e uma curva
+    /// cubica (Hermite) que sai na velocidade de entrada e chega na de
+    /// saida. Parado, as duas sao zero e ela vira o smoothstep de antes:
+    /// sai do agachado, voa e freia rolando. Correndo, o smoothstep
+    /// derrubava o corpo de 3,2 pra 0 duas vezes, e medi 192 ms por
+    /// rolamento abaixo da velocidade de corrida.
+    ///
+    /// No ultimo frame o tempo passa do fim e eu fecho em 1: antes o resto
+    /// da curva se perdia se o frame pulasse o fim.
+    /// </summary>
+    private float DistanciaNoTempo(float t)
+    {
+        if (t < inicioDoAvanco)
+            return Mathf.Min(entrySpeed * t, crouchDistance);
+
+        float resto = distanciaLivre - crouchDistance;
+        float p = Mathf.Clamp01((t - inicioDoAvanco) / duracaoDoAvanco);
+
+        // Velocidades em metros por "curva inteira". O teto de 2x o resto
+        // garante que a curva nunca volta pra tras, que e o que acontece
+        // com rolamento curto e embalo alto (parede a 0,5 m correndo).
+        float m0 = Mathf.Min(entrySpeed * duracaoDoAvanco, 2f * resto);
+        float m1 = Mathf.Min(exitSpeed * duracaoDoAvanco, 2f * resto);
+
+        float p2 = p * p;
+        float p3 = p2 * p;
+
+        float curva = (p3 - 2f * p2 + p) * m0
+                    + (3f * p2 - 2f * p3) * resto
+                    + (p3 - p2) * m1;
+
+        return crouchDistance + curva;
     }
 }
