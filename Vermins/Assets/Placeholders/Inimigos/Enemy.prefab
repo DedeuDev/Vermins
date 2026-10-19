@@ -224,3 +224,12 @@ MonoBehaviour:
   - prefab: {fileID: 2973204847232773527, guid: 2744e1e7e34a25347b3ebd2994ca7869, type: 3}
     chance: 0.05
   scatterRadius: 0.5
+  chanceDeEquipamento: 0.15
+  prefabDeEquipamento: {fileID: 3727387141899743554, guid: a4514f84043633042a54f6754414859f, type: 3}
+  equipamentos:
+  - {fileID: 11400000, guid: 3148a401e627b374896eeb1071dc18a2, type: 2}
+  - {fileID: 11400000, guid: f5872758c83892046b17bbca36cc115a, type: 2}
+  - {fileID: 11400000, guid: 1cce024ab8b10ca498727d54706cf582, type: 2}
+  pesoComum: 70
+  pesoMagico: 25
+  pesoRaro: 5

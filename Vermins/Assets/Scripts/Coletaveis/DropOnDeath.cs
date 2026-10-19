@@ -11,6 +11,10 @@ using UnityEngine.AI;
 ///
 /// Cada item da lista sorteia sozinho. Quando o ouro existir, ele entra
 /// na lista do lado da pocao, e os dois podem cair na mesma morte.
+///
+/// O equipamento sorteia separado, em duas etapas: primeiro a raridade
+/// pelo peso, depois um item dessa raridade na lista. Assim a chance de
+/// raro nao depende de quantos itens raros existem na lista.
 /// </summary>
 [RequireComponent(typeof(Health))]
 public class DropOnDeath : MonoBehaviour
@@ -29,6 +33,28 @@ public class DropOnDeath : MonoBehaviour
     [Tooltip("Raio em volta do corpo onde os itens caem, pra dois itens " +
              "nao nascerem um dentro do outro.")]
     [SerializeField] private float scatterRadius = 0.5f;
+
+    [Header("Equipamento")]
+    [Tooltip("Chance de cair um equipamento a cada morte, de 0 a 1.")]
+    [Range(0f, 1f)]
+    [SerializeField] private float chanceDeEquipamento = 0.15f;
+
+    [Tooltip("O prefab do item no chao. O item sorteado e passado pra ele.")]
+    [SerializeField] private ItemNoChao prefabDeEquipamento;
+
+    [Tooltip("Os itens que podem cair. A raridade de cada um vem do asset.")]
+    [SerializeField] private ItemDeEquipamento[] equipamentos;
+
+    // Pesos, e nao porcentagens, pra ninguem precisar fechar 100 ao mexer
+    // num so. Com 70, 25 e 5 a soma e 100 e o peso ja e a porcentagem.
+    [Tooltip("Peso do comum no sorteio da raridade.")]
+    [SerializeField, Min(0)] private int pesoComum = 70;
+
+    [Tooltip("Peso do magico no sorteio da raridade.")]
+    [SerializeField, Min(0)] private int pesoMagico = 25;
+
+    [Tooltip("Peso do raro no sorteio da raridade.")]
+    [SerializeField, Min(0)] private int pesoRaro = 5;
 
     private Health health;
 
@@ -64,18 +90,107 @@ public class DropOnDeath : MonoBehaviour
             if (drop.prefab == null || drop.chance <= 0f || Random.value > drop.chance)
                 continue;
 
-            Vector2 desvio = Random.insideUnitCircle * scatterRadius;
-            Vector3 alvo = pe + new Vector3(desvio.x, 0f, desvio.y);
-
-            // Prendo o ponto no navmesh: o desvio pode cair dentro de uma
-            // parede, e pocao fora do navmesh o jogador nao alcanca. Sem
-            // navmesh perto, prefiro nao soltar a soltar onde ninguem pega.
-            if (!NavMesh.SamplePosition(alvo, out NavMeshHit chao, 1f, NavMesh.AllAreas))
+            if (!AcharChao(pe, out Vector3 ponto))
                 continue;
 
             // Sem pai de proposito: o inimigo some 2 s depois de morrer (o
             // destroyDelay do Health) e levaria a pocao junto.
-            Instantiate(drop.prefab, chao.position, Quaternion.identity);
+            Instantiate(drop.prefab, ponto, Quaternion.identity);
         }
+
+        SoltarEquipamento(pe);
+    }
+
+    private void SoltarEquipamento(Vector3 pe)
+    {
+        if (prefabDeEquipamento == null || equipamentos == null || equipamentos.Length == 0)
+            return;
+
+        if (chanceDeEquipamento <= 0f || Random.value > chanceDeEquipamento)
+            return;
+
+        ItemDeEquipamento item = SortearItem(SortearRaridade());
+
+        if (item == null || !AcharChao(pe, out Vector3 ponto))
+            return;
+
+        // O Definir vem antes do Start do Coletavel, que so roda no frame
+        // seguinte, entao o rotulo ja nasce com o nome e a cor do item.
+        ItemNoChao noChao = Instantiate(prefabDeEquipamento, ponto, Quaternion.identity);
+        noChao.Definir(item);
+    }
+
+    private Raridade SortearRaridade()
+    {
+        int total = pesoComum + pesoMagico + pesoRaro;
+
+        if (total <= 0)
+            return Raridade.Comum;
+
+        // O Range de int nao inclui o maximo: sai de 0 a total - 1.
+        int sorteio = Random.Range(0, total);
+
+        if (sorteio < pesoComum)
+            return Raridade.Comum;
+
+        if (sorteio < pesoComum + pesoMagico)
+            return Raridade.Magico;
+
+        return Raridade.Raro;
+    }
+
+    /// <summary>
+    /// Um item da raridade pedida. Sem item dela na lista, desce pra de
+    /// baixo: um raro que nao existe vira magico, e nao "nada". Se nem o
+    /// comum existir, sorteia qualquer um da lista.
+    /// </summary>
+    private ItemDeEquipamento SortearItem(Raridade raridade)
+    {
+        for (int r = (int)raridade; r >= 0; r--)
+        {
+            // Duas voltas na lista, contando e depois escolhendo, pra nao
+            // montar lista nova a cada morte.
+            int quantos = 0;
+            foreach (ItemDeEquipamento item in equipamentos)
+            {
+                if (item != null && (int)item.Raridade == r)
+                    quantos++;
+            }
+
+            if (quantos == 0)
+                continue;
+
+            int escolhido = Random.Range(0, quantos);
+            foreach (ItemDeEquipamento item in equipamentos)
+            {
+                if (item == null || (int)item.Raridade != r)
+                    continue;
+
+                if (escolhido == 0)
+                    return item;
+
+                escolhido--;
+            }
+        }
+
+        return equipamentos[Random.Range(0, equipamentos.Length)];
+    }
+
+    private bool AcharChao(Vector3 pe, out Vector3 ponto)
+    {
+        Vector2 desvio = Random.insideUnitCircle * scatterRadius;
+        Vector3 alvo = pe + new Vector3(desvio.x, 0f, desvio.y);
+
+        // Prendo o ponto no navmesh: o desvio pode cair dentro de uma
+        // parede, e item fora do navmesh o jogador nao alcanca. Sem
+        // navmesh perto, prefiro nao soltar a soltar onde ninguem pega.
+        if (NavMesh.SamplePosition(alvo, out NavMeshHit chao, 1f, NavMesh.AllAreas))
+        {
+            ponto = chao.position;
+            return true;
+        }
+
+        ponto = default;
+        return false;
     }
 }

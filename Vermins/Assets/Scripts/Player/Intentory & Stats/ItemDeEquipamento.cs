@@ -109,6 +109,21 @@ public class ItemDeEquipamento : ScriptableObject
         }
     }
 
+    /// <summary>
+    /// A cor do nome do item: comum branco, magico azul, raro amarelo.
+    /// Fica aqui, e nao no rotulo do chao, porque o HUD e a tela de
+    /// inventario do Rogger vao precisar da mesma cor.
+    /// </summary>
+    public static Color CorDaRaridade(Raridade raridade)
+    {
+        switch (raridade)
+        {
+            case Raridade.Magico: return new Color(0.45f, 0.6f, 1f);
+            case Raridade.Raro: return new Color(1f, 0.9f, 0.25f);
+            default: return Color.white;
+        }
+    }
+
     private void OnValidate()
     {
         int total = poder + celeridade + vitalidade;
