@@ -84,6 +84,22 @@ public class EquipamentoDoPersonagem : MonoBehaviour
         return saiu;
     }
 
+    /// <summary>
+    /// Poe os tres slots de uma vez, vazio incluido. E o que o load do save
+    /// e a troca de cena usam. Dispara um evento so, e so se algo mudou,
+    /// em vez de tres recalculos seguidos.
+    /// </summary>
+    public void Restaurar(ItemDeEquipamento novaArma, ItemDeEquipamento novaArmadura, ItemDeEquipamento novoAnel)
+    {
+        if (arma == novaArma && armadura == novaArmadura && anel == novoAnel)
+            return;
+
+        arma = novaArma;
+        armadura = novaArmadura;
+        anel = novoAnel;
+        OnEquipamentoMudou?.Invoke();
+    }
+
     private void Colocar(SlotDeEquipamento slot, ItemDeEquipamento item)
     {
         switch (slot)

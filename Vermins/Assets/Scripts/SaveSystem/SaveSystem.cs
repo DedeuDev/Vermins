@@ -97,6 +97,16 @@ public class SaveSystem : MonoBehaviour
             data.playerXp = nivel.Xp;
         }
 
+        // Ian: o equipamento vestido, pelo nome do asset.
+        EquipamentoDoPersonagem equipamento = player.GetComponent<EquipamentoDoPersonagem>();
+
+        if (equipamento != null)
+        {
+            data.playerArma = ItemDeEquipamento.NomeNoSave(equipamento.NoSlot(SlotDeEquipamento.Arma));
+            data.playerArmadura = ItemDeEquipamento.NomeNoSave(equipamento.NoSlot(SlotDeEquipamento.Armadura));
+            data.playerAnel = ItemDeEquipamento.NomeNoSave(equipamento.NoSlot(SlotDeEquipamento.Anel));
+        }
+
         string json = JsonUtility.ToJson(data, true);
 
         File.WriteAllText(savePath, json);
@@ -203,6 +213,21 @@ public class SaveSystem : MonoBehaviour
                     if (nivel != null)
                     {
                         nivel.Restaurar(pendingLoadData.playerXp);
+                    }
+
+                    // Ian: o equipamento tambem volta antes da vida: a
+                    // Vitalidade do item sobe o teto, e sem ela a vida
+                    // salva seria cortada. Nome que nao existir mais vira
+                    // slot vazio, com aviso.
+                    EquipamentoDoPersonagem equipamento = player.GetComponent<EquipamentoDoPersonagem>();
+
+                    if (equipamento != null)
+                    {
+                        equipamento.Restaurar(
+                            ItemDeEquipamento.PeloNome(pendingLoadData.playerArma),
+                            ItemDeEquipamento.PeloNome(pendingLoadData.playerArmadura),
+                            ItemDeEquipamento.PeloNome(pendingLoadData.playerAnel)
+                        );
                     }
 
                     Health health = player.GetComponent<Health>();

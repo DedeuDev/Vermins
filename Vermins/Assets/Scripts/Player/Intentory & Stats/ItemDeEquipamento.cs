@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 
 public enum SlotDeEquipamento
@@ -107,6 +108,58 @@ public class ItemDeEquipamento : ScriptableObject
             case Raridade.Raro: return 3;
             default: return 1;
         }
+    }
+
+    // Pasta dentro de um Resources. O save grava o nome do asset, e nao o
+    // asset, porque ScriptableObject nao vai pro JSON. Pus os itens num
+    // Resources em vez de numa lista arrastada no Player: item novo e so
+    // soltar o arquivo na pasta, sem lembrar de ligar nada. O custo e que
+    // renomear um asset faz ele sumir dos saves antigos (o slot volta
+    // vazio, com aviso).
+    private const string PastaNoResources = "Itens";
+
+    private static Dictionary<string, ItemDeEquipamento> porNome;
+
+    // Campo estatico nao zera sozinho quando o editor entra em Play sem
+    // recarregar o dominio. Sem isto, um item criado entre dois Play nao
+    // entraria no dicionario.
+    [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+    private static void Zerar()
+    {
+        porNome = null;
+    }
+
+    /// <summary>
+    /// Acha o item pelo nome do asset, o mesmo que o save grava. Nome vazio
+    /// devolve null (slot vazio). Monta o dicionario na primeira chamada:
+    /// so roda no load, nunca por frame.
+    /// </summary>
+    public static ItemDeEquipamento PeloNome(string nomeDoAsset)
+    {
+        if (string.IsNullOrEmpty(nomeDoAsset))
+            return null;
+
+        if (porNome == null)
+        {
+            porNome = new Dictionary<string, ItemDeEquipamento>();
+
+            foreach (ItemDeEquipamento item in Resources.LoadAll<ItemDeEquipamento>(PastaNoResources))
+                porNome[item.name] = item;
+        }
+
+        if (porNome.TryGetValue(nomeDoAsset, out ItemDeEquipamento achado))
+            return achado;
+
+        Debug.LogWarning(
+            $"Item '{nomeDoAsset}' do save nao existe em Resources/{PastaNoResources}. " +
+            "Foi renomeado ou apagado? O slot fica vazio.");
+        return null;
+    }
+
+    /// <summary>O que o save grava: o nome do asset, ou vazio sem item.</summary>
+    public static string NomeNoSave(ItemDeEquipamento item)
+    {
+        return item != null ? item.name : string.Empty;
     }
 
     /// <summary>
