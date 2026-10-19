@@ -180,7 +180,10 @@ public class BossMonge : MonoBehaviour
         }
 
         // Verifica dano e knockback
-        if (Vector3.Distance(posicaoImpacto, player.position) <= dados.raioImpactoTerremoto)
+        // Ian: medi a distancia so no chao; com a altura do Player (0,95 m) a borda do circulo nao dava dano
+        Vector3 posicaoNoChao = player.position;
+        posicaoNoChao.y = posicaoImpacto.y;
+        if (Vector3.Distance(posicaoImpacto, posicaoNoChao) <= dados.raioImpactoTerremoto)
         {
             Health vidaPlayer = player.GetComponentInParent<Health>();
             if (vidaPlayer != null)
