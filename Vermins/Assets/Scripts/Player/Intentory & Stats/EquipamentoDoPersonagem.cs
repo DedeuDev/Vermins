@@ -13,8 +13,9 @@ using UnityEngine;
 /// Player esta usando. Tambem da pra deixar um item arrastado no prefab,
 /// e ai ele nasce equipado.
 ///
-/// Ainda nao tem como pegar item jogando (isso e o 2.2c). Pra testar,
-/// arrasta um item em "Item de teste" e usa o menu do componente.
+/// Jogando, o item entra pelo ItemNoChao: encostar veste se o slot dele
+/// estiver vazio. Pra testar sem ir atras de drop, arrasta um item em
+/// "Item de teste" e usa o menu do componente.
 /// </summary>
 [DisallowMultipleComponent]
 public class EquipamentoDoPersonagem : MonoBehaviour
@@ -25,8 +26,8 @@ public class EquipamentoDoPersonagem : MonoBehaviour
     [SerializeField] private ItemDeEquipamento anel;
 
     [Header("Teste")]
-    [Tooltip("Item que o menu 'Equipar item de teste' veste. So existe " +
-             "enquanto o Player nao pega item do chao.")]
+    [Tooltip("Item que o menu 'Equipar item de teste' veste, pra testar " +
+             "sem ir atras de drop.")]
     [SerializeField] private ItemDeEquipamento itemDeTeste;
 
     /// <summary>
@@ -53,7 +54,8 @@ public class EquipamentoDoPersonagem : MonoBehaviour
 
     /// <summary>
     /// Veste o item no slot dele e devolve o que estava la, ou null. Quem
-    /// chama decide o que fazer com o que saiu: no 2.2c ele volta pro chao.
+    /// chama decide o que fazer com o que saiu. O ItemNoChao so chama com o
+    /// slot vazio, entao hoje nunca sai nada.
     /// Vestir o que ja esta vestido nao faz nada e nao dispara evento.
     /// </summary>
     public ItemDeEquipamento Equipar(ItemDeEquipamento item)

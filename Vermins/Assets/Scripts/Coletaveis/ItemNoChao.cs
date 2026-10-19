@@ -7,8 +7,9 @@ using UnityEngine;
 /// depois do Instantiate. O rotulo so e montado no Start do Coletavel, um
 /// frame depois, entao o nome e a cor ja estao certos quando ele aparece.
 ///
-/// Por enquanto ninguem pega: o Entregar devolve false e o item fica no
-/// chao. Equipar ao pegar e o 2.2c.
+/// Encostar veste o item se o slot dele estiver vazio. Com o slot
+/// ocupado o item fica no chao: trocar pelo que ja esta vestido e coisa
+/// da tela de inventario do Rogger, que ainda nao existe.
 /// </summary>
 public class ItemNoChao : Coletavel
 {
@@ -30,7 +31,18 @@ public class ItemNoChao : Coletavel
 
     protected override bool Entregar(Collider quemEncostou)
     {
-        // Fica no chao ate o 2.2c ligar o EquipamentoDoPersonagem aqui.
-        return false;
+        // Inimigo passando por cima nao tem equipamento e nao leva.
+        var equipamento = quemEncostou.GetComponentInParent<EquipamentoDoPersonagem>();
+
+        if (item == null || equipamento == null)
+            return false;
+
+        // Nao troco sozinho. Trocar soltaria o item velho aqui mesmo, em
+        // cima do jogador, e ele pegaria de volta na hora ao andar.
+        if (equipamento.NoSlot(item.Slot) != null)
+            return false;
+
+        equipamento.Equipar(item);
+        return true;
     }
 }
