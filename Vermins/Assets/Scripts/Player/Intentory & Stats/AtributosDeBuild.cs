@@ -11,9 +11,9 @@ using UnityEngine;
 ///
 /// E ScriptableObject e nao campo no Player porque assim da pra ter
 /// varias builds prontas lado a lado e trocar de uma pra outra sem
-/// reescrever nada. Hoje quem escolhe e quem arrasta o asset; quando o
-/// inventario do grupo existir, o equipamento passa a somar pontos por
-/// cima destes - que e o que a §4.3 descreve.
+/// reescrever nada. Hoje quem escolhe e quem arrasta o asset. O
+/// equipamento soma pontos por cima destes, que e o que a §4.3 descreve:
+/// as contas "Com" abaixo recebem esses pontos.
 ///
 /// O ORCAMENTO E O QUE FAZ ISSO SER ESCOLHA. Toda build gasta os mesmos
 /// 20 pontos. Sem isso "subir alcance" seria so ficar mais forte, e nao
@@ -85,7 +85,16 @@ public class AtributosDeBuild : ScriptableObject
 
     public int TotalGasto => poder + celeridade + vitalidade + alcance;
 
-    public float Dano => DanoBase + poder * DanoPorPonto;
+    // Sem equipamento. E o numero que serve pra comparar uma build com
+    // a outra.
+    public float Dano => DanoCom(0);
+    public float Cooldown => CooldownCom(0);
+    public float VidaMaxima => VidaMaximaCom(0);
+
+    // As contas "Com" recebem os pontos que o equipamento soma por cima
+    // da build. Somo no ponto, e nao no resultado, pra que um ponto de
+    // anel valha o mesmo que um ponto de build.
+    public float DanoCom(int poderExtra) => DanoBase + (poder + poderExtra) * DanoPorPonto;
 
     /// <summary>
     /// Segundos entre um golpe e o proximo.
@@ -96,10 +105,14 @@ public class AtributosDeBuild : ScriptableObject
     /// vezes por frame. Dividindo, cada ponto rende menos que o
     /// anterior e o numero nunca chega a zero: com celeridade 10 o
     /// cooldown para em 0,9 s.
+    ///
+    /// Com equipamento a celeridade passa de 10, e e ai que dividir
+    /// importa: 10 da build e +9 de tres raros param em 0,62 s.
     /// </summary>
-    public float Cooldown => CooldownBase / (1f + celeridade * CeleridadePorPonto);
+    public float CooldownCom(int celeridadeExtra) =>
+        CooldownBase / (1f + (celeridade + celeridadeExtra) * CeleridadePorPonto);
 
-    public float VidaMaxima => VidaBase + vitalidade * VidaPorPonto;
+    public float VidaMaximaCom(int vitalidadeExtra) => VidaBase + (vitalidade + vitalidadeExtra) * VidaPorPonto;
 
     public float AlcanceEmMetros => AlcanceBase + alcance * AlcancePorPonto;
 

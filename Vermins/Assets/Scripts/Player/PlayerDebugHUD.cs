@@ -3,7 +3,7 @@ using UnityEngine.AI;
 using UnityEngine.InputSystem;
 
 /// <summary>
-/// HUD de debug do jogador: vida, nivel, pocoes, ouro, joias, alvo, velocidade e fps num canto da tela.
+/// HUD de debug do jogador: vida, nivel, pocoes, ouro, joias, equipamento, alvo, velocidade e fps num canto da tela.
 ///
 /// E TEMPORARIO. A UI de verdade e do Rogger - isto aqui existe so pra
 /// gente testar combate enxergando os numeros ate a barra dele ficar
@@ -15,6 +15,10 @@ using UnityEngine.InputSystem;
 /// Tem tambem os controles do fps: vsync, teto ligado ou desligado e o
 /// numero do teto. Sao pra comparar o jogo com e sem limite na mesma sessao; a
 /// escolha nao e salva e volta pro padrao quando o jogo abre de novo.
+///
+/// O F2 abre a loja de debug, um segundo painel a esquerda com botoes
+/// que chamam a LojaDoHub. Serve pra testar a conta da loja antes da
+/// tela do Rogger existir, e sai junto com este HUD.
 ///
 /// So desenha no editor e em Development Build. A classe continua
 /// existindo na build normal de proposito: se eu sumisse com ela
@@ -28,6 +32,10 @@ public class PlayerDebugHUD : MonoBehaviour
     [Tooltip("Liga e desliga o HUD, pra ele nao aparecer em print e video.")]
     [SerializeField] private Key teclaParaEsconder = Key.F1;
 
+    [Tooltip("Abre e fecha a loja de debug. Funciona em qualquer cena, " +
+             "nao so no hub: e pra testar a conta, nao o lugar.")]
+    [SerializeField] private Key teclaDaLoja = Key.F2;
+
     [Header("Icones das linhas")]
     [Tooltip("Os mesmos de Placeholders/Icones. Vazio, a linha ganha um " +
              "quadradinho na cor do rotulo do item no chao.")]
@@ -36,7 +44,8 @@ public class PlayerDebugHUD : MonoBehaviour
     [SerializeField] private Texture2D iconeDaJoia;
 
     /// <summary>
-    /// Se o mouse esta em cima dos controles do teto de fps.
+    /// Se o mouse esta em cima dos controles do teto de fps ou da loja
+    /// de debug.
     ///
     /// O PlayerController pergunta isto antes de transformar o clique em
     /// ordem. O EventSystem nao sabe do OnGUI, entao sem a pergunta o
@@ -59,7 +68,7 @@ public class PlayerDebugHUD : MonoBehaviour
             Vector2 cursor = mouse.position.ReadValue();
             cursor.y = Screen.height - cursor.y;
 
-            return controlesNaTela.Contains(cursor);
+            return controlesNaTela.Contains(cursor) || lojaNaTela.Contains(cursor);
 #else
             return false;
 #endif
@@ -103,6 +112,12 @@ public class PlayerDebugHUD : MonoBehaviour
     // Vazio enquanto o HUD esta escondido.
     private static Rect controlesNaTela;
 
+    // O painel da loja inteiro, em pixels da tela. Ele e todo botao,
+    // entao barra o clique no painel todo. Vazio com a loja fechada.
+    private static Rect lojaNaTela;
+
+    private bool lojaAberta;
+
     private GUIStyle estilo;
     private GUIStyle estiloDoBotao;
     private GUIStyle estiloDoTrilho;
@@ -113,6 +128,8 @@ public class PlayerDebugHUD : MonoBehaviour
     private GoldWallet wallet;
     private JewelPouch pouch;
     private NivelDoPersonagem nivel;
+    private EquipamentoDoPersonagem equipamento;
+    private LojaDoHub loja;
     private PlayerCombat combat;
     private NavMeshAgent agent;
 
@@ -139,11 +156,21 @@ public class PlayerDebugHUD : MonoBehaviour
     private readonly Texto pocoes = new Texto();
     private readonly Texto ouro = new Texto();
     private readonly Texto joias = new Texto();
+    private readonly Texto linhaDoEquipamento = new Texto();
     private readonly Texto alvo = new Texto();
     private readonly Texto velocidade = new Texto();
     private readonly Texto linhaDoFps = new Texto();
     private readonly Texto teto = new Texto();
     private readonly Texto padrao = new Texto();
+
+    // Os botoes da loja, com o preco no texto.
+    private GUIContent cabecalhoDaLoja;
+    private static readonly GUIContent GanharOuro = new GUIContent("+100 de ouro (teste)");
+    private readonly Texto botaoDaPocao = new Texto();
+    private readonly Texto botaoDasJoias = new Texto();
+    private readonly Texto botaoDaArma = new Texto();
+    private readonly Texto botaoDaArmadura = new Texto();
+    private readonly Texto botaoDoAnel = new Texto();
 
     /// <summary>
     /// Um texto do painel e os numeros de que ele foi montado. So vira
@@ -201,8 +228,11 @@ public class PlayerDebugHUD : MonoBehaviour
         wallet = GetComponent<GoldWallet>();
         pouch = GetComponent<JewelPouch>();
         nivel = GetComponent<NivelDoPersonagem>();
+        equipamento = GetComponent<EquipamentoDoPersonagem>();
+        loja = GetComponent<LojaDoHub>();
 
         cabecalho = new GUIContent($"<b>DEBUG</b>   ({teclaParaEsconder} esconde)");
+        cabecalhoDaLoja = new GUIContent($"<b>LOJA</b> (debug)   ({teclaDaLoja} fecha)");
 
         // Sem a passada de Layout. Tudo aqui e desenhado em retangulo
         // fixo, e o GUILayout era a outra parte do lixo.
@@ -219,6 +249,10 @@ public class PlayerDebugHUD : MonoBehaviour
         if (teclado != null && teclado[teclaParaEsconder].wasPressedThisFrame)
             visivel = !visivel;
 
+        // Sem LojaDoHub no Player, o F2 nao abre nada.
+        if (loja != null && teclado != null && teclado[teclaDaLoja].wasPressedThisFrame)
+            lojaAberta = !lojaAberta;
+
         MedirFps();
 
         if (visivel)
@@ -228,6 +262,7 @@ public class PlayerDebugHUD : MonoBehaviour
     private void OnDisable()
     {
         controlesNaTela = default;
+        lojaNaTela = default;
     }
 
     private void MedirFps()
@@ -284,6 +319,12 @@ public class PlayerDebugHUD : MonoBehaviour
         if (pouch != null && joias.Mudou(pouch.Count, pouch.TotalValue))
             joias.Trocar($"Joias   {pouch.Count}  (valem {pouch.TotalValue})");
 
+        if (equipamento != null)
+            AtualizarEquipamento();
+
+        if (lojaAberta)
+            AtualizarLoja();
+
         AtualizarFps();
 
         if (teto.Mudou(LimiteDeFps.Fps))
@@ -299,6 +340,53 @@ public class PlayerDebugHUD : MonoBehaviour
 
         AtualizarAlvo();
         AtualizarVelocidade();
+    }
+
+    private void AtualizarEquipamento()
+    {
+        // Os pontos somados, e nao os nomes: os tres nomes juntos nao
+        // cabem na largura do painel, e o nome ja aparece no rotulo do
+        // chao antes de pegar. O que interessa conferir aqui e o numero
+        // que vira dano e vida.
+        int ocupados = 0;
+
+        if (equipamento.NoSlot(SlotDeEquipamento.Arma) != null) ocupados++;
+        if (equipamento.NoSlot(SlotDeEquipamento.Armadura) != null) ocupados++;
+        if (equipamento.NoSlot(SlotDeEquipamento.Anel) != null) ocupados++;
+
+        PontosExtras pontos = equipamento.PontosSomados;
+
+        if (linhaDoEquipamento.Mudou(ocupados, pontos.Poder, pontos.Celeridade, pontos.Vitalidade))
+            linhaDoEquipamento.Trocar($"Equip   {ocupados}/3   P+{pontos.Poder} C+{pontos.Celeridade} V+{pontos.Vitalidade}");
+    }
+
+    private void AtualizarLoja()
+    {
+        if (botaoDaPocao.Mudou(loja.PrecoDaPocao))
+            botaoDaPocao.Trocar($"Comprar pocao   ({loja.PrecoDaPocao})");
+
+        if (botaoDasJoias.Mudou(pouch.Count, loja.ValorDasJoias))
+            botaoDasJoias.Trocar($"Vender {pouch.Count} joias   ({loja.ValorDasJoias})");
+
+        AtualizarBotaoDoSlot(botaoDaArma, SlotDeEquipamento.Arma);
+        AtualizarBotaoDoSlot(botaoDaArmadura, SlotDeEquipamento.Armadura);
+        AtualizarBotaoDoSlot(botaoDoAnel, SlotDeEquipamento.Anel);
+    }
+
+    private void AtualizarBotaoDoSlot(Texto botao, SlotDeEquipamento slot)
+    {
+        // O id do item entra na comparacao porque dois itens da mesma
+        // raridade tem o mesmo preco e nomes diferentes.
+        ItemDeEquipamento item = equipamento.NoSlot(slot);
+        int id = item != null ? item.GetInstanceID() : 0;
+        int preco = loja.ValorDeVenda(item);
+
+        if (!botao.Mudou(id, preco))
+            return;
+
+        botao.Trocar(item != null
+            ? $"Vender {item.NomeDoItem}   ({preco})"
+            : $"{slot}: vazio");
     }
 
     private void AtualizarFps()
@@ -378,13 +466,14 @@ public class PlayerDebugHUD : MonoBehaviour
 
     private float AlturaDoPainel()
     {
-        // O cinto, a carteira, a bolsa e o nivel sao opcionais no Player;
+        // O cinto, a carteira, a bolsa, o equipamento e o nivel sao opcionais no Player;
         // sem eles a linha so nao aparece.
         int linhas = 5;
 
         if (belt != null) linhas++;
         if (wallet != null) linhas++;
         if (pouch != null) linhas++;
+        if (equipamento != null) linhas++;
         if (nivel != null) linhas++;
 
         float altura = Margem + linhas * AlturaDoTexto + AlturaDaBarra + Espaco +
@@ -404,9 +493,12 @@ public class PlayerDebugHUD : MonoBehaviour
 
     private void OnGUI()
     {
+        // A loja esconde junto com o HUD, pra nenhum dos dois sair em
+        // print.
         if (!visivel)
         {
             controlesNaTela = default;
+            lojaNaTela = default;
             return;
         }
 
@@ -446,11 +538,83 @@ public class PlayerDebugHUD : MonoBehaviour
         if (wallet != null) Escrever(ouro.Conteudo, x, largura, ref y, iconeDoOuro, new Color(1f, 0.85f, 0.3f));
         if (pouch != null) Escrever(joias.Conteudo, x, largura, ref y, iconeDaJoia, new Color(0.45f, 0.85f, 1f));
 
+        // Azul do item magico, pra a linha nao se confundir com a do ouro.
+        if (equipamento != null) Escrever(linhaDoEquipamento.Conteudo, x, largura, ref y, null, ItemDeEquipamento.CorDaRaridade(Raridade.Magico));
+
         Escrever(alvo.Conteudo, x, largura, ref y, null, new Color(0.95f, 0.5f, 0.2f));
         Escrever(velocidade.Conteudo, x, largura, ref y, null, new Color(0.45f, 0.8f, 0.45f));
         Escrever(linhaDoFps.Conteudo, x, largura, ref y, null, new Color(0.55f, 0.7f, 0.95f));
 
         DesenharControlesDoFps(new Rect(x, y, largura, AlturaDosControles()), escala);
+
+        if (lojaAberta && loja != null)
+            DesenharLoja(painelX - PainelLargura - DistanciaDaBorda, escala);
+        else
+            lojaNaTela = default;
+    }
+
+    // Cabecalho e seis botoes.
+    private const int BotoesDaLoja = 6;
+
+    /// <summary>
+    /// A loja de debug, do mesmo tamanho do HUD e a esquerda dele. So abre
+    /// pelo F2, entao pode cobrir o seletor de dungeon do Eduardo (que vai
+    /// ate x 1477) sem atrapalhar ninguem que nao pediu.
+    ///
+    /// Botao que nao daria certo fica apagado, mas a conta continua sendo
+    /// da LojaDoHub: o apagado e so dica, e quem recusa de verdade e ela.
+    /// </summary>
+    private void DesenharLoja(float painelX, float escala)
+    {
+        float altura = Margem + AlturaDoTexto + BotoesDaLoja * (AlturaDoBotao + Espaco) + Margem;
+        var painel = new Rect(painelX, PainelY, PainelLargura, altura);
+
+        GUI.Box(painel, GUIContent.none);
+
+        float x = painelX + Margem;
+        float largura = PainelLargura - 2f * Margem;
+        float y = PainelY + Margem;
+
+        Escrever(cabecalhoDaLoja, x, largura, ref y);
+
+        bool habilitado = GUI.enabled;
+
+        GUI.enabled = habilitado && !belt.IsFull && wallet.Amount >= loja.PrecoDaPocao;
+        if (BotaoDaLoja(botaoDaPocao.Conteudo, x, largura, ref y))
+            loja.ComprarPocao();
+
+        GUI.enabled = habilitado && pouch.Count > 0;
+        if (BotaoDaLoja(botaoDasJoias.Conteudo, x, largura, ref y))
+            loja.VenderJoias();
+
+        BotaoDeVenda(botaoDaArma, SlotDeEquipamento.Arma, habilitado, x, largura, ref y);
+        BotaoDeVenda(botaoDaArmadura, SlotDeEquipamento.Armadura, habilitado, x, largura, ref y);
+        BotaoDeVenda(botaoDoAnel, SlotDeEquipamento.Anel, habilitado, x, largura, ref y);
+
+        GUI.enabled = habilitado;
+        if (BotaoDaLoja(GanharOuro, x, largura, ref y))
+            wallet.Add(100);
+
+        lojaNaTela = new Rect(
+            painel.x * escala,
+            painel.y * escala,
+            painel.width * escala,
+            painel.height * escala);
+    }
+
+    private void BotaoDeVenda(Texto botao, SlotDeEquipamento slot, bool habilitado, float x, float largura, ref float y)
+    {
+        GUI.enabled = habilitado && equipamento.NoSlot(slot) != null;
+
+        if (BotaoDaLoja(botao.Conteudo, x, largura, ref y))
+            loja.VenderEquipado(slot);
+    }
+
+    private bool BotaoDaLoja(GUIContent texto, float x, float largura, ref float y)
+    {
+        bool clicou = GUI.Button(new Rect(x, y, largura, AlturaDoBotao), texto, estiloDoBotao);
+        y += AlturaDoBotao + Espaco;
+        return clicou;
     }
 
     private void CriarEstilos()

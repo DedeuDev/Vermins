@@ -33,6 +33,8 @@ GameObject:
   - component: {fileID: 3937551716568081162}
   - component: {fileID: 7875504931913089684}
   - component: {fileID: 7469843910050184080}
+  - component: {fileID: 4118665497087882245}
+  - component: {fileID: 5894885784309209177}
   m_Layer: 0
   m_Name: Player
   m_TagString: Player
@@ -507,6 +509,39 @@ MonoBehaviour:
   duracaoDoAviso: 2
   subidaDoAviso: 1.2
   alturaDoAviso: 1.4
+--- !u!114 &4118665497087882245
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7457194079543536127}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 17dda58a5bd15d243983811b60cc0bd1, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::EquipamentoDoPersonagem
+  arma: {fileID: 0}
+  armadura: {fileID: 0}
+  anel: {fileID: 0}
+  itemDeTeste: {fileID: 0}
+--- !u!114 &5894885784309209177
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7457194079543536127}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 036621f9ef1e4684f8156b357247e41b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::LojaDoHub
+  precoDaPocao: 25
+  vendaComum: 10
+  vendaMagico: 25
+  vendaRaro: 60
+  fracaoDaJoia: 1
 --- !u!1001 &9095150474061651368
 PrefabInstance:
   m_ObjectHideFlags: 0

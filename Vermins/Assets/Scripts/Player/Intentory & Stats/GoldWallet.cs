@@ -4,9 +4,8 @@ using UnityEngine;
 /// O ouro que o jogador carrega.
 ///
 /// Diferente do cinto de pocao, aqui nao tem limite: ouro no chao que o
-/// jogador nao consegue pegar so irrita. Quem vai gastar e a loja do hub
-/// (secao 4.4 do GDR), que ainda nao existe - por isso ainda nao tem
-/// metodo de gastar. Quando ela chegar, ela cria o dela aqui.
+/// jogador nao consegue pegar so irrita. Quem gasta e a LojaDoHub
+/// (secao 4.4 do GDR), pelo TryGastar.
 /// </summary>
 public class GoldWallet : MonoBehaviour
 {
@@ -17,7 +16,8 @@ public class GoldWallet : MonoBehaviour
     public int Amount { get; private set; }
 
     /// <summary>
-    /// (ouro atual, quanto entrou). Dispara ao ganhar ouro.
+    /// (ouro atual, quanto entrou). Dispara ao ganhar e ao gastar; no
+    /// gasto o "quanto entrou" vem negativo.
     ///
     /// Pra quem for fazer a UI: a mesma regra do Health.OnChanged - assina
     /// o evento E le Amount uma vez ao ligar, porque o evento so avisa
@@ -37,6 +37,22 @@ public class GoldWallet : MonoBehaviour
 
         Amount += quantia;
         OnChanged?.Invoke(Amount, quantia);
+    }
+
+    /// <summary>
+    /// Tira o ouro se tiver o suficiente. Devolve false e nao mexe em nada
+    /// quando falta: gastar pela metade deixaria o ouro negativo ou cobraria
+    /// sem entregar. Quantia zero ou negativa tambem devolve false, pra
+    /// ninguem usar isto como um Add disfarcado.
+    /// </summary>
+    public bool TryGastar(int quantia)
+    {
+        if (quantia <= 0 || quantia > Amount)
+            return false;
+
+        Amount -= quantia;
+        OnChanged?.Invoke(Amount, -quantia);
+        return true;
     }
 
     /// <summary>
