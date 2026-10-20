@@ -21,6 +21,12 @@ using UnityEngine.Serialization;
 /// que chamam a HubShop. Serve pra testar a conta da loja antes da
 /// tela do Rogger existir, e sai junto com este HUD.
 ///
+/// Embaixo do XP fica a linha dos pontos livres do nivel, com os botoes
+/// +P +C +V na mesma linha enquanto sobrar ponto. Na mesma linha pra o
+/// painel nao mudar de altura quando os botoes somem. Com o mouse em cima,
+/// cada botao mostra o que faz e a previa, tipo "dano 19,5 -> 22,1": sem
+/// respec, quem gasta tem que ver o numero antes de clicar.
+///
 /// So desenha no editor e em Development Build. A classe continua
 /// existindo na build normal de proposito: se eu sumisse com ela
 /// inteira, o Player.prefab ficaria com "Missing Script" na build.
@@ -75,7 +81,8 @@ public class PlayerDebugHUD : MonoBehaviour
             Vector2 cursor = mouse.position.ReadValue();
             cursor.y = Screen.height - cursor.y;
 
-            return controlsRect.Contains(cursor) || shopRect.Contains(cursor);
+            return controlsRect.Contains(cursor) || shopRect.Contains(cursor) ||
+                   pointsRect.Contains(cursor);
 #else
             return false;
 #endif
@@ -123,6 +130,14 @@ public class PlayerDebugHUD : MonoBehaviour
     // entao barra o clique no painel todo. Vazio com a loja fechada.
     private static Rect shopRect;
 
+    // Os tres botoes dos pontos livres juntos, em pixels da tela. Vazio
+    // sem ponto livre, que e quando os botoes nao aparecem.
+    private static Rect pointsRect;
+
+    // Largura de cada botao +P +C +V e o vao entre eles.
+    private const float PointButtonWidth = 40f;
+    private const float PointButtonGap = 4f;
+
     private bool isShopOpen;
 
     private GUIStyle style;
@@ -138,6 +153,7 @@ public class PlayerDebugHUD : MonoBehaviour
     private CharacterEquipment equipment;
     private HubShop shop;
     private PlayerCombat combat;
+    private CharacterAttributes attributes;
     private NavMeshAgent agent;
 
     // De quanto em quanto tempo a linha do fps troca de numero.
@@ -160,6 +176,20 @@ public class PlayerDebugHUD : MonoBehaviour
     private static readonly GUIContent CapOff = new GUIContent("limite desligado");
     private readonly CachedText healthLine = new CachedText();
     private readonly CachedText levelLine = new CachedText();
+    private readonly CachedText pointsLine = new CachedText();
+
+    // Os botoes dos pontos. O texto e fixo; o que muda e o tooltip, com a
+    // previa do numero.
+    private readonly CachedText powerButton = new CachedText();
+    private readonly CachedText hasteButton = new CachedText();
+    private readonly CachedText vitalityButton = new CachedText();
+
+    // O tooltip que o OnGUI desenha. Reaproveito o mesmo GUIContent e so
+    // troco a referencia do texto, pra nao criar um por frame.
+    private readonly GUIContent tooltipContent = new GUIContent(string.Empty);
+    private GUIStyle tooltipStyle;
+    private const float TooltipWidth = 380f;
+    private const float TooltipLineHeight = 26f;
     private readonly CachedText potionsLine = new CachedText();
     private readonly CachedText goldLine = new CachedText();
     private readonly CachedText jewelsLine = new CachedText();
@@ -224,12 +254,18 @@ public class PlayerDebugHUD : MonoBehaviour
         {
             Content.text = valor;
         }
+
+        public void SetTooltip(string valor)
+        {
+            Content.tooltip = valor;
+        }
     }
 
     private void Awake()
     {
         health = GetComponent<Health>();
         combat = GetComponent<PlayerCombat>();
+        attributes = GetComponent<CharacterAttributes>();
         agent = GetComponent<NavMeshAgent>();
         belt = GetComponent<PotionBelt>();
         wallet = GetComponent<GoldWallet>();
@@ -240,6 +276,9 @@ public class PlayerDebugHUD : MonoBehaviour
 
         header = new GUIContent($"<b>DEBUG</b>   ({toggleKey} esconde)");
         shopHeader = new GUIContent($"<b>LOJA</b> (debug)   ({shopKey} fecha)");
+        powerButton.Set("+P");
+        hasteButton.Set("+C");
+        vitalityButton.Set("+V");
 
         // Sem a passada de Layout. Tudo aqui e desenhado em retangulo
         // fixo, e o GUILayout era a outra parte do lixo.
@@ -270,6 +309,7 @@ public class PlayerDebugHUD : MonoBehaviour
     {
         controlsRect = default;
         shopRect = default;
+        pointsRect = default;
     }
 
     private void MeasureFps()
@@ -315,6 +355,19 @@ public class PlayerDebugHUD : MonoBehaviour
             levelLine.Set(level.IsMaxLevel
                 ? $"Nivel   {level.Level}  (maximo)   XP {level.Xp}"
                 : $"Nivel   {level.Level}   XP {level.Xp} / {level.NextLevelXp}");
+        }
+
+        if (level != null)
+        {
+            BonusPoints gastos = level.SpentPoints;
+
+            if (pointsLine.HasChanged(level.FreePoints, gastos.Power, gastos.Haste, gastos.Vitality))
+                pointsLine.Set($"Pontos   {level.FreePoints}   P{gastos.Power} C{gastos.Haste} V{gastos.Vitality}");
+
+            // Sem build a previa nao tem de onde partir; os botoes
+            // continuam funcionando, so sem tooltip.
+            if (level.FreePoints > 0 && attributes != null && attributes.Build != null)
+                UpdatePointTooltips();
         }
 
         if (belt != null && potionsLine.HasChanged(belt.Count, belt.Capacity))
@@ -486,9 +539,10 @@ public class PlayerDebugHUD : MonoBehaviour
         float altura = Padding + linhas * TextHeight + BarHeight + Spacing +
                        ControlsHeight() + Padding;
 
-        // A barra do XP, embaixo da linha do nivel.
+        // A barra do XP, embaixo da linha do nivel, e a linha dos pontos
+        // livres embaixo dela.
         if (level != null)
-            altura += BarHeight + Spacing;
+            altura += BarHeight + Spacing + TextHeight;
 
         return altura;
     }
@@ -506,6 +560,7 @@ public class PlayerDebugHUD : MonoBehaviour
         {
             controlsRect = default;
             shopRect = default;
+            pointsRect = default;
             return;
         }
 
@@ -537,6 +592,12 @@ public class PlayerDebugHUD : MonoBehaviour
             DrawLine(levelLine.Content, x, largura, ref y, null, LevelColor);
             DrawBar(new Rect(x, y, largura, BarHeight), level.LevelProgress, LevelColor);
             y += BarHeight + Spacing;
+
+            DrawPoints(x, largura, ref y, escala);
+        }
+        else
+        {
+            pointsRect = default;
         }
 
         // Cores dos rotulos dos itens no chao (Pickup), pra a pocao do
@@ -558,6 +619,113 @@ public class PlayerDebugHUD : MonoBehaviour
             DrawShop(painelX - PanelWidth - ScreenMargin, escala);
         else
             shopRect = default;
+
+        DrawTooltip();
+    }
+
+    /// <summary>
+    /// A linha dos pontos livres e, enquanto sobrar ponto, os botoes que
+    /// gastam um em Poder, Celeridade ou Vitalidade. Quem recusa de
+    /// verdade e o CharacterLevel: o botao sumido e so o reflexo disso.
+    /// </summary>
+    private void DrawPoints(float x, float largura, ref float y, float escala)
+    {
+        float linhaY = y;
+        DrawLine(pointsLine.Content, x, largura, ref y, null, LevelColor);
+
+        if (level.FreePoints <= 0)
+        {
+            pointsRect = default;
+            return;
+        }
+
+        float larguraDosBotoes = 3f * PointButtonWidth + 2f * PointButtonGap;
+        float bx = x + largura - larguraDosBotoes;
+        float by = linhaY + (TextHeight - ButtonHeight) * 0.5f;
+
+        if (GUI.Button(new Rect(bx, by, PointButtonWidth, ButtonHeight), powerButton.Content, buttonStyle))
+            level.TrySpendPoint(CharacterLevel.Stat.Power);
+
+        bx += PointButtonWidth + PointButtonGap;
+
+        if (GUI.Button(new Rect(bx, by, PointButtonWidth, ButtonHeight), hasteButton.Content, buttonStyle))
+            level.TrySpendPoint(CharacterLevel.Stat.Haste);
+
+        bx += PointButtonWidth + PointButtonGap;
+
+        if (GUI.Button(new Rect(bx, by, PointButtonWidth, ButtonHeight), vitalityButton.Content, buttonStyle))
+            level.TrySpendPoint(CharacterLevel.Stat.Vitality);
+
+        pointsRect = new Rect(
+            (x + largura - larguraDosBotoes) * escala,
+            by * escala,
+            larguraDosBotoes * escala,
+            ButtonHeight * escala);
+    }
+
+    /// <summary>
+    /// A previa de cada botao: o numero de agora e o numero com um ponto a
+    /// mais. Sai da mesma conta que o CharacterAttributes aplica, entao o
+    /// clique faz exatamente o que o tooltip disse, com nivel e
+    /// equipamento ja dentro. So remonta quando o numero arredondado muda.
+    /// </summary>
+    private void UpdatePointTooltips()
+    {
+        CharacterAttributes.Numbers agora = attributes.NumbersWith(default);
+        CharacterAttributes.Numbers comP = attributes.NumbersWith(new BonusPoints(1, 0, 0));
+        CharacterAttributes.Numbers comC = attributes.NumbersWith(new BonusPoints(0, 1, 0));
+        CharacterAttributes.Numbers comV = attributes.NumbersWith(new BonusPoints(0, 0, 1));
+
+        // Dano em decimos e golpe em milesimos, do jeito que aparecem. O
+        // golpe com centesimo enganava: 1,125 s aparecia 1,12.
+        int danoAgora = Mathf.RoundToInt(agora.Damage * 10f);
+        int danoDepois = Mathf.RoundToInt(comP.Damage * 10f);
+
+        if (powerButton.HasChanged(danoAgora, danoDepois))
+            powerButton.SetTooltip($"Poder: mais dano por golpe\ndano {danoAgora / 10f:F1} -> {danoDepois / 10f:F1}");
+
+        int golpeAgora = Mathf.RoundToInt(agora.AttackCooldown * 1000f);
+        int golpeDepois = Mathf.RoundToInt(comC.AttackCooldown * 1000f);
+
+        if (hasteButton.HasChanged(golpeAgora, golpeDepois))
+            hasteButton.SetTooltip($"Celeridade: golpe mais rapido\num golpe a cada {golpeAgora / 1000f:F3} s -> {golpeDepois / 1000f:F3} s");
+
+        int vidaAgora = Mathf.RoundToInt(agora.MaxHealth);
+        int vidaDepois = Mathf.RoundToInt(comV.MaxHealth);
+
+        if (vitalityButton.HasChanged(vidaAgora, vidaDepois))
+            vitalityButton.SetTooltip($"Vitalidade: mais vida maxima (nao cura)\nvida max {vidaAgora} -> {vidaDepois}");
+    }
+
+    /// <summary>
+    /// O tooltip do botao embaixo do mouse, desenhado por ultimo pra ficar
+    /// por cima de tudo. Abre a esquerda do mouse porque o painel encosta
+    /// na borda direita da tela.
+    /// </summary>
+    private void DrawTooltip()
+    {
+        if (string.IsNullOrEmpty(GUI.tooltip))
+            return;
+
+        tooltipContent.text = GUI.tooltip;
+
+        Vector2 mouse = Event.current.mousePosition;
+        var caixa = new Rect(
+            mouse.x - TooltipWidth - 12f,
+            mouse.y + 16f,
+            TooltipWidth,
+            2f * TooltipLineHeight + 2f * Padding);
+
+        // Duas caixas: a do OnGUI e meio transparente, e o texto some em
+        // cima do chao claro da cidade.
+        GUI.Box(caixa, GUIContent.none);
+        GUI.Box(caixa, GUIContent.none);
+
+        caixa.x += Padding;
+        caixa.y += Padding;
+        caixa.width -= 2f * Padding;
+        caixa.height -= 2f * Padding;
+        GUI.Label(caixa, tooltipContent, tooltipStyle);
     }
 
     // Cabecalho e seis botoes.
@@ -632,6 +800,7 @@ public class PlayerDebugHUD : MonoBehaviour
         // o pino.
         style ??= new GUIStyle(GUI.skin.label) { fontSize = 20, richText = true };
         buttonStyle ??= new GUIStyle(GUI.skin.button) { fontSize = 16 };
+        tooltipStyle ??= new GUIStyle(GUI.skin.label) { fontSize = 18, wordWrap = false };
         trackStyle ??= new GUIStyle(GUI.skin.horizontalSlider) { fixedHeight = SliderHeight };
         thumbStyle ??= new GUIStyle(GUI.skin.horizontalSliderThumb) { fixedHeight = SliderHeight, fixedWidth = SliderHeight };
     }

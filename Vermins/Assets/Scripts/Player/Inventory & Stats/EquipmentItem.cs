@@ -21,8 +21,9 @@ public enum Rarity
 }
 
 /// <summary>
-/// Pontos de atributo que vem de fora da build. Hoje so o equipamento
-/// soma; se uma habilidade der buff na fase 3, entra pelo mesmo lugar.
+/// Pontos de atributo que vem de fora da build. Hoje somam o equipamento
+/// e os pontos livres do nivel; se uma habilidade der buff na fase 3,
+/// entra pelo mesmo lugar.
 ///
 /// Nao tem Alcance de proposito (ver o EquipmentItem).
 /// </summary>

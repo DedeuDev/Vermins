@@ -16,18 +16,40 @@ using UnityEngine.Serialization;
 ///
 /// Guardo so o XP total. O nivel sai dele pela curva, entao os dois
 /// nunca discordam, e o save e a passagem de cena so precisam levar um
-/// numero.
+/// numero de XP (mais os pontos gastos, ver abaixo).
 ///
 /// Este script nao mexe em vida nem em dano. Quem aplica o bonus e o
 /// CharacterAttributes, junto com a build - ver la o porque.
 ///
 /// So o corpo a corpo da XP: a magia nao dispara o OnAttackHit. Hoje
 /// isso nao pesa porque o PlayerMagia.prefab esta guardado.
+///
+/// Cada nivel acima do 1 tambem da um ponto livre, que o jogador gasta
+/// em Poder, Celeridade ou Vitalidade. Os mesmos tres do item, e pelo
+/// mesmo caminho: o CharacterAttributes soma os pontos gastos aos do
+/// equipamento, antes do bonus do nivel. Sem Alcance porque ele so vale
+/// pra magia, que esta guardada. Sem respec: ponto gasto fica gasto.
+///
+/// Guardo os pontos gastos, e nao os livres. Os livres saem do nivel
+/// menos os gastos, entao subir de nivel nao precisa mexer em nada.
 /// </summary>
 [DisallowMultipleComponent]
 [RequireComponent(typeof(PlayerCombat))]
 public class CharacterLevel : MonoBehaviour
 {
+    /// <summary>Os atributos em que um ponto livre pode ser gasto.</summary>
+    public enum Stat
+    {
+        Power,
+        Haste,
+        Vitality
+    }
+
+    // Quantos pontos livres cada nivel acima do 1 da. Com 1, o nivel 10
+    // tem 9: perto da metade dos 20 da build, o mesmo tamanho dos +9 de
+    // tres itens raros.
+    public const int PointsPerLevel = 1;
+
     [Header("Curva")]
     [Tooltip("XP pra passar do nivel 1 pro 2. Do nivel n pro n+1 custa " +
              "isto vezes n, entao o nivel 10 pede 6750 no total. Medi 42 " +
@@ -75,20 +97,31 @@ public class CharacterLevel : MonoBehaviour
     private PlayerCombat combat;
     private int xp;
     private int level = 1;
+    private BonusPoints spentPoints;
 
     private TextMeshPro levelUpText;
     private float levelUpStartTime = -1f;
 
-    // O XP com que o Player entrou na cena, e se a proxima cena e o
-    // renascimento de uma morte. Sao estaticos porque a morte recarrega a
-    // cena, e o Player que morreu deixa de existir.
+    // O XP e os pontos gastos com que o Player entrou na cena, e se a
+    // proxima cena e o renascimento de uma morte. Sao estaticos porque a
+    // morte recarrega a cena, e o Player que morreu deixa de existir.
     private static int xpOnEntry;
+    private static BonusPoints spentOnEntry;
     private static bool pendingRespawn;
 
     public int Xp => xp;
     public int Level => level;
     public int MaxLevel => maxLevel;
     public bool IsMaxLevel => level >= maxLevel;
+
+    /// <summary>Os pontos que o jogador ja gastou, por atributo.</summary>
+    public BonusPoints SpentPoints => spentPoints;
+
+    /// <summary>
+    /// Pontos ainda por gastar. Nunca negativo: um save de quando o
+    /// PointsPerLevel era maior so fica sem ponto livre, sem tirar nada.
+    /// </summary>
+    public int FreePoints => Mathf.Max(0, (level - 1) * PointsPerLevel - spentPoints.Total);
 
     /// <summary>
     /// Por quanto multiplicar a vida maxima e o dano da build. Vale 1 no
@@ -119,9 +152,10 @@ public class CharacterLevel : MonoBehaviour
     }
 
     /// <summary>
-    /// O nivel mudou e o bonus tem que ser aplicado de novo. O bool diz
-    /// se subiu jogando (true) ou se o XP veio de fora, do save ou da
-    /// passagem de cena (false). So subir jogando enche a vida.
+    /// O nivel ou os pontos gastos mudaram e o bonus tem que ser aplicado
+    /// de novo. O bool diz se subiu jogando (true) ou se foi um ponto
+    /// gasto ou XP vindo de fora, do save ou da passagem de cena (false).
+    /// So subir jogando enche a vida.
     /// </summary>
     public event System.Action<bool> OnLevelChanged;
 
@@ -132,11 +166,12 @@ public class CharacterLevel : MonoBehaviour
     private static void ResetStatics()
     {
         xpOnEntry = 0;
+        spentOnEntry = default;
         pendingRespawn = false;
     }
 
     /// <summary>
-    /// Pede pro Player da proxima cena nascer com o XP de quando este
+    /// Pede pro Player da proxima cena nascer com o XP e os pontos de quando este
     /// entrou na cena. Quem chama e o PlayerDeath, logo antes de
     /// recarregar.
     /// </summary>
@@ -154,7 +189,9 @@ public class CharacterLevel : MonoBehaviour
         // Morrer recarrega a cena e o Player nasce do zero. Com XP isso
         // seria cruel demais: quem morresse na terceira dungeon voltaria
         // pro nivel 1. Por isso a morte devolve o XP de quando entrei na
-        // cena, e perco so o que ganhei nesta tentativa.
+        // cena, e perco so o que ganhei nesta tentativa. Os pontos gastos
+        // voltam junto: com o XP de volta, um ponto de um nivel perdido
+        // ficaria gasto num nivel que nao existe mais.
         //
         // Faco aqui no Awake de proposito. Todo Awake termina antes do
         // Start do CharacterAttributes, entao a build ja aplica o nivel
@@ -164,6 +201,7 @@ public class CharacterLevel : MonoBehaviour
             pendingRespawn = false;
             xp = xpOnEntry;
             level = LevelForXp(xp);
+            spentPoints = spentOnEntry;
         }
         else
         {
@@ -171,6 +209,7 @@ public class CharacterLevel : MonoBehaviour
             // Os dois ultimos chamam o Restore logo depois, e e ele que
             // anota a entrada de verdade.
             xpOnEntry = 0;
+            spentOnEntry = default;
         }
     }
 
@@ -262,22 +301,55 @@ public class CharacterLevel : MonoBehaviour
     }
 
     /// <summary>
-    /// Poe o XP que veio de fora: do save ou da passagem de cena. Nao
-    /// enche a vida, porque quem restaura devolve a vida que estava logo
-    /// em seguida.
+    /// Gasta um ponto livre no atributo. Sem ponto livre devolve false e
+    /// nada muda. Nao enche a vida: a Vitalidade sobe o teto e a vida
+    /// atual fica onde estava, igual a equipar um item.
+    /// </summary>
+    public bool TrySpendPoint(Stat atributo)
+    {
+        if (FreePoints <= 0)
+            return false;
+
+        spentPoints += OnePoint(atributo);
+
+        OnLevelChanged?.Invoke(false);
+        return true;
+    }
+
+    private static BonusPoints OnePoint(Stat atributo)
+    {
+        switch (atributo)
+        {
+            case Stat.Power: return new BonusPoints(1, 0, 0);
+            case Stat.Haste: return new BonusPoints(0, 1, 0);
+            default: return new BonusPoints(0, 0, 1);
+        }
+    }
+
+    /// <summary>
+    /// Poe o XP e os pontos gastos que vieram de fora: do save ou da
+    /// passagem de cena. Nao enche a vida, porque quem restaura devolve a
+    /// vida que estava logo em seguida.
     ///
     /// Chamar ANTES de devolver a vida. O Revive corta a vida no teto, e
-    /// o teto depende do nivel: com o nivel 1 ainda valendo, uma vida
-    /// salva de 150 voltaria 100.
+    /// o teto depende do nivel e da Vitalidade: com o nivel 1 ainda
+    /// valendo, uma vida salva de 150 voltaria 100.
     /// </summary>
-    public void Restore(int xpTotal)
+    public void Restore(int xpTotal, BonusPoints gastos)
     {
         xp = Mathf.Clamp(xpTotal, 0, XpForLevel(maxLevel));
         level = LevelForXp(xp);
 
-        // O XP que veio de fora e o da entrada nesta cena: se eu morrer
+        // Numero negativo so viria de um save editado na mao.
+        spentPoints = new BonusPoints(
+            Mathf.Max(0, gastos.Power),
+            Mathf.Max(0, gastos.Haste),
+            Mathf.Max(0, gastos.Vitality));
+
+        // O que veio de fora e o da entrada nesta cena: se eu morrer
         // daqui, e pra ele que eu volto.
         xpOnEntry = xp;
+        spentOnEntry = spentPoints;
 
         OnLevelChanged?.Invoke(false);
     }

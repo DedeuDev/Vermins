@@ -3,7 +3,7 @@ using UnityEngine;
 using UnityEngine.SceneManagement;
 
 /// <summary>
-/// Leva vida, XP, equipamento, pocoes, ouro e joias do Player de uma cena
+/// Leva vida, XP, pontos gastos, equipamento, pocoes, ouro e joias do Player de uma cena
 /// pra outra.
 ///
 /// Cada cena tem o seu proprio Player, e o Awake de cada componente
@@ -29,6 +29,7 @@ public static class CrossSceneState
     private static bool hasState;
     private static float health;
     private static int xp;
+    private static BonusPoints spentPoints;
     private static int potions;
     private static int gold;
     private static int jewels;
@@ -80,6 +81,7 @@ public static class CrossSceneState
 
         health = saude.Current;
         xp = nivel != null ? nivel.Xp : 0;
+        spentPoints = nivel != null ? nivel.SpentPoints : default;
         potions = cinto != null ? cinto.Count : 0;
         gold = carteira != null ? carteira.Amount : 0;
         jewels = bolsa != null ? bolsa.Count : 0;
@@ -125,13 +127,13 @@ public static class CrossSceneState
         if (player == null)
             yield break;
 
-        // O XP volta antes da vida. O Revive corta a vida no teto, e o
-        // teto depende do nivel: com o nivel 1 ainda valendo, os 140 de
-        // vida de um nivel 6 voltariam 100.
+        // O XP e os pontos gastos voltam antes da vida. O Revive corta a
+        // vida no teto, e o teto depende do nivel e da Vitalidade: com o
+        // nivel 1 ainda valendo, os 140 de vida de um nivel 6 voltariam 100.
         var nivel = player.GetComponent<CharacterLevel>();
 
         if (nivel != null)
-            nivel.Restore(xp);
+            nivel.Restore(xp, spentPoints);
 
         // O equipamento tambem volta antes da vida, pelo mesmo motivo: a
         // Vitalidade do item sobe o teto. Com uma armadura de V+3, a vida

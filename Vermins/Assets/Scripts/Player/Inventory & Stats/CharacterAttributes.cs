@@ -24,6 +24,9 @@ using UnityEngine.Serialization;
 /// equipamento) x bonus do nivel: o equipamento soma no ponto, antes do
 /// nivel, entao um ponto de anel no nivel 10 vale o mesmo que um ponto
 /// de build no nivel 10.
+///
+/// Os pontos livres que o jogador gasta ao subir de nivel (CharacterLevel)
+/// entram junto com os do equipamento, na mesma soma.
 /// </summary>
 [DisallowMultipleComponent]
 public class CharacterAttributes : MonoBehaviour
@@ -48,6 +51,47 @@ public class CharacterAttributes : MonoBehaviour
     private CharacterEquipment equipment;
 
     public BuildAttributes Build => build;
+
+    /// <summary>Os tres numeros que a build vira: dano, vida maxima e tempo entre golpes.</summary>
+    public readonly struct Numbers
+    {
+        public readonly float Damage;
+        public readonly float MaxHealth;
+        public readonly float AttackCooldown;
+
+        public Numbers(float damage, float maxHealth, float attackCooldown)
+        {
+            Damage = damage;
+            MaxHealth = maxHealth;
+            AttackCooldown = attackCooldown;
+        }
+    }
+
+    /// <summary>
+    /// Os numeros que o personagem teria com estes pontos a mais, sem
+    /// escrever nada. E a previa do botao de gastar ponto: o Apply usa a
+    /// mesma conta, entao a previa nunca discorda do que o clique faz.
+    /// Precisa de build ligada.
+    /// </summary>
+    public Numbers NumbersWith(BonusPoints maisPontos)
+    {
+        // Sempre a partir dos numeros da build, nunca do que esta no
+        // Health ou no MeleeAttack: ali ja tem o bonus do nivel anterior,
+        // e multiplicar em cima faria os 10% por nivel virarem composto.
+        // No nivel 10 seriam +136% em vez de +90%.
+        float bonus = level != null ? level.Multiplier : 1f;
+        BonusPoints extra = equipment != null ? equipment.TotalBonus : default;
+
+        if (level != null)
+            extra += level.SpentPoints;
+
+        extra += maisPontos;
+
+        return new Numbers(
+            build.DamageWith(extra.Power) * bonus,
+            build.MaxHealthWith(extra.Vitality) * bonus,
+            build.CooldownWith(extra.Haste));
+    }
 
     private void Awake()
     {
@@ -136,24 +180,19 @@ public class CharacterAttributes : MonoBehaviour
         var arma = GetComponent<MeleeAttack>();
         var combate = GetComponent<PlayerCombat>();
 
-        // Sempre a partir dos numeros da build, nunca do que esta no
-        // Health ou no MeleeAttack: ali ja tem o bonus do nivel anterior,
-        // e multiplicar em cima faria os 10% por nivel virarem composto.
-        // No nivel 10 seriam +136% em vez de +90%.
-        float bonus = level != null ? level.Multiplier : 1f;
-        BonusPoints extra = equipment != null ? equipment.TotalBonus : default;
+        Numbers numeros = NumbersWith(default);
 
         if (vida != null)
-            vida.SetMaxHealth(build.MaxHealthWith(extra.Vitality) * bonus, encherAVida);
+            vida.SetMaxHealth(numeros.MaxHealth, encherAVida);
 
         if (arma != null)
-            arma.Damage = build.DamageWith(extra.Power) * bonus;
+            arma.Damage = numeros.Damage;
 
         // O PlayerCombat so existe no jogador. Um inimigo pode usar este
         // mesmo componente pra vida e dano sem ter os outros dois.
         if (combate != null)
         {
-            combate.AttackCooldown = build.CooldownWith(extra.Haste);
+            combate.AttackCooldown = numeros.AttackCooldown;
             combate.AttackRange = build.RangeInMeters;
         }
 

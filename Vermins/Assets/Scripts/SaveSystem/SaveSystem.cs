@@ -89,12 +89,16 @@ public class SaveSystem : MonoBehaviour
             data.playerJewelsValue = pouch.TotalValue;
         }
 
-        // Ian: o XP do Player. Gravo so o total: o nivel sai dele.
+        // Ian: o XP do Player e os pontos gastos. Gravo so o XP total: o
+        // nivel sai dele, e os pontos livres saem do nivel.
         CharacterLevel nivel = player.GetComponent<CharacterLevel>();
 
         if (nivel != null)
         {
             data.playerXp = nivel.Xp;
+            data.playerPowerPoints = nivel.SpentPoints.Power;
+            data.playerHastePoints = nivel.SpentPoints.Haste;
+            data.playerVitalityPoints = nivel.SpentPoints.Vitality;
         }
 
         // Ian: o equipamento vestido, pelo nome do asset.
@@ -205,14 +209,22 @@ public class SaveSystem : MonoBehaviour
                         pendingLoadData.playerRotZ
                     );
 
-                    // Ian: o XP volta antes da vida. O Revive corta a
-                    // vida no teto, e o teto depende do nivel: com o nivel
-                    // 1 ainda valendo, uma vida salva de 150 voltaria 100.
+                    // Ian: o XP e os pontos gastos voltam antes da vida.
+                    // O Revive corta a vida no teto, e o teto depende do
+                    // nivel e da Vitalidade: com o nivel 1 ainda valendo,
+                    // uma vida salva de 150 voltaria 100.
                     CharacterLevel nivel = player.GetComponent<CharacterLevel>();
 
                     if (nivel != null)
                     {
-                        nivel.Restore(pendingLoadData.playerXp);
+                        nivel.Restore(
+                            pendingLoadData.playerXp,
+                            new BonusPoints(
+                                pendingLoadData.playerPowerPoints,
+                                pendingLoadData.playerHastePoints,
+                                pendingLoadData.playerVitalityPoints
+                            )
+                        );
                     }
 
                     // Ian: o equipamento tambem volta antes da vida: a
