@@ -10,13 +10,13 @@ using UnityEngine;
 public class PotionPickup : Pickup
 {
     // Tento de novo se o jogador beber sem sair de cima da pocao.
-    protected override bool TentarDeNovoEmCima => true;
+    protected override bool RetryWhileInside => true;
 
-    protected override string TextoDoRotulo => "Pocao";
+    protected override string LabelText => "Pocao";
 
-    protected override Color CorDoRotulo => new Color(1f, 0.4f, 0.4f);
+    protected override Color LabelColor => new Color(1f, 0.4f, 0.4f);
 
-    protected override bool Entregar(Collider quemEncostou)
+    protected override bool Deliver(Collider quemEncostou)
     {
         PotionBelt cinto = quemEncostou.GetComponentInParent<PotionBelt>();
 

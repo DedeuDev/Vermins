@@ -50,7 +50,7 @@ public class PlayerController : MonoBehaviour
     private PlayerCombat combat;
     private PotionBelt belt;
     private PlayerInteractor interactor;
-    private Dodge esquiva;
+    private Dodge dodge;
 
     /// <summary>
     /// O que o clique decidiu quando o botao desceu. Segurar o botao
@@ -59,12 +59,12 @@ public class PlayerController : MonoBehaviour
     /// inimigo virava ataque sem querer, e quem queria fugir parava pra
     /// brigar.
     /// </summary>
-    private enum Ordem { Nenhuma, Andar, Atacar, AtacarParado }
+    private enum Order { None, Move, Attack, StandingAttack }
 
     /// <summary>O que esta embaixo do mouse, pro cursor contextual.</summary>
-    public enum AlvoDoCursor { Nada, Chao, Inimigo, Interagivel }
+    public enum CursorTarget { Nothing, Ground, Enemy, Interactable }
 
-    private Ordem ordem;
+    private Order order;
 
     // Comandos dados quando o personagem ainda nao podia obedecer. Os
     // dois jogos que a gente copia guardam o comando e executam assim que
@@ -72,10 +72,10 @@ public class PlayerController : MonoBehaviour
     // clique no chao 0,2 s depois do rolamento comecar nao fazia nada (o
     // Player terminou a 9,46 m do ponto, parado), e a esquiva apertada
     // 0,15 s antes da recarga acabar nao saia.
-    private bool temCliqueGuardado;
-    private Ray cliqueGuardado;
-    private float esquivaGuardadaAte = -1f;
-    private Vector3 esquivaGuardadaPara;
+    private bool hasBufferedClick;
+    private Ray bufferedClick;
+    private float bufferedDodgeUntil = -1f;
+    private Vector3 bufferedDodgePoint;
 
     /// <summary>
     /// Disparado toda vez que o jogador manda andar pra um ponto.
@@ -91,7 +91,7 @@ public class PlayerController : MonoBehaviour
         combat = GetComponent<PlayerCombat>();
         belt = GetComponent<PotionBelt>();
         interactor = GetComponent<PlayerInteractor>();
-        esquiva = GetComponent<Dodge>();
+        dodge = GetComponent<Dodge>();
         input = new InputSystem_Actions();
 
         if (viewCamera == null)
@@ -154,37 +154,37 @@ public class PlayerController : MonoBehaviour
 
         // Dodge vai pro lado do mouse, esteja ele no chao, num inimigo
         // ou em cima da UI - e tecla, nao clique.
-        if (esquiva != null)
-            TentarEsquivaGuardada();
+        if (dodge != null)
+            TryBufferedDodge();
 
         // Rolando, o clique espera. Nao zero a ordem: se o botao continua
         // segurado, o jogador volta a andar ou a bater sozinho no fim do
         // rolamento, que e o que se espera de quem rolou no meio da briga.
         // Clique novo no meio do rolamento fica guardado e vale no fim.
-        if (esquiva != null && esquiva.EmEsquiva)
+        if (dodge != null && dodge.IsDodging)
         {
             if (input.Player.Click.WasPressedThisFrame() && !IsPointerOverUI())
             {
                 // Guardo o raio e nao a posicao na tela: a camera anda
                 // junto com o rolamento, e o mesmo pixel ja estaria
                 // apontando pra outro lugar no fim.
-                cliqueGuardado = RaioDoCursor();
-                temCliqueGuardado = true;
+                bufferedClick = CursorRay();
+                hasBufferedClick = true;
             }
 
             return;
         }
 
-        if (temCliqueGuardado)
+        if (hasBufferedClick)
         {
-            temCliqueGuardado = false;
-            ordem = DecidirOrdem(cliqueGuardado);
+            hasBufferedClick = false;
+            order = DecideOrder(bufferedClick);
             return;
         }
 
         if (input.Player.Click.WasPressedThisFrame())
         {
-            ordem = IsPointerOverUI() ? Ordem.Nenhuma : DecidirOrdem(RaioDoCursor());
+            order = IsPointerOverUI() ? Order.None : DecideOrder(CursorRay());
             return;
         }
 
@@ -192,26 +192,26 @@ public class PlayerController : MonoBehaviour
         // clique.
         if (!input.Player.Click.IsPressed())
         {
-            ordem = Ordem.Nenhuma;
+            order = Order.None;
             return;
         }
 
         if (IsPointerOverUI())
             return;
 
-        if (ordem == Ordem.Andar)
-            TryMoveToPointer(RaioDoCursor());
-        else if (ordem == Ordem.Atacar)
-            TryAttackAtPointer(RaioDoCursor());
-        else if (ordem == Ordem.AtacarParado)
-            combat.GolpearParado(PontoNoChao(RaioDoCursor()));
+        if (order == Order.Move)
+            TryMoveToPointer(CursorRay());
+        else if (order == Order.Attack)
+            TryAttackAtPointer(CursorRay());
+        else if (order == Order.StandingAttack)
+            combat.StandingAttack(GroundPoint(CursorRay()));
     }
 
     /// <summary>
     /// Olha o que esta embaixo do cursor e da a ordem certa. A
     /// prioridade e interagivel, depois inimigo, depois chao.
     /// </summary>
-    private Ordem DecidirOrdem(Ray ray)
+    private Order DecideOrder(Ray ray)
     {
         // Shift manda mais que tudo: e o "fica parado" do Diablo 4 e do
         // Path of Exile 2. O personagem golpeia pro lado do cursor sem
@@ -223,8 +223,8 @@ public class PlayerController : MonoBehaviour
             if (interactor != null)
                 interactor.ClearTarget();
 
-            combat.GolpearParado(PontoNoChao(ray));
-            return Ordem.AtacarParado;
+            combat.StandingAttack(GroundPoint(ray));
+            return Order.StandingAttack;
         }
 
         // NPC primeiro. O collider do CaptainGuard e trigger, e os raios
@@ -236,19 +236,19 @@ public class PlayerController : MonoBehaviour
             if (combat != null)
             {
                 combat.ClearTarget();
-                combat.InterromperGolpe();
+                combat.InterruptAttack();
             }
 
-            return Ordem.Nenhuma;
+            return Order.None;
         }
 
         if (TryAttackAtPointer(ray))
-            return Ordem.Atacar;
+            return Order.Attack;
 
-        // Clique no vazio tambem vira Andar: se a pessoa arrastar o
+        // Clique no vazio tambem vira Move: se a pessoa arrastar o
         // cursor pro chao segurando o botao, o jogador vai atras.
         TryMoveToPointer(ray);
-        return Ordem.Andar;
+        return Order.Move;
     }
 
     /// <summary>
@@ -257,25 +257,25 @@ public class PlayerController : MonoBehaviour
     /// janelaDaEsquiva e sai sozinha quando der, pro lado em que o mouse
     /// estava no aperto.
     /// </summary>
-    private void TentarEsquivaGuardada()
+    private void TryBufferedDodge()
     {
         if (input.Player.Esquiva.WasPressedThisFrame())
         {
-            esquivaGuardadaPara = PontoDoCursorNoChao();
-            esquivaGuardadaAte = Time.time + janelaDaEsquiva;
+            bufferedDodgePoint = CursorGroundPoint();
+            bufferedDodgeUntil = Time.time + janelaDaEsquiva;
         }
 
-        if (Time.time > esquivaGuardadaAte || !esquiva.TentarEsquivar(esquivaGuardadaPara))
+        if (Time.time > bufferedDodgeUntil || !dodge.TryDodge(bufferedDodgePoint))
             return;
 
-        esquivaGuardadaAte = -1f;
+        bufferedDodgeUntil = -1f;
 
         // A esquiva nova corta tudo, entao o clique guardado na anterior
         // tambem cai. Vale o comando mais novo.
-        temCliqueGuardado = false;
+        hasBufferedClick = false;
     }
 
-    private Ray RaioDoCursor()
+    private Ray CursorRay()
     {
         Vector2 screenPosition = input.Player.Point.ReadValue<Vector2>();
         return viewCamera.ScreenPointToRay(screenPosition);
@@ -284,38 +284,38 @@ public class PlayerController : MonoBehaviour
     /// <summary>
     /// O que um clique faria agora, sem dar ordem nenhuma. O
     /// ContextualCursor usa isto pra trocar o cursor. Passa pelos mesmos
-    /// testes do DecidirOrdem e na mesma ordem, entao o cursor nunca
+    /// testes do DecideOrder e na mesma ordem, entao o cursor nunca
     /// promete uma coisa e o clique faz outra.
     /// </summary>
-    public AlvoDoCursor OQueEstaNoCursor(out Ray ray, out Health inimigo)
+    public CursorTarget GetCursorTarget(out Ray ray, out Health inimigo)
     {
         ray = default;
         inimigo = null;
 
         if (viewCamera == null || IsPointerOverUI())
-            return AlvoDoCursor.Nada;
+            return CursorTarget.Nothing;
 
-        ray = RaioDoCursor();
+        ray = CursorRay();
 
         if (interactor != null && interactor.TemInteragivel(ray))
-            return AlvoDoCursor.Interagivel;
+            return CursorTarget.Interactable;
 
-        if (combat != null && AcharInimigo(ray, out inimigo))
-            return AlvoDoCursor.Inimigo;
+        if (combat != null && FindEnemy(ray, out inimigo))
+            return CursorTarget.Enemy;
 
-        return AlvoDoCursor.Chao;
+        return CursorTarget.Ground;
     }
 
     /// <summary>
     /// Onde o mouse esta no chao. Sem chao embaixo (mouse no ceu, fora do
     /// mapa), um metro na frente do jogador.
     /// </summary>
-    private Vector3 PontoDoCursorNoChao()
+    private Vector3 CursorGroundPoint()
     {
-        return PontoNoChao(RaioDoCursor());
+        return GroundPoint(CursorRay());
     }
 
-    private Vector3 PontoNoChao(Ray ray)
+    private Vector3 GroundPoint(Ray ray)
     {
         if (Physics.Raycast(
                 ray,
@@ -358,7 +358,7 @@ public class PlayerController : MonoBehaviour
         if (combat != null)
         {
             combat.ClearTarget();
-            combat.InterromperGolpe();
+            combat.InterruptAttack();
         }
 
         // Mesma coisa com a ida ate um NPC.
@@ -378,7 +378,7 @@ public class PlayerController : MonoBehaviour
         if (combat == null)
             return false;
 
-        if (!AcharInimigo(ray, out Health alvo))
+        if (!FindEnemy(ray, out Health alvo))
             return false;
 
         combat.SetTarget(alvo);
@@ -393,7 +393,7 @@ public class PlayerController : MonoBehaviour
     /// Acha um inimigo vivo embaixo do raio. Separado do
     /// TryAttackAtPointer pra o cursor usar o mesmo teste do clique.
     /// </summary>
-    private bool AcharInimigo(Ray ray, out Health alvo)
+    private bool FindEnemy(Ray ray, out Health alvo)
     {
         alvo = null;
 
@@ -444,7 +444,7 @@ public class PlayerController : MonoBehaviour
     {
         // Os controles do HUD de debug sao OnGUI, e o EventSystem nao
         // enxerga OnGUI.
-        if (PlayerDebugHUD.CursorNosControles)
+        if (PlayerDebugHUD.IsCursorOverControls)
             return true;
 
         return EventSystem.current != null &&

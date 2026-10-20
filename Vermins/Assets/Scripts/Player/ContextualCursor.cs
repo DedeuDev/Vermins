@@ -4,7 +4,7 @@ using UnityEngine;
 /// Troca o cursor do mouse conforme o que esta embaixo dele: espada em
 /// inimigo, balao em NPC, mao em item no chao, seta normal no resto.
 ///
-/// Quem decide inimigo e NPC e o PlayerController.OQueEstaNoCursor, o
+/// Quem decide inimigo e NPC e o PlayerController.GetCursorTarget, o
 /// mesmo teste que o clique usa, entao o cursor nunca promete uma coisa
 /// e o clique faz outra. O item eu olho aqui, porque o clique nao tem
 /// ordem de pegar: clicar no item e andar ate ele, e quem pega e o
@@ -15,7 +15,7 @@ using UnityEngine;
 [RequireComponent(typeof(PlayerController))]
 public class ContextualCursor : MonoBehaviour
 {
-    private enum Tipo { Normal, Ataque, Conversa, Pegar }
+    private enum CursorKind { Normal, Attack, Talk, PickUp }
 
     [SerializeField] private Texture2D cursorDeAtaque;
     [SerializeField] private Vector2 pontaDoAtaque = new Vector2(3f, 3f);
@@ -32,22 +32,22 @@ public class ContextualCursor : MonoBehaviour
     /// O inimigo que esta embaixo do mouse neste frame, ou null. O
     /// TargetHighlight le daqui pra nao refazer os mesmos raios.
     /// </summary>
-    public Health InimigoSobOMouse { get; private set; }
+    public Health EnemyUnderMouse { get; private set; }
 
     /// <summary>
     /// O item no chao que esta embaixo do mouse neste frame, ou null. O
     /// TargetHighlight le daqui pra por o contorno nele.
     /// </summary>
-    public Pickup ColetavelSobOMouse { get; private set; }
+    public Pickup PickupUnderMouse { get; private set; }
 
     private PlayerController controller;
     private Health health;
-    private Tipo atual = Tipo.Normal;
+    private CursorKind current = CursorKind.Normal;
 
     // O raio do item atravessa trigger (a pocao e trigger), e na dungeon
     // tem trigger grande cobrindo a sala. Entao pego varios acertos e
     // olho em ordem de distancia, em vez de so o primeiro.
-    private readonly RaycastHit[] acertos = new RaycastHit[16];
+    private readonly RaycastHit[] hits = new RaycastHit[16];
 
     private void Awake()
     {
@@ -59,64 +59,64 @@ public class ContextualCursor : MonoBehaviour
     {
         // Sem isso, trocar de cena ou morrer com o mouse num inimigo
         // deixava a espada presa no menu.
-        Aplicar(Tipo.Normal);
+        Apply(CursorKind.Normal);
     }
 
     private void Update()
     {
-        Aplicar(Classificar());
+        Apply(Classify());
     }
 
-    private Tipo Classificar()
+    private CursorKind Classify()
     {
-        InimigoSobOMouse = null;
-        ColetavelSobOMouse = null;
+        EnemyUnderMouse = null;
+        PickupUnderMouse = null;
 
         // Mesmos cortes do Update do PlayerController: morto ou pausado
         // o clique nao faz nada, entao o cursor tambem nao promete nada.
         if (health != null && health.IsDead)
-            return Tipo.Normal;
+            return CursorKind.Normal;
 
         if (Time.timeScale == 0f)
-            return Tipo.Normal;
+            return CursorKind.Normal;
 
-        switch (controller.OQueEstaNoCursor(out Ray ray, out Health inimigo))
+        switch (controller.GetCursorTarget(out Ray ray, out Health inimigo))
         {
-            case PlayerController.AlvoDoCursor.Interagivel:
-                return Tipo.Conversa;
+            case PlayerController.CursorTarget.Interactable:
+                return CursorKind.Talk;
 
-            case PlayerController.AlvoDoCursor.Inimigo:
-                InimigoSobOMouse = inimigo;
-                return Tipo.Ataque;
+            case PlayerController.CursorTarget.Enemy:
+                EnemyUnderMouse = inimigo;
+                return CursorKind.Attack;
 
-            case PlayerController.AlvoDoCursor.Chao:
-                return TemItem(ray) ? Tipo.Pegar : Tipo.Normal;
+            case PlayerController.CursorTarget.Ground:
+                return HasPickup(ray) ? CursorKind.PickUp : CursorKind.Normal;
 
             default:
-                return Tipo.Normal;
+                return CursorKind.Normal;
         }
     }
 
-    private bool TemItem(Ray ray)
+    private bool HasPickup(Ray ray)
     {
         int quantos = Physics.RaycastNonAlloc(
             ray,
-            acertos,
+            hits,
             alcanceDoRaio,
             Physics.DefaultRaycastLayers,
             QueryTriggerInteraction.Collide
         );
 
-        System.Array.Sort(acertos, 0, quantos, PorDistancia);
+        System.Array.Sort(hits, 0, quantos, ByDistance);
 
         for (int i = 0; i < quantos; i++)
         {
-            Collider c = acertos[i].collider;
+            Collider c = hits[i].collider;
             Pickup item = c.GetComponentInParent<Pickup>();
 
             if (item != null)
             {
-                ColetavelSobOMouse = item;
+                PickupUnderMouse = item;
                 return true;
             }
 
@@ -129,26 +129,26 @@ public class ContextualCursor : MonoBehaviour
         return false;
     }
 
-    private static readonly System.Collections.Generic.IComparer<RaycastHit> PorDistancia =
+    private static readonly System.Collections.Generic.IComparer<RaycastHit> ByDistance =
         System.Collections.Generic.Comparer<RaycastHit>.Create(
             (a, b) => a.distance.CompareTo(b.distance));
 
-    private void Aplicar(Tipo tipo)
+    private void Apply(CursorKind tipo)
     {
-        if (tipo == atual)
+        if (tipo == current)
             return;
 
-        atual = tipo;
+        current = tipo;
 
         switch (tipo)
         {
-            case Tipo.Ataque:
+            case CursorKind.Attack:
                 Cursor.SetCursor(cursorDeAtaque, pontaDoAtaque, CursorMode.Auto);
                 break;
-            case Tipo.Conversa:
+            case CursorKind.Talk:
                 Cursor.SetCursor(cursorDeConversa, pontaDaConversa, CursorMode.Auto);
                 break;
-            case Tipo.Pegar:
+            case CursorKind.PickUp:
                 Cursor.SetCursor(cursorDePegar, pontaDoPegar, CursorMode.Auto);
                 break;
             default:

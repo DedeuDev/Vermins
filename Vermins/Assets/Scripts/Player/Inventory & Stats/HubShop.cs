@@ -16,7 +16,7 @@ using UnityEngine;
 /// O preco do equipamento sai da raridade, e nao de um campo no item: item
 /// novo ja nasce com preco, sem ninguem lembrar de preencher.
 ///
-/// NAO DUPLICA ITEM: vender equipamento paga pelo que o Desequipar
+/// NAO DUPLICA ITEM: vender equipamento paga pelo que o Unequip
 /// devolveu. Slot vazio devolve null, e null nao vale ouro.
 ///
 /// Os precos sao de teste. Medi pelos drops do Enemy.prefab: cada abate
@@ -43,34 +43,34 @@ public class HubShop : MonoBehaviour
              "inteiro, que e o que o rotulo da joia promete.")]
     [SerializeField, Range(0.1f, 1f)] private float fracaoDaJoia = 1f;
 
-    private GoldWallet carteira;
-    private JewelPouch bolsa;
-    private PotionBelt cinto;
-    private CharacterEquipment equipamento;
+    private GoldWallet wallet;
+    private JewelPouch pouch;
+    private PotionBelt belt;
+    private CharacterEquipment equipment;
 
-    public int PrecoDaPocao => precoDaPocao;
+    public int PotionPrice => precoDaPocao;
 
-    /// <summary>Quanto o VenderJoias pagaria agora, pra tela mostrar antes.</summary>
-    public int ValorDasJoias => Mathf.RoundToInt(bolsa.TotalValue * fracaoDaJoia);
+    /// <summary>Quanto o SellJewels pagaria agora, pra tela mostrar antes.</summary>
+    public int JewelsValue => Mathf.RoundToInt(pouch.TotalValue * fracaoDaJoia);
 
     private void Awake()
     {
-        carteira = GetComponent<GoldWallet>();
-        bolsa = GetComponent<JewelPouch>();
-        cinto = GetComponent<PotionBelt>();
-        equipamento = GetComponent<CharacterEquipment>();
+        wallet = GetComponent<GoldWallet>();
+        pouch = GetComponent<JewelPouch>();
+        belt = GetComponent<PotionBelt>();
+        equipment = GetComponent<CharacterEquipment>();
     }
 
     /// <summary>Quanto a loja paga por este item. Sem item, 0.</summary>
-    public int ValorDeVenda(EquipmentItem item)
+    public int SellPrice(EquipmentItem item)
     {
         if (item == null)
             return 0;
 
         switch (item.Rarity)
         {
-            case Rarity.Magico: return vendaMagico;
-            case Rarity.Raro: return vendaRaro;
+            case Rarity.Magic: return vendaMagico;
+            case Rarity.Rare: return vendaRaro;
             default: return vendaComum;
         }
     }
@@ -80,26 +80,26 @@ public class HubShop : MonoBehaviour
     /// muda. Confiro as duas coisas antes de mexer em qualquer uma: se eu
     /// cobrasse primeiro, o cinto cheio comeria o ouro.
     /// </summary>
-    public bool ComprarPocao()
+    public bool BuyPotion()
     {
-        if (cinto.IsFull || carteira.Amount < precoDaPocao)
+        if (belt.IsFull || wallet.Amount < precoDaPocao)
             return false;
 
-        cinto.TryStore();
-        carteira.TryGastar(precoDaPocao);
+        belt.TryStore();
+        wallet.TrySpend(precoDaPocao);
         return true;
     }
 
     /// <summary>Vende todas as joias. False com a bolsa vazia.</summary>
-    public bool VenderJoias()
+    public bool SellJewels()
     {
-        if (bolsa.Count <= 0)
+        if (pouch.Count <= 0)
             return false;
 
-        // Leio o valor antes de esvaziar: depois do TirarTodas ele e 0.
-        int pago = ValorDasJoias;
-        bolsa.TirarTodas();
-        carteira.Add(pago);
+        // Leio o valor antes de esvaziar: depois do TakeAll ele e 0.
+        int pago = JewelsValue;
+        pouch.TakeAll();
+        wallet.Add(pago);
         return true;
     }
 
@@ -108,13 +108,13 @@ public class HubShop : MonoBehaviour
     /// baixa vida e dano na hora, pelo OnEquipamentoMudou de sempre; a vida
     /// atual so e cortada se passar do teto novo.
     /// </summary>
-    public bool VenderEquipado(EquipmentSlot slot)
+    public bool SellEquipped(EquipmentSlot slot)
     {
-        EquipmentItem vendido = equipamento.Desequipar(slot);
+        EquipmentItem vendido = equipment.Unequip(slot);
         if (vendido == null)
             return false;
 
-        carteira.Add(ValorDeVenda(vendido));
+        wallet.Add(SellPrice(vendido));
         return true;
     }
 
@@ -122,34 +122,34 @@ public class HubShop : MonoBehaviour
     // roda no clique, nunca por frame.
 
     [ContextMenu("Teste: ganhar 100 de ouro")]
-    private void GanharOuroDeTeste()
+    private void AddTestGold()
     {
-        carteira.Add(100);
+        wallet.Add(100);
     }
 
     [ContextMenu("Comprar pocao")]
-    private void MenuComprarPocao()
+    private void MenuBuyPotion()
     {
-        Debug.Log($"[Loja] Comprar pocao: {ComprarPocao()} (ouro {carteira.Amount}, cinto {cinto.Count}/{cinto.Capacity})", this);
+        Debug.Log($"[Loja] Comprar pocao: {BuyPotion()} (ouro {wallet.Amount}, cinto {belt.Count}/{belt.Capacity})", this);
     }
 
     [ContextMenu("Vender joias")]
-    private void MenuVenderJoias()
+    private void MenuSellJewels()
     {
-        Debug.Log($"[Loja] Vender joias: {VenderJoias()} (ouro {carteira.Amount})", this);
+        Debug.Log($"[Loja] Vender joias: {SellJewels()} (ouro {wallet.Amount})", this);
     }
 
     [ContextMenu("Vender arma")]
-    private void MenuVenderArma() => LogVenda(EquipmentSlot.Arma);
+    private void MenuSellWeapon() => LogSale(EquipmentSlot.Arma);
 
     [ContextMenu("Vender armadura")]
-    private void MenuVenderArmadura() => LogVenda(EquipmentSlot.Armadura);
+    private void MenuSellArmor() => LogSale(EquipmentSlot.Armadura);
 
     [ContextMenu("Vender anel")]
-    private void MenuVenderAnel() => LogVenda(EquipmentSlot.Anel);
+    private void MenuSellRing() => LogSale(EquipmentSlot.Anel);
 
-    private void LogVenda(EquipmentSlot slot)
+    private void LogSale(EquipmentSlot slot)
     {
-        Debug.Log($"[Loja] Vender {slot}: {VenderEquipado(slot)} (ouro {carteira.Amount})", this);
+        Debug.Log($"[Loja] Vender {slot}: {SellEquipped(slot)} (ouro {wallet.Amount})", this);
     }
 }

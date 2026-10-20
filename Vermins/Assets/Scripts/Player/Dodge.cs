@@ -55,10 +55,10 @@ public class Dodge : MonoBehaviour
     private PlayerInteractor interactor;
     private Health health;
 
-    private float inicio = -100f;
-    private Vector3 direcao;
-    private float distanciaLivre;
-    private float andado;
+    private float startTime = -100f;
+    private Vector3 direction;
+    private float freeDistance;
+    private float traveled;
 
     // Velocidade com que o corpo entra e sai do rolamento, na direcao
     // dele. Correndo e a velocidade de corrida; parado ou rolando pra
@@ -76,7 +76,7 @@ public class Dodge : MonoBehaviour
     /// Disparado no aperto, com quanto tempo a animacao tem que durar. O
     /// PlayerAnimator escuta pra tocar o rolamento na velocidade certa.
     /// </summary>
-    public event System.Action<float> OnEsquivou;
+    public event System.Action<float> OnDodged;
 
     /// <summary>
     /// Verdadeiro enquanto o jogador nao manda no personagem. O
@@ -85,9 +85,9 @@ public class Dodge : MonoBehaviour
     /// Acaba junto com o avanco. Antes voltava 0,05 s depois, e medi o
     /// corpo parado 4 frames esperando o clique segurado valer.
     /// </summary>
-    public bool EmEsquiva => Time.time < inicio + inicioDoAvanco + duracaoDoAvanco;
+    public bool IsDodging => Time.time < startTime + inicioDoAvanco + duracaoDoAvanco;
 
-    public bool Pronta => Time.time >= inicio + recarga;
+    public bool IsReady => Time.time >= startTime + recarga;
 
     private void Awake()
     {
@@ -104,7 +104,7 @@ public class Dodge : MonoBehaviour
         // sempre.
         health.DesligarInvulnerabilidade(this);
 
-        inicio = -100f;
+        startTime = -100f;
         advancing = false;
     }
 
@@ -112,9 +112,9 @@ public class Dodge : MonoBehaviour
     /// Rola na direcao do ponto, que e onde o mouse esta no chao. Devolve
     /// false se ainda estiver na recarga ou nao tiver como rolar.
     /// </summary>
-    public bool TentarEsquivar(Vector3 ponto)
+    public bool TryDodge(Vector3 ponto)
     {
-        if (!Pronta || health.IsDead || !agent.isActiveAndEnabled || !agent.isOnNavMesh)
+        if (!IsReady || health.IsDead || !agent.isActiveAndEnabled || !agent.isOnNavMesh)
             return false;
 
         Vector3 dir = ponto - transform.position;
@@ -124,14 +124,14 @@ public class Dodge : MonoBehaviour
         if (dir.sqrMagnitude < 0.09f)
             dir = transform.forward;
 
-        direcao = dir.normalized;
+        direction = dir.normalized;
 
         // Corto o destino no NavMesh antes de sair, pra o rolamento parar
         // na parede e nao escorregar por ela. Meco so no plano: o pivo fica
         // 0,92 m acima do NavMesh, e em 3D essa altura entrava na conta.
         // Parede a 0,5 m: planejava 1,04 m e batia na borda a 3,5 m/s.
-        Vector3 fim = transform.position + direcao * distancia;
-        distanciaLivre = NavMesh.Raycast(transform.position, fim, out NavMeshHit hit, NavMesh.AllAreas)
+        Vector3 fim = transform.position + direction * distancia;
+        freeDistance = NavMesh.Raycast(transform.position, fim, out NavMeshHit hit, NavMesh.AllAreas)
             ? Vector3.ProjectOnPlane(hit.position - transform.position, Vector3.up).magnitude
             : distancia;
 
@@ -139,7 +139,7 @@ public class Dodge : MonoBehaviour
         // caminho que o agente estava fazendo.
         if (combat != null)
         {
-            combat.InterromperGolpe();
+            combat.InterruptAttack();
             combat.ClearTarget();
         }
 
@@ -149,12 +149,12 @@ public class Dodge : MonoBehaviour
         // O embalo que o corpo traz, so na direcao do rolamento. Leio antes
         // do Stop. Rolar pra tras de uma corrida da zero: ai ele sai do
         // agachado como se estivesse parado.
-        entrySpeed = Mathf.Clamp(Vector3.Dot(agent.velocity, direcao), 0f, agent.speed);
+        entrySpeed = Mathf.Clamp(Vector3.Dot(agent.velocity, direction), 0f, agent.speed);
 
         // Sem parede, ele sai com a mesma velocidade com que entrou, e quem
         // rolou correndo continua correndo. Contra a parede ele ja esta
         // parado nela.
-        exitSpeed = distanciaLivre < distancia ? 0f : entrySpeed;
+        exitSpeed = freeDistance < distancia ? 0f : entrySpeed;
 
         crouchDistance = Mathf.Min(entrySpeed * inicioDoAvanco, distancia);
 
@@ -166,10 +166,10 @@ public class Dodge : MonoBehaviour
 
         // Vira de uma vez. O giro amortecido do PlayerMotor leva quase
         // 0,1 s, e nesse tempo o corpo ja estaria rolando de lado.
-        transform.rotation = Quaternion.LookRotation(direcao);
+        transform.rotation = Quaternion.LookRotation(direction);
 
-        inicio = Time.time;
-        andado = 0f;
+        startTime = Time.time;
+        traveled = 0f;
         advancing = true;
 
         // Ligo em meu nome. O Health so desliga quando nenhum dono quiser
@@ -177,7 +177,7 @@ public class Dodge : MonoBehaviour
         // outra fonte, e outra fonte acabando nao corta a do rolamento.
         health.LigarInvulnerabilidade(this);
 
-        OnEsquivou?.Invoke(duracaoDaAnimacao);
+        OnDodged?.Invoke(duracaoDaAnimacao);
         return true;
     }
 
@@ -193,13 +193,13 @@ public class Dodge : MonoBehaviour
             return;
         }
 
-        float t = Time.time - inicio;
+        float t = Time.time - startTime;
 
         // A curva e sempre a dos 4 m; a parede so corta onde ela esta.
-        float alvo = Mathf.Min(DistanciaNoTempo(t), distanciaLivre);
+        float alvo = Mathf.Min(DistanceAt(t), freeDistance);
 
-        agent.Move(direcao * (alvo - andado));
-        andado = alvo;
+        agent.Move(direction * (alvo - traveled));
+        traveled = alvo;
 
         if (t < inicioDoAvanco + duracaoDoAvanco)
             return;
@@ -208,7 +208,7 @@ public class Dodge : MonoBehaviour
         // estiver segurado, ele segue correndo em vez de arrancar do zero; se
         // nao, o proprio agente freia. Medi 0,06 s e uns 10 cm de deslize.
         advancing = false;
-        agent.velocity = direcao * exitSpeed;
+        agent.velocity = direction * exitSpeed;
 
         // Invulneravel so enquanto anda. Levantando ele ja pode levar
         // golpe: senao dava pra ficar rolando e nunca apanhar.
@@ -229,7 +229,7 @@ public class Dodge : MonoBehaviour
     /// No ultimo frame o tempo passa do fim e eu fecho em 1: o resto da
     /// curva nao se perde se o frame pular o fim.
     /// </summary>
-    private float DistanciaNoTempo(float t)
+    private float DistanceAt(float t)
     {
         if (t < inicioDoAvanco)
             return Mathf.Min(entrySpeed * t, crouchDistance);

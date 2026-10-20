@@ -14,9 +14,9 @@ public enum EquipmentSlot
 /// </summary>
 public enum Rarity
 {
-    Comum,
-    Magico,
-    Raro
+    Common,
+    Magic,
+    Rare
 }
 
 /// <summary>
@@ -27,25 +27,25 @@ public enum Rarity
 /// </summary>
 public readonly struct BonusPoints
 {
-    public readonly int Poder;
-    public readonly int Celeridade;
-    public readonly int Vitalidade;
+    public readonly int Power;
+    public readonly int Haste;
+    public readonly int Vitality;
 
     public BonusPoints(int poder, int celeridade, int vitalidade)
     {
-        Poder = poder;
-        Celeridade = celeridade;
-        Vitalidade = vitalidade;
+        Power = poder;
+        Haste = celeridade;
+        Vitality = vitalidade;
     }
 
-    public int Total => Poder + Celeridade + Vitalidade;
+    public int Total => Power + Haste + Vitality;
 
     public static BonusPoints operator +(BonusPoints a, BonusPoints b)
     {
         return new BonusPoints(
-            a.Poder + b.Poder,
-            a.Celeridade + b.Celeridade,
-            a.Vitalidade + b.Vitalidade);
+            a.Power + b.Power,
+            a.Haste + b.Haste,
+            a.Vitality + b.Vitality);
     }
 }
 
@@ -72,7 +72,7 @@ public class EquipmentItem : ScriptableObject
     // O teto do raro. Somando com a build, o atributo pode passar de 10:
     // o 10 e o limite da escolha da build, e o equipamento e a recompensa
     // por cima dela.
-    public const int MaximoPorAtributo = 3;
+    public const int MaxPerAttribute = 3;
 
     [Header("Identidade")]
     [SerializeField] private string nomeDoItem = "Sem nome";
@@ -81,31 +81,31 @@ public class EquipmentItem : ScriptableObject
 
     [Header("Pontos (somam ate o teto da raridade)")]
     [Tooltip("Vira dano por golpe, igual ao Poder da build.")]
-    [Range(0, MaximoPorAtributo)]
+    [Range(0, MaxPerAttribute)]
     [SerializeField] private int poder;
 
     [Tooltip("Diminui o tempo entre golpes, igual a Celeridade da build.")]
-    [Range(0, MaximoPorAtributo)]
+    [Range(0, MaxPerAttribute)]
     [SerializeField] private int celeridade;
 
     [Tooltip("Vira vida maxima, igual a Vitalidade da build. Equipar nao " +
              "enche a vida: o teto sobe e a vida atual fica onde estava.")]
-    [Range(0, MaximoPorAtributo)]
+    [Range(0, MaxPerAttribute)]
     [SerializeField] private int vitalidade;
 
-    public string NomeDoItem => string.IsNullOrWhiteSpace(nomeDoItem) ? name : nomeDoItem;
+    public string ItemName => string.IsNullOrWhiteSpace(nomeDoItem) ? name : nomeDoItem;
     public EquipmentSlot Slot => slot;
     public Rarity Rarity => raridade;
 
-    public BonusPoints Pontos => new BonusPoints(poder, celeridade, vitalidade);
+    public BonusPoints Bonus => new BonusPoints(poder, celeridade, vitalidade);
 
     /// <summary>Quantos pontos um item desta raridade pode somar no total.</summary>
-    public static int PontosDaRaridade(Rarity raridade)
+    public static int PointsForRarity(Rarity raridade)
     {
         switch (raridade)
         {
-            case Rarity.Magico: return 2;
-            case Rarity.Raro: return 3;
+            case Rarity.Magic: return 2;
+            case Rarity.Rare: return 3;
             default: return 1;
         }
     }
@@ -116,17 +116,17 @@ public class EquipmentItem : ScriptableObject
     // soltar o arquivo na pasta, sem lembrar de ligar nada. O custo e que
     // renomear um asset faz ele sumir dos saves antigos (o slot volta
     // vazio, com aviso).
-    private const string PastaNoResources = "Items";
+    private const string ResourcesFolder = "Items";
 
-    private static Dictionary<string, EquipmentItem> porNome;
+    private static Dictionary<string, EquipmentItem> byName;
 
     // Campo estatico nao zera sozinho quando o editor entra em Play sem
     // recarregar o dominio. Sem isto, um item criado entre dois Play nao
     // entraria no dicionario.
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
-    private static void Zerar()
+    private static void ResetCache()
     {
-        porNome = null;
+        byName = null;
     }
 
     /// <summary>
@@ -139,19 +139,19 @@ public class EquipmentItem : ScriptableObject
         if (string.IsNullOrEmpty(nomeDoAsset))
             return null;
 
-        if (porNome == null)
+        if (byName == null)
         {
-            porNome = new Dictionary<string, EquipmentItem>();
+            byName = new Dictionary<string, EquipmentItem>();
 
-            foreach (EquipmentItem item in Resources.LoadAll<EquipmentItem>(PastaNoResources))
-                porNome[item.name] = item;
+            foreach (EquipmentItem item in Resources.LoadAll<EquipmentItem>(ResourcesFolder))
+                byName[item.name] = item;
         }
 
-        if (porNome.TryGetValue(nomeDoAsset, out EquipmentItem achado))
+        if (byName.TryGetValue(nomeDoAsset, out EquipmentItem achado))
             return achado;
 
         Debug.LogWarning(
-            $"Item '{nomeDoAsset}' do save nao existe em Resources/{PastaNoResources}. " +
+            $"Item '{nomeDoAsset}' do save nao existe em Resources/{ResourcesFolder}. " +
             "Foi renomeado ou apagado? O slot fica vazio.");
         return null;
     }
@@ -167,12 +167,12 @@ public class EquipmentItem : ScriptableObject
     /// Fica aqui, e nao no rotulo do chao, porque o HUD e a tela de
     /// inventario do Rogger vao precisar da mesma cor.
     /// </summary>
-    public static Color CorDaRaridade(Rarity raridade)
+    public static Color RarityColor(Rarity raridade)
     {
         switch (raridade)
         {
-            case Rarity.Magico: return new Color(0.45f, 0.6f, 1f);
-            case Rarity.Raro: return new Color(1f, 0.9f, 0.25f);
+            case Rarity.Magic: return new Color(0.45f, 0.6f, 1f);
+            case Rarity.Rare: return new Color(1f, 0.9f, 0.25f);
             default: return Color.white;
         }
     }
@@ -180,7 +180,7 @@ public class EquipmentItem : ScriptableObject
     private void OnValidate()
     {
         int total = poder + celeridade + vitalidade;
-        int teto = PontosDaRaridade(raridade);
+        int teto = PointsForRarity(raridade);
 
         // Aviso em vez de cortar, igual a build: mexer no numero sozinho
         // no OnValidate apagaria o que alguem acabou de digitar.

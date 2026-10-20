@@ -43,7 +43,7 @@ public class JewelPouch : MonoBehaviour
     /// adivinhar o valor dela pela media. Bolsa vazia devolve 0 e nao
     /// dispara evento.
     /// </summary>
-    public int TirarTodas()
+    public int TakeAll()
     {
         if (Count <= 0)
             return 0;

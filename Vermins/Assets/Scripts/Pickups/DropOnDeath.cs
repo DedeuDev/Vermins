@@ -114,10 +114,10 @@ public class DropOnDeath : MonoBehaviour
         if (item == null || !AcharChao(pe, out Vector3 ponto))
             return;
 
-        // O Definir vem antes do Start do Pickup, que so roda no frame
+        // O SetItem vem antes do Start do Pickup, que so roda no frame
         // seguinte, entao o rotulo ja nasce com o nome e a cor do item.
         EquipmentPickup noChao = Instantiate(prefabDeEquipamento, ponto, Quaternion.identity);
-        noChao.Definir(item);
+        noChao.SetItem(item);
     }
 
     private Rarity SortearRaridade()
@@ -125,18 +125,18 @@ public class DropOnDeath : MonoBehaviour
         int total = pesoComum + pesoMagico + pesoRaro;
 
         if (total <= 0)
-            return Rarity.Comum;
+            return Rarity.Common;
 
         // O Range de int nao inclui o maximo: sai de 0 a total - 1.
         int sorteio = Random.Range(0, total);
 
         if (sorteio < pesoComum)
-            return Rarity.Comum;
+            return Rarity.Common;
 
         if (sorteio < pesoComum + pesoMagico)
-            return Rarity.Magico;
+            return Rarity.Magic;
 
-        return Rarity.Raro;
+        return Rarity.Rare;
     }
 
     /// <summary>

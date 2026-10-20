@@ -16,7 +16,7 @@ using UnityEngine.AI;
 /// Desde que entrou o projetil, "bater" virou duas coisas separadas no
 /// tempo. Aqui eu so decido lancar e mando a animacao comecar; a bola
 /// nasce depois, no frame em que a mao solta, por um Animation Event que
-/// chama SoltarProjetil. Isso consertou de quebra um defeito antigo: o
+/// chama ReleaseProjectile. Isso consertou de quebra um defeito antigo: o
 /// dano era aplicado ANTES da animacao comecar, entao a magia acertava
 /// com o braco ainda abaixado.
 ///
@@ -142,54 +142,54 @@ public class PlayerCombat : MonoBehaviour
     private PlayerMotor motor;
     private MeleeAttack weapon;
     private Health ownHealth;
-    private NavMeshAgent agente;
-    private Transform mao;
+    private NavMeshAgent agent;
+    private Transform hand;
 
     private Health target;
     private NavMeshAgent targetAgent;
     private Vector3 lastChasePoint;
-    private float ultimaDistanciaDeParada = -1f;
+    private float lastStoppingDistance = -1f;
     private float nextAttackTime;
 
     // O alvo de que desisti por nao ter caminho ate ele, e onde nos dois
-    // estavamos. Ver DesistirDoAlvoSemCaminho.
-    private Health alvoSemCaminho;
-    private Vector3 ondeOAlvoEstava;
-    private Vector3 ondeEuEstava;
+    // estavamos. Ver GiveUpUnreachableTarget.
+    private Health unreachableTarget;
+    private Vector3 unreachableTargetPos;
+    private Vector3 unreachableSelfPos;
 
     // O alvo travado no comeco do golpe. A bola so nasce meio segundo
     // depois, no Animation Event, e nesse meio tempo o jogador pode ter
     // clicado em outro bicho - o golpe que ja comecou termina em quem o
     // comecou, senao a magia troca de destino no meio do gesto.
-    private Health alvoDoCast;
+    private Health castTarget;
 
     // Vigia do Animation Event. Se o clipe nao tiver o evento, o
     // personagem faz o gesto e nao sai nada - e o tipo de coisa que a
     // gente passa meia hora procurando no lugar errado. Aqui eu percebo
     // e reclamo em vez de deixar quieto.
-    private bool esperandoOEvento;
-    private float prazoDoEvento;
-    private bool jaReclameiDoEvento;
+    private bool waitingForEvent;
+    private float eventDeadline;
+    private bool warnedMissingEvent;
 
     // Se tem um gesto de golpe tocando que uma ordem de andar possa
     // cortar. Liga no comeco do golpe e desliga no corte; depois do
     // cooldown ele nao conta mais, porque o PlayerAnimator acelera o
     // clipe pra caber dentro do cooldown.
-    private bool gestoEmCurso;
+    private bool swingInProgress;
 
     // O passo do combo que o PROXIMO golpe vai ser, e o do golpe que esta
     // saindo agora. Sao dois porque a pancada chega meio segundo depois
     // do comeco, e nesse meio tempo o proximo ja foi decidido.
-    private int proximoPasso;
-    private int passoDoCast;
-    private float duracaoDoCast;
+    private int nextStep;
+    private int castStep;
+    private float castDuration;
 
     // Golpe parado (Shift): nao tem alvo travado. O corpo vira pro ponto
     // do clique durante o gesto, e quem leva o dano e decidido na
-    // pancada, entre os que estiverem na frente. Ver GolpearParado.
-    private bool golpeParado;
-    private Vector3 pontoDoGolpeParado;
-    private static readonly Collider[] PertoDaLamina = new Collider[16];
+    // pancada, entre os que estiverem na frente. Ver StandingAttack.
+    private bool isStandingAttack;
+    private Vector3 standingAttackPoint;
+    private static readonly Collider[] BladeOverlaps = new Collider[16];
 
     public Health Target => target;
 
@@ -197,32 +197,32 @@ public class PlayerCombat : MonoBehaviour
     /// Em que passo do combo esta o golpe que esta saindo, contando do
     /// zero. O PlayerAnimator le no OnAttack pra escolher o clipe.
     /// </summary>
-    public int PassoDoGolpe => passoDoCast;
+    public int ComboStep => castStep;
 
     /// <summary>
     /// Se o golpe que esta saindo e o final da sequencia. Quem escuta o
-    /// OnGolpeAcertou le isto pra pesar mais a pancada.
+    /// OnAttackHit le isto pra pesar mais a pancada.
     /// </summary>
-    public bool GolpeFinal => golpesNoCombo > 1 && passoDoCast == golpesNoCombo - 1;
+    public bool IsFinisher => golpesNoCombo > 1 && castStep == golpesNoCombo - 1;
 
     /// <summary>
     /// Se a pancada que acabou de acertar foi critica. Vale durante o
-    /// OnGolpeAcertou: quem escuta le isto pra mudar o numero e o peso.
+    /// OnAttackHit: quem escuta le isto pra mudar o numero e o peso.
     /// </summary>
-    public bool UltimoAcertoCritico { get; private set; }
+    public bool LastHitWasCrit { get; private set; }
 
     /// <summary>
     /// Chance de critico, de 0 a 1. Tem setter pro equipamento somar
     /// quando existir, igual o AttackRange com a build.
     /// </summary>
-    public float ChanceDeCritico
+    public float CritChance
     {
         get => chanceDeCritico;
         set => chanceDeCritico = Mathf.Clamp01(value);
     }
 
     /// <summary>Multiplicador do critico. Nunca abaixo de 1.</summary>
-    public float DanoDoCritico
+    public float CritMultiplier
     {
         get => danoDoCritico;
         set => danoDoCritico = Mathf.Max(1f, value);
@@ -233,7 +233,7 @@ public class PlayerCombat : MonoBehaviour
     /// tempoDoFinal. O PlayerAnimator usa pra acertar a velocidade do
     /// clipe.
     /// </summary>
-    public float DuracaoDoGolpe => duracaoDoCast;
+    public float AttackDuration => castDuration;
     public bool HasTarget => target != null && !target.IsDead;
 
     /// <summary>
@@ -254,7 +254,7 @@ public class PlayerCombat : MonoBehaviour
     /// <summary>
     /// De quao longe a MAGIA sai. Tem setter pelo mesmo motivo: e o que
     /// o atributo Alcance mexe. No corpo a corpo este numero e ignorado -
-    /// ver AlcanceEfetivo.
+    /// ver EffectiveRange.
     /// </summary>
     public float AttackRange
     {
@@ -262,13 +262,13 @@ public class PlayerCombat : MonoBehaviour
         set => attackRange = Mathf.Max(0.5f, value);
     }
 
-    public bool CorpoACorpo => projetil == null;
+    public bool IsMelee => projetil == null;
 
     /// <summary>
     /// O alcance que vale agora: o da build na magia, o da arma no corpo
     /// a corpo. Tudo que decide perseguir ou bater passa por aqui.
     /// </summary>
-    private float AlcanceEfetivo => CorpoACorpo ? alcanceDaArma : attackRange;
+    private float EffectiveRange => IsMelee ? alcanceDaArma : attackRange;
 
     /// <summary>
     /// Disparado quando o golpe COMECA, e nao quando acerta.
@@ -289,7 +289,7 @@ public class PlayerCombat : MonoBehaviour
     /// dispara se tinha gesto pra cortar, entao segurar o botao de andar
     /// nao repete o aviso a cada frame.
     /// </summary>
-    public event System.Action OnGolpeInterrompido;
+    public event System.Action OnAttackInterrupted;
 
     /// <summary>
     /// Disparado quando a espada tira vida de alguem, no frame da
@@ -297,14 +297,14 @@ public class PlayerCombat : MonoBehaviour
     /// particula e numero de dano, que so fazem sentido no acerto de
     /// verdade, nao no golpe que erra.
     /// </summary>
-    public event System.Action<Health, float> OnGolpeAcertou;
+    public event System.Action<Health, float> OnAttackHit;
 
     private void Awake()
     {
         motor = GetComponent<PlayerMotor>();
         weapon = GetComponent<MeleeAttack>();
         ownHealth = GetComponent<Health>();
-        agente = GetComponent<NavMeshAgent>();
+        agent = GetComponent<NavMeshAgent>();
 
         // O avatar do Mixamo e Humanoid, entao da pra pedir a mao pelo
         // nome do osso em vez de deixar um campo pra alguem arrastar e
@@ -313,7 +313,7 @@ public class PlayerCombat : MonoBehaviour
         Animator animator = GetComponentInChildren<Animator>();
 
         if (animator != null && animator.isHuman)
-            mao = animator.GetBoneTransform(HumanBodyBones.RightHand);
+            hand = animator.GetBoneTransform(HumanBodyBones.RightHand);
     }
 
     /// <summary>Manda perseguir e bater. Ignora alvo morto ou nulo.</summary>
@@ -330,10 +330,10 @@ public class PlayerCombat : MonoBehaviour
         // Segurar o clique num alvo de que acabei de desistir pediria a
         // mesma rota de novo, eu desistiria de novo, e o alvo ficaria
         // piscando. Enquanto ninguem sair do lugar a resposta e a mesma.
-        if (novoAlvo == alvoSemCaminho && NinguemSaiuDoLugar())
+        if (novoAlvo == unreachableTarget && NobodyMoved())
             return;
 
-        alvoSemCaminho = null;
+        unreachableTarget = null;
 
         target = novoAlvo;
 
@@ -345,7 +345,7 @@ public class PlayerCombat : MonoBehaviour
         // Forca o primeiro calculo de rota, senao o repathThreshold
         // podia engolir ele.
         lastChasePoint = Vector3.positiveInfinity;
-        ultimaDistanciaDeParada = -1f;
+        lastStoppingDistance = -1f;
     }
 
     /// <summary>Desiste do alvo. E isso que o clique de andar chama.</summary>
@@ -371,22 +371,22 @@ public class PlayerCombat : MonoBehaviour
     /// O cooldown continua correndo: cortar e clicar de novo no bicho nao
     /// adianta o proximo golpe.
     /// </summary>
-    public void InterromperGolpe()
+    public void InterruptAttack()
     {
-        if (!gestoEmCurso || Time.time >= nextAttackTime)
+        if (!swingInProgress || Time.time >= nextAttackTime)
             return;
 
-        gestoEmCurso = false;
+        swingInProgress = false;
 
-        // Sem esta linha o VigiarOEvento entregaria o dano do golpe
+        // Sem esta linha o WatchAnimationEvent entregaria o dano do golpe
         // cortado no fim do prazo, e ainda reclamaria que falta o evento
         // no clipe.
-        esperandoOEvento = false;
+        waitingForEvent = false;
 
         // Golpe cortado quebra a sequencia: o proximo volta pro primeiro.
-        proximoPasso = 0;
+        nextStep = 0;
 
-        OnGolpeInterrompido?.Invoke();
+        OnAttackInterrupted?.Invoke();
     }
 
     /// <summary>
@@ -400,22 +400,22 @@ public class PlayerCombat : MonoBehaviour
     /// ninguem perto, o Shift so segura o personagem parado e virado.
     ///
     /// O golpe nao trava alvo: na pancada eu pego quem estiver na frente
-    /// (ver AlvoNaFrente), porque o bicho pode ter andado no meio segundo
+    /// (ver TargetInFront), porque o bicho pode ter andado no meio segundo
     /// do gesto. Respeita o cooldown e o combo como o golpe normal;
     /// segurando o botao, quem chama de novo todo frame e o
     /// PlayerController.
     ///
     /// So vale no corpo a corpo. A magia precisa de alvo pra mirar a bola.
     /// </summary>
-    public void GolpearParado(Vector3 ponto)
+    public void StandingAttack(Vector3 ponto)
     {
-        if (!CorpoACorpo || (ownHealth != null && ownHealth.IsDead))
+        if (!IsMelee || (ownHealth != null && ownHealth.IsDead))
             return;
 
         ClearTarget();
         StopChasing();
 
-        pontoDoGolpeParado = ponto;
+        standingAttackPoint = ponto;
         FaceTarget(ponto);
 
         if (Time.time < nextAttackTime)
@@ -426,10 +426,10 @@ public class PlayerCombat : MonoBehaviour
         Vector3 paraOPonto = ponto - transform.position;
         paraOPonto.y = 0f;
 
-        if (AlvoNaFrente(paraOPonto) == null)
+        if (TargetInFront(paraOPonto) == null)
             return;
 
-        ComecarGolpe(null);
+        StartAttack(null);
     }
 
     /// <summary>
@@ -442,36 +442,36 @@ public class PlayerCombat : MonoBehaviour
     /// solta, e dali em diante voa reto. Se ele desviar durante o voo,
     /// erra - e isso que faz o alcance de 9 m custar alguma coisa.
     /// </summary>
-    public void SoltarProjetil()
+    public void ReleaseProjectile()
     {
         // Sem bola e corpo a corpo. Um clipe de magia tocando num
         // personagem de espada cai aqui e passa pelo mesmo teste de
         // alcance do golpe - antes ele tirava vida de 9 m, na hora.
-        if (CorpoACorpo)
+        if (IsMelee)
         {
-            AcertarGolpe();
+            LandHit();
             return;
         }
 
         // Golpe cortado nao solta a bola. O evento ainda pode chegar
         // depois do corte, do clipe que esta saindo durante o blend.
-        if (!esperandoOEvento)
+        if (!waitingForEvent)
             return;
 
-        esperandoOEvento = false;
+        waitingForEvent = false;
 
         if (ownHealth != null && ownHealth.IsDead)
             return;
 
-        Vector3 origem = OrigemDaMagia();
+        Vector3 origem = SpellOrigin();
 
-        bool alvoVivo = alvoDoCast != null && !alvoDoCast.IsDead;
+        bool alvoVivo = castTarget != null && !castTarget.IsDead;
 
         // Alvo que morreu ou sumiu no meio do gesto nao cancela o golpe:
         // a bola sai pra frente e morre no ar. Cancelar deixava o
         // personagem terminando a animacao de mao vazia.
         Vector3 mira = alvoVivo
-            ? alvoDoCast.transform.position
+            ? castTarget.transform.position
             : origem + transform.forward;
 
         Projectile bola = Instantiate(projetil, origem, Quaternion.identity);
@@ -492,37 +492,37 @@ public class PlayerCombat : MonoBehaviour
     /// durante essa transicao o clipe velho e o novo tocam juntos - dois
     /// eventos pro mesmo golpe seriam dano em dobro.
     /// </summary>
-    public void AcertarGolpe()
+    public void LandHit()
     {
-        if (!esperandoOEvento)
+        if (!waitingForEvent)
             return;
 
-        esperandoOEvento = false;
+        waitingForEvent = false;
 
         if (ownHealth != null && ownHealth.IsDead)
             return;
 
-        if (golpeParado)
-            alvoDoCast = AlvoNaFrente(transform.forward);
+        if (isStandingAttack)
+            castTarget = TargetInFront(transform.forward);
 
-        if (alvoDoCast == null || alvoDoCast.IsDead)
+        if (castTarget == null || castTarget.IsDead)
             return;
 
         // Confiro a parede de novo na pancada: o alvo pode ter dobrado
         // uma quina depois que comecei o gesto. Nesse caso deixo errar.
-        if (!LaminaAlcanca(alvoDoCast) || !VisaoLimpa(alvoDoCast))
+        if (!BladeReaches(castTarget) || !HasLineOfSight(castTarget))
             return;
 
         // O dano de verdade e o que a vida perdeu, e nao o numero da
         // arma: no golpe que mata o inimigo com 5 de vida, sai 5.
-        float vidaAntes = alvoDoCast.Current;
+        float vidaAntes = castTarget.Current;
 
         // Sorteio na pancada, e nao no comeco do golpe: golpe cortado ou
         // que errou nao gasta sorteio nenhum.
         bool critico = Random.value < chanceDeCritico;
-        float multiplicador = (GolpeFinal ? danoDoFinal : 1f) * (critico ? danoDoCritico : 1f);
+        float multiplicador = (IsFinisher ? danoDoFinal : 1f) * (critico ? danoDoCritico : 1f);
 
-        if (!weapon.TryHit(alvoDoCast, multiplicador))
+        if (!weapon.TryHit(castTarget, multiplicador))
             return;
 
         // So conta como acerto se tirou vida. O TryHit devolve true
@@ -530,12 +530,12 @@ public class PlayerCombat : MonoBehaviour
         // invulneravel. Medi no Monge com a invulnerabilidade ligada: 7
         // golpes, vida parada em 745, e todos com a pausa de 60 ou 100 ms
         // e o sangue de um acerto normal.
-        float dano = vidaAntes - alvoDoCast.Current;
+        float dano = vidaAntes - castTarget.Current;
 
         if (dano > 0f)
         {
-            UltimoAcertoCritico = critico;
-            OnGolpeAcertou?.Invoke(alvoDoCast, dano);
+            LastHitWasCrit = critico;
+            OnAttackHit?.Invoke(castTarget, dano);
         }
     }
 
@@ -548,24 +548,24 @@ public class PlayerCombat : MonoBehaviour
     /// Uso o NonAlloc com um buffer fixo pra pancada nao gerar lixo. 16 da
     /// folga: o raio e de uns 2,7 m.
     /// </summary>
-    private Health AlvoNaFrente(Vector3 frente)
+    private Health TargetInFront(Vector3 frente)
     {
         int quantos = Physics.OverlapSphereNonAlloc(
             transform.position, alcanceDaArma + folgaDaPancada,
-            PertoDaLamina, ~0, QueryTriggerInteraction.Ignore);
+            BladeOverlaps, ~0, QueryTriggerInteraction.Ignore);
 
         Health melhor = null;
         float melhorDistancia = float.MaxValue;
 
         for (int i = 0; i < quantos; i++)
         {
-            Health candidato = PertoDaLamina[i].GetComponentInParent<Health>();
-            PertoDaLamina[i] = null;
+            Health candidato = BladeOverlaps[i].GetComponentInParent<Health>();
+            BladeOverlaps[i] = null;
 
             if (candidato == null || candidato == ownHealth || candidato.IsDead)
                 continue;
 
-            if (!LaminaAlcanca(candidato, frente) || !VisaoLimpa(candidato))
+            if (!BladeReaches(candidato, frente) || !HasLineOfSight(candidato))
                 continue;
 
             float distancia = (candidato.transform.position - transform.position).sqrMagnitude;
@@ -587,12 +587,12 @@ public class PlayerCombat : MonoBehaviour
     /// so vem 0,4 a 0,5 s depois. Nesse meio tempo o bicho pode ter
     /// andado, e a pergunta aqui e se ainda e justo contar como acerto.
     /// </summary>
-    private bool LaminaAlcanca(Health alvo)
+    private bool BladeReaches(Health alvo)
     {
-        return LaminaAlcanca(alvo, transform.forward);
+        return BladeReaches(alvo, transform.forward);
     }
 
-    private bool LaminaAlcanca(Health alvo, Vector3 frente)
+    private bool BladeReaches(Health alvo, Vector3 frente)
     {
         // So no plano do chao: um inimigo num degrau nao pode escapar do
         // golpe por estar 30 cm mais alto.
@@ -616,10 +616,10 @@ public class PlayerCombat : MonoBehaviour
     /// De onde a bola nasce. A mao do rig quando existe; o peito virado
     /// pra frente quando nao existe.
     /// </summary>
-    private Vector3 OrigemDaMagia()
+    private Vector3 SpellOrigin()
     {
-        if (mao != null)
-            return mao.position;
+        if (hand != null)
+            return hand.position;
 
         return transform.position + transform.forward * 0.5f;
     }
@@ -629,16 +629,16 @@ public class PlayerCombat : MonoBehaviour
     /// tem o evento. Reclamo uma vez e solto a bola do mesmo jeito, pra
     /// o jogo continuar jogavel enquanto ninguem arruma o clipe.
     /// </summary>
-    private void VigiarOEvento()
+    private void WatchAnimationEvent()
     {
-        if (!esperandoOEvento || Time.time < prazoDoEvento)
+        if (!waitingForEvent || Time.time < eventDeadline)
             return;
 
-        if (!jaReclameiDoEvento)
+        if (!warnedMissingEvent)
         {
-            jaReclameiDoEvento = true;
+            warnedMissingEvent = true;
 
-            if (CorpoACorpo)
+            if (IsMelee)
             {
                 Debug.LogWarning(
                     $"[{name}] O golpe comecou e o Animation Event nunca chegou. " +
@@ -657,7 +657,7 @@ public class PlayerCombat : MonoBehaviour
             }
         }
 
-        SoltarProjetil();
+        ReleaseProjectile();
     }
 
     private void Update()
@@ -665,17 +665,17 @@ public class PlayerCombat : MonoBehaviour
         if (ownHealth != null && ownHealth.IsDead)
         {
             // Morreu no meio do gesto: o golpe nao sai.
-            esperandoOEvento = false;
+            waitingForEvent = false;
             ClearTarget();
             return;
         }
 
-        VigiarOEvento();
+        WatchAnimationEvent();
 
         // Golpe parado: o corpo termina de virar pro ponto do clique
         // durante o gesto. Um clique so daria um frame de giro.
-        if (golpeParado && gestoEmCurso && Time.time < nextAttackTime)
-            FaceTarget(pontoDoGolpeParado);
+        if (isStandingAttack && swingInProgress && Time.time < nextAttackTime)
+            FaceTarget(standingAttackPoint);
 
         if (target == null)
             return;
@@ -692,12 +692,12 @@ public class PlayerCombat : MonoBehaviour
         // Termino o gesto antes de perseguir automaticamente. Medi
         // cerca de 1,17 m de deslocamento durante o ataque quando o alvo
         // recuava. O clique de andar ainda corta o golpe na hora.
-        if (gestoEmCurso && Time.time < nextAttackTime)
+        if (swingInProgress && Time.time < nextAttackTime)
         {
             StopChasing();
 
-            if (alvoDoCast != null && !alvoDoCast.IsDead)
-                FaceTarget(alvoDoCast.transform.position);
+            if (castTarget != null && !castTarget.IsDead)
+                FaceTarget(castTarget.transform.position);
 
             return;
         }
@@ -705,7 +705,7 @@ public class PlayerCombat : MonoBehaviour
         Vector3 alvo = target.transform.position;
         float distancia = Vector3.Distance(transform.position, alvo);
 
-        float alcance = AlcanceEfetivo;
+        float alcance = EffectiveRange;
 
         if (distancia > alcance)
         {
@@ -717,7 +717,7 @@ public class PlayerCombat : MonoBehaviour
         // cooldown: o jogador chega mais perto pra contornar a parede e
         // atira assim que abrir. Se gastasse, ele ficaria plantado
         // fazendo gesto pro muro no ritmo do cooldown.
-        if (!VisaoLimpa(target))
+        if (!HasLineOfSight(target))
         {
             Chase(alvo, alcance * 0.3f);
             return;
@@ -729,35 +729,35 @@ public class PlayerCombat : MonoBehaviour
         if (Time.time < nextAttackTime)
             return;
 
-        ComecarGolpe(target);
+        StartAttack(target);
     }
 
     /// <summary>
     /// Comeca um golpe do combo. Com alvo, e o golpe normal; sem alvo
     /// (null), e o golpe parado, e quem leva e decidido na pancada.
     /// </summary>
-    private void ComecarGolpe(Health alvo)
+    private void StartAttack(Health alvo)
     {
         // Aqui o nextAttackTime ainda e o fim do golpe anterior. Se ja
         // passou da janela, a sequencia esfriou e recomeca do primeiro.
         if (Time.time > nextAttackTime + janelaDoCombo)
-            proximoPasso = 0;
+            nextStep = 0;
 
-        passoDoCast = proximoPasso;
-        proximoPasso = (proximoPasso + 1) % Mathf.Max(1, golpesNoCombo);
+        castStep = nextStep;
+        nextStep = (nextStep + 1) % Mathf.Max(1, golpesNoCombo);
 
-        duracaoDoCast = GolpeFinal ? attackCooldown * tempoDoFinal : attackCooldown;
-        nextAttackTime = Time.time + duracaoDoCast;
+        castDuration = IsFinisher ? attackCooldown * tempoDoFinal : attackCooldown;
+        nextAttackTime = Time.time + castDuration;
 
-        alvoDoCast = alvo;
-        golpeParado = alvo == null;
-        esperandoOEvento = true;
-        gestoEmCurso = true;
+        castTarget = alvo;
+        isStandingAttack = alvo == null;
+        waitingForEvent = true;
+        swingInProgress = true;
 
         // Dou o golpe inteiro de prazo pro evento chegar. E folgado de
         // proposito: o clipe cabe dentro dele, entao se passou disso o
         // evento nao existe mesmo.
-        prazoDoEvento = Time.time + duracaoDoCast;
+        eventDeadline = Time.time + castDuration;
 
         OnAttack?.Invoke(alvo);
     }
@@ -774,7 +774,7 @@ public class PlayerCombat : MonoBehaviour
     /// m centrada). Como os dois lados usam a mesma convencao, o raio ja
     /// sai reto de peito a peito.
     /// </summary>
-    private bool VisaoLimpa(Health alvo)
+    private bool HasLineOfSight(Health alvo)
     {
         Vector3 de = transform.position + Vector3.up * alturaDoRaio;
         Vector3 para = alvo.transform.position + Vector3.up * alturaDoRaio;
@@ -786,13 +786,13 @@ public class PlayerCombat : MonoBehaviour
         }
 
         // A magia so pergunta pra fisica: a bola pode cruzar um vao.
-        return !CorpoACorpo || ChaoLigaAte(alvo);
+        return !IsMelee || HasGroundPathTo(alvo);
     }
 
     // Ate onde procuro NavMesh em volta do pe do alvo. O agente fica a
     // pelo menos o raio dele (0,5) de qualquer borda, entao 1 m acha o
     // chao de quem esta pisando nele e nao pula pro outro lado da parede.
-    private const float raioDoPeDoAlvo = 1f;
+    private const float TargetFootRadius = 1f;
 
     /// <summary>
     /// O chao pisavel vai direto de mim ate o alvo, sem borda no meio?
@@ -807,9 +807,9 @@ public class PlayerCombat : MonoBehaviour
     /// para na primeira borda. O custo e que vao sem chao tambem conta
     /// como parede, mesmo sem nada na frente.
     /// </summary>
-    private bool ChaoLigaAte(Health alvo)
+    private bool HasGroundPathTo(Health alvo)
     {
-        if (agente == null || !agente.isOnNavMesh)
+        if (agent == null || !agent.isOnNavMesh)
             return true;
 
         // Desco ate o pe do alvo, igual o ChasePoint. Na pancada o alvo do
@@ -825,10 +825,10 @@ public class PlayerCombat : MonoBehaviour
 
         // Alvo sem NavMesh por perto (um barril encostado na parede) nao
         // tem o que perguntar. Fico so com a resposta da fisica.
-        if (!NavMesh.SamplePosition(pe, out NavMeshHit chao, raioDoPeDoAlvo, NavMesh.AllAreas))
+        if (!NavMesh.SamplePosition(pe, out NavMeshHit chao, TargetFootRadius, NavMesh.AllAreas))
             return true;
 
-        return !NavMesh.Raycast(agente.nextPosition, chao.position, out _, NavMesh.AllAreas);
+        return !NavMesh.Raycast(agent.nextPosition, chao.position, out _, NavMesh.AllAreas);
     }
 
     private void Chase(Vector3 alvo, float distanciaDeParada)
@@ -844,12 +844,12 @@ public class PlayerCombat : MonoBehaviour
         // descartado como repetido e o jogador nunca chegaria perto o
         // bastante pra dobrar a quina.
         if (mesmoPonto &&
-            Mathf.Approximately(distanciaDeParada, ultimaDistanciaDeParada))
+            Mathf.Approximately(distanciaDeParada, lastStoppingDistance))
         {
             // Ja pedi este ponto num frame anterior. Se o motor parou e o
             // caminho nao chega nele, eu andei o que dava.
-            if (!motor.IsMoving && motor.CaminhoNaoChega)
-                DesistirDoAlvoSemCaminho();
+            if (!motor.IsMoving && motor.IsPathPartial)
+                GiveUpUnreachableTarget();
 
             return;
         }
@@ -860,7 +860,7 @@ public class PlayerCombat : MonoBehaviour
         if (motor.Perseguir(ponto, distanciaDeParada))
         {
             lastChasePoint = ponto;
-            ultimaDistanciaDeParada = distanciaDeParada;
+            lastStoppingDistance = distanciaDeParada;
         }
     }
 
@@ -882,22 +882,22 @@ public class PlayerCombat : MonoBehaviour
     /// depois que a cena carrega, entao enquanto ninguem andar o caminho
     /// continua nao chegando.
     /// </summary>
-    private void DesistirDoAlvoSemCaminho()
+    private void GiveUpUnreachableTarget()
     {
-        alvoSemCaminho = target;
-        ondeOAlvoEstava = target.transform.position;
-        ondeEuEstava = transform.position;
+        unreachableTarget = target;
+        unreachableTargetPos = target.transform.position;
+        unreachableSelfPos = transform.position;
 
         ClearTarget();
         StopChasing();
     }
 
-    private bool NinguemSaiuDoLugar()
+    private bool NobodyMoved()
     {
         float folga = repathThreshold * repathThreshold;
 
-        return (alvoSemCaminho.transform.position - ondeOAlvoEstava).sqrMagnitude <= folga
-            && (transform.position - ondeEuEstava).sqrMagnitude <= folga;
+        return (unreachableTarget.transform.position - unreachableTargetPos).sqrMagnitude <= folga
+            && (transform.position - unreachableSelfPos).sqrMagnitude <= folga;
     }
 
     /// <summary>
@@ -931,7 +931,7 @@ public class PlayerCombat : MonoBehaviour
         // caminho; se eu guardar o ponto, um recuo de menos de 0,25 m
         // pode deixar o alvo fora do alcance sem eu voltar a persegui-lo.
         lastChasePoint = Vector3.positiveInfinity;
-        ultimaDistanciaDeParada = -1f;
+        lastStoppingDistance = -1f;
     }
 
     private void FaceTarget(Vector3 alvo)
@@ -952,7 +952,7 @@ public class PlayerCombat : MonoBehaviour
     private void OnDrawGizmosSelected()
     {
         Gizmos.color = Color.red;
-        Gizmos.DrawWireSphere(transform.position, AlcanceEfetivo);
+        Gizmos.DrawWireSphere(transform.position, EffectiveRange);
 
         if (target != null)
         {

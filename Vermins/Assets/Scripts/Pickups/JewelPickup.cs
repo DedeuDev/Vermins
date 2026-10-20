@@ -18,9 +18,9 @@ public class JewelPickup : Pickup
     private int valor;
 
     // So o nome. O valor e de venda, e quem mostra e a loja.
-    protected override string TextoDoRotulo => "Joia";
+    protected override string LabelText => "Joia";
 
-    protected override Color CorDoRotulo => new Color(0.45f, 0.85f, 1f);
+    protected override Color LabelColor => new Color(0.45f, 0.85f, 1f);
 
     private void Awake()
     {
@@ -29,7 +29,7 @@ public class JewelPickup : Pickup
         valor = Random.Range(minValue, Mathf.Max(minValue, maxValue) + 1);
     }
 
-    protected override bool Entregar(Collider quemEncostou)
+    protected override bool Deliver(Collider quemEncostou)
     {
         JewelPouch bolsa = quemEncostou.GetComponentInParent<JewelPouch>();
 

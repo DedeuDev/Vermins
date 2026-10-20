@@ -36,14 +36,14 @@ public class MoveMarker : MonoBehaviour
     [Tooltip("Folga acima do chao pra o anel nao piscar dentro dele.")]
     [SerializeField] private float alturaAcimaDoChao = 0.03f;
 
-    private LineRenderer anel;
+    private LineRenderer ring;
 
     // Hora em que o anel apareceu. Negativo quando ele esta escondido.
-    private float inicio = -1f;
+    private float startTime = -1f;
 
     // Frame do ultimo OnMoveOrdered. Evento no frame seguinte ao anterior
     // quer dizer botao segurado, nao clique novo.
-    private int ultimoFrameDaOrdem = -10;
+    private int lastOrderFrame = -10;
 
     private void Awake()
     {
@@ -53,66 +53,66 @@ public class MoveMarker : MonoBehaviour
         // frente pro Z local, e girando 90 no X esse Z aponta pra cima.
         objeto.transform.rotation = Quaternion.Euler(90f, 0f, 0f);
 
-        anel = objeto.AddComponent<LineRenderer>();
-        anel.sharedMaterial = material;
-        anel.useWorldSpace = false;
-        anel.loop = true;
-        anel.alignment = LineAlignment.TransformZ;
-        anel.positionCount = segmentos;
-        anel.widthMultiplier = espessura;
-        anel.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
-        anel.receiveShadows = false;
-        anel.enabled = false;
+        ring = objeto.AddComponent<LineRenderer>();
+        ring.sharedMaterial = material;
+        ring.useWorldSpace = false;
+        ring.loop = true;
+        ring.alignment = LineAlignment.TransformZ;
+        ring.positionCount = segmentos;
+        ring.widthMultiplier = espessura;
+        ring.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+        ring.receiveShadows = false;
+        ring.enabled = false;
     }
 
     private void OnEnable()
     {
-        PlayerController.OnMoveOrdered += Mostrar;
+        PlayerController.OnMoveOrdered += Show;
     }
 
     private void OnDisable()
     {
-        PlayerController.OnMoveOrdered -= Mostrar;
-        Esconder();
+        PlayerController.OnMoveOrdered -= Show;
+        Hide();
     }
 
     private void OnDestroy()
     {
-        if (anel != null)
-            Destroy(anel.gameObject);
+        if (ring != null)
+            Destroy(ring.gameObject);
     }
 
-    private void Mostrar(Vector3 ponto)
+    private void Show(Vector3 ponto)
     {
-        bool segurando = Time.frameCount - ultimoFrameDaOrdem <= 1;
-        ultimoFrameDaOrdem = Time.frameCount;
+        bool segurando = Time.frameCount - lastOrderFrame <= 1;
+        lastOrderFrame = Time.frameCount;
 
         if (segurando)
             return;
 
-        anel.transform.position = ponto + Vector3.up * alturaAcimaDoChao;
-        inicio = Time.time;
-        Desenhar(0f);
-        anel.enabled = true;
+        ring.transform.position = ponto + Vector3.up * alturaAcimaDoChao;
+        startTime = Time.time;
+        Draw(0f);
+        ring.enabled = true;
     }
 
     private void Update()
     {
-        if (inicio < 0f)
+        if (startTime < 0f)
             return;
 
-        float t = (Time.time - inicio) / duracao;
+        float t = (Time.time - startTime) / duracao;
 
         if (t >= 1f)
         {
-            Esconder();
+            Hide();
             return;
         }
 
-        Desenhar(t);
+        Draw(t);
     }
 
-    private void Desenhar(float t)
+    private void Draw(float t)
     {
         // Fecha rapido no comeco e assenta no fim (ease-out), e o fade
         // vai no sentido contrario: quase inteiro no comeco e cai no
@@ -123,7 +123,7 @@ public class MoveMarker : MonoBehaviour
         for (int i = 0; i < segmentos; i++)
         {
             float angulo = i * Mathf.PI * 2f / segmentos;
-            anel.SetPosition(i, new Vector3(
+            ring.SetPosition(i, new Vector3(
                 Mathf.Cos(angulo) * raio,
                 Mathf.Sin(angulo) * raio,
                 0f));
@@ -131,15 +131,15 @@ public class MoveMarker : MonoBehaviour
 
         Color c = cor;
         c.a *= 1f - t * t;
-        anel.startColor = c;
-        anel.endColor = c;
+        ring.startColor = c;
+        ring.endColor = c;
     }
 
-    private void Esconder()
+    private void Hide()
     {
-        inicio = -1f;
+        startTime = -1f;
 
-        if (anel != null)
-            anel.enabled = false;
+        if (ring != null)
+            ring.enabled = false;
     }
 }

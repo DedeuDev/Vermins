@@ -32,45 +32,45 @@ public class HitParticles : MonoBehaviour
 
     private PlayerCombat combat;
     private Health health;
-    private ParticleSystem sistema;
+    private ParticleSystem particles;
 
     private void Awake()
     {
         combat = GetComponent<PlayerCombat>();
         health = GetComponent<Health>();
-        sistema = CriarSistema();
+        particles = CreateSystem();
     }
 
     private void OnEnable()
     {
-        combat.OnGolpeAcertou += Acertou;
+        combat.OnAttackHit += HandleHit;
 
         if (health != null)
-            health.OnDamaged += Apanhou;
+            health.OnDamaged += HandleDamaged;
     }
 
     private void OnDisable()
     {
-        combat.OnGolpeAcertou -= Acertou;
+        combat.OnAttackHit -= HandleHit;
 
         if (health != null)
-            health.OnDamaged -= Apanhou;
+            health.OnDamaged -= HandleDamaged;
     }
 
     private void OnDestroy()
     {
-        if (sistema != null)
-            Destroy(sistema.gameObject);
+        if (particles != null)
+            Destroy(particles.gameObject);
     }
 
-    private void Acertou(Health alvo, float dano)
+    private void HandleHit(Health alvo, float dano)
     {
         Vector3 origem = transform.position + Vector3.up * alturaDoPeito;
-        Espirrar(PontoNoCorpo(alvo.gameObject, origem), origem,
-            alvo.IsDead || combat.GolpeFinal ? particulasNaMorte : particulasNoAcerto);
+        Spray(PointOnBody(alvo.gameObject, origem), origem,
+            alvo.IsDead || combat.IsFinisher ? particulasNaMorte : particulasNoAcerto);
     }
 
-    private void Apanhou(float dano, GameObject quemBateu)
+    private void HandleDamaged(float dano, GameObject quemBateu)
     {
         Vector3 peito = transform.position + Vector3.up * alturaDoPeito;
 
@@ -79,14 +79,14 @@ public class HitParticles : MonoBehaviour
             ? quemBateu.transform.position + Vector3.up * alturaDoPeito
             : peito + Vector3.down;
 
-        Espirrar(PontoNoCorpo(gameObject, origem), origem, particulasAoApanhar);
+        Spray(PointOnBody(gameObject, origem), origem, particulasAoApanhar);
     }
 
     /// <summary>
     /// Ponto da casca do corpo mais perto de quem bateu. Com isso o
     /// sangue sai da superficie do inimigo, e nao do meio dele.
     /// </summary>
-    private Vector3 PontoNoCorpo(GameObject corpo, Vector3 origem)
+    private Vector3 PointOnBody(GameObject corpo, Vector3 origem)
     {
         foreach (var c in corpo.GetComponentsInChildren<Collider>())
         {
@@ -103,7 +103,7 @@ public class HitParticles : MonoBehaviour
         return corpo.transform.position + Vector3.up * alturaDoPeito;
     }
 
-    private void Espirrar(Vector3 ponto, Vector3 origem, int quantas)
+    private void Spray(Vector3 ponto, Vector3 origem, int quantas)
     {
         Vector3 longe = ponto - origem;
         longe.y = 0f;
@@ -124,12 +124,12 @@ public class HitParticles : MonoBehaviour
         // primeira parte do voo ja estar na frente dele.
         Vector3 inicio = ponto - longe * 0.15f;
 
-        sistema.transform.SetPositionAndRotation(
+        particles.transform.SetPositionAndRotation(
             inicio, Quaternion.LookRotation(direcao));
-        sistema.Emit(quantas);
+        particles.Emit(quantas);
     }
 
-    private ParticleSystem CriarSistema()
+    private ParticleSystem CreateSystem()
     {
         var objeto = new GameObject("HitParticles");
         var ps = objeto.AddComponent<ParticleSystem>();

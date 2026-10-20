@@ -18,9 +18,9 @@ public class GoldPickup : Pickup
 
     private int quantia;
 
-    protected override string TextoDoRotulo => $"Ouro {quantia}";
+    protected override string LabelText => $"Ouro {quantia}";
 
-    protected override Color CorDoRotulo => new Color(1f, 0.85f, 0.3f);
+    protected override Color LabelColor => new Color(1f, 0.85f, 0.3f);
 
     private void Awake()
     {
@@ -31,7 +31,7 @@ public class GoldPickup : Pickup
         quantia = Random.Range(minAmount, Mathf.Max(minAmount, maxAmount) + 1);
     }
 
-    protected override bool Entregar(Collider quemEncostou)
+    protected override bool Deliver(Collider quemEncostou)
     {
         GoldWallet carteira = quemEncostou.GetComponentInParent<GoldWallet>();
 

@@ -35,15 +35,15 @@ public class BossHealth : MonoBehaviour
 
     private void OnEnable()
     {
-        health.OnDamaged += RepassarDano;
+        health.OnDamaged += ForwardDamage;
     }
 
     private void OnDisable()
     {
-        health.OnDamaged -= RepassarDano;
+        health.OnDamaged -= ForwardDamage;
     }
 
-    private void RepassarDano(float quantidade, GameObject _)
+    private void ForwardDamage(float quantidade, GameObject _)
     {
         stats.TomarDano(quantidade);
     }

@@ -37,9 +37,9 @@ public class HitImpact : MonoBehaviour
     // Quem esta congelado e a velocidade que tinha antes. Devolvo a
     // velocidade antiga em vez de 1 pra nao atropelar quem um dia mexer
     // no speed do Animator por outro motivo.
-    private readonly List<Animator> congelados = new List<Animator>();
-    private readonly List<float> velocidades = new List<float>();
-    private float fimDaPausa;
+    private readonly List<Animator> frozen = new List<Animator>();
+    private readonly List<float> speeds = new List<float>();
+    private float pauseEnd;
 
     private void Awake()
     {
@@ -49,54 +49,54 @@ public class HitImpact : MonoBehaviour
 
     private void OnEnable()
     {
-        combat.OnGolpeAcertou += Acertou;
+        combat.OnAttackHit += HandleHit;
 
         if (health != null)
-            health.OnDamaged += Apanhou;
+            health.OnDamaged += HandleDamaged;
     }
 
     private void OnDisable()
     {
-        combat.OnGolpeAcertou -= Acertou;
+        combat.OnAttackHit -= HandleHit;
 
         if (health != null)
-            health.OnDamaged -= Apanhou;
+            health.OnDamaged -= HandleDamaged;
 
-        Descongelar();
+        Unfreeze();
     }
 
-    private void Acertou(Health alvo, float dano)
+    private void HandleHit(Health alvo, float dano)
     {
         // O golpe final do combo pesa igual ao que mata: e a recompensa
         // de ter fechado a sequencia.
-        bool forte = alvo.IsDead || combat.GolpeFinal || combat.UltimoAcertoCritico;
+        bool forte = alvo.IsDead || combat.IsFinisher || combat.LastHitWasCrit;
 
         IsometricCameraFollow.Tremer(forte ? tremorNaMorte : tremorNoAcerto);
 
-        Congelar(gameObject);
-        Congelar(alvo.gameObject);
+        Freeze(gameObject);
+        Freeze(alvo.gameObject);
 
         // Golpe emendado estica a pausa, nao soma: dois acertos colados
         // nao podem virar uma travada longa.
-        fimDaPausa = Mathf.Max(
-            fimDaPausa,
+        pauseEnd = Mathf.Max(
+            pauseEnd,
             Time.unscaledTime + (forte ? pausaNaMorte : pausaNoAcerto));
     }
 
-    private void Apanhou(float dano, GameObject quemBateu)
+    private void HandleDamaged(float dano, GameObject quemBateu)
     {
         IsometricCameraFollow.Tremer(tremorAoApanhar);
     }
 
-    private void Congelar(GameObject quem)
+    private void Freeze(GameObject quem)
     {
         foreach (var animator in quem.GetComponentsInChildren<Animator>())
         {
-            if (congelados.Contains(animator))
+            if (frozen.Contains(animator))
                 continue;
 
-            congelados.Add(animator);
-            velocidades.Add(animator.speed);
+            frozen.Add(animator);
+            speeds.Add(animator.speed);
             animator.speed = 0f;
         }
     }
@@ -105,20 +105,20 @@ public class HitImpact : MonoBehaviour
     {
         // Tempo sem escala: se o jogo pausar no meio do impacto, a pausa
         // termina igual e ninguem fica congelado depois do menu.
-        if (congelados.Count > 0 && Time.unscaledTime >= fimDaPausa)
-            Descongelar();
+        if (frozen.Count > 0 && Time.unscaledTime >= pauseEnd)
+            Unfreeze();
     }
 
-    private void Descongelar()
+    private void Unfreeze()
     {
-        for (int i = 0; i < congelados.Count; i++)
+        for (int i = 0; i < frozen.Count; i++)
         {
             // O alvo pode ter morrido e sumido durante a pausa.
-            if (congelados[i] != null)
-                congelados[i].speed = velocidades[i];
+            if (frozen[i] != null)
+                frozen[i].speed = speeds[i];
         }
 
-        congelados.Clear();
-        velocidades.Clear();
+        frozen.Clear();
+        speeds.Clear();
     }
 }

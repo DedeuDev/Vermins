@@ -39,7 +39,7 @@ public class PlayerDeath : MonoBehaviour
     [SerializeField] private float escuroMaximo = 0.8f;
 
     private Health health;
-    private bool recarregando;
+    private bool isReloading;
 
     private void Awake()
     {
@@ -61,18 +61,18 @@ public class PlayerDeath : MonoBehaviour
         // O Health ja nao dispara OnDied duas vezes, mas se um dia
         // alguem chamar Revive e o jogador morrer de novo durante a
         // espera, sem isso seriam dois recarregamentos na fila.
-        if (recarregando)
+        if (isReloading)
             return;
 
-        recarregando = true;
-        StartCoroutine(EscurecerERecarregar());
+        isReloading = true;
+        StartCoroutine(FadeAndReload());
     }
 
-    private IEnumerator EscurecerERecarregar()
+    private IEnumerator FadeAndReload()
     {
         yield return new WaitForSeconds(esperaAntesDeEscurecer);
 
-        CanvasGroup tela = CriarTela();
+        CanvasGroup tela = CreateOverlay();
 
         for (float t = 0f; t < duracaoDoEscurecer; t += Time.deltaTime)
         {
@@ -84,7 +84,7 @@ public class PlayerDeath : MonoBehaviour
 
         yield return new WaitForSeconds(esperaNaTelaEscura);
 
-        Recarregar();
+        Reload();
     }
 
     /// <summary>
@@ -94,7 +94,7 @@ public class PlayerDeath : MonoBehaviour
     /// junto. Quando tiver arte de verdade pra essa tela, troco por um
     /// prefab de UI.
     /// </summary>
-    private CanvasGroup CriarTela()
+    private CanvasGroup CreateOverlay()
     {
         var raiz = new GameObject("TelaDeMorte");
 
@@ -113,11 +113,11 @@ public class PlayerDeath : MonoBehaviour
         grupo.blocksRaycasts = false;
         grupo.interactable = false;
 
-        var fundo = CriarFilho<Image>(raiz, "Fundo");
+        var fundo = CreateChild<Image>(raiz, "Fundo");
         fundo.color = new Color(0f, 0f, 0f, escuroMaximo);
         fundo.raycastTarget = false;
 
-        var texto = CriarFilho<Text>(raiz, "Mensagem");
+        var texto = CreateChild<Text>(raiz, "Mensagem");
         texto.text = mensagem;
         texto.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
         texto.fontSize = 96;
@@ -128,7 +128,7 @@ public class PlayerDeath : MonoBehaviour
         return grupo;
     }
 
-    private static T CriarFilho<T>(GameObject pai, string nome) where T : Graphic
+    private static T CreateChild<T>(GameObject pai, string nome) where T : Graphic
     {
         var filho = new GameObject(nome, typeof(RectTransform));
         filho.transform.SetParent(pai.transform, false);
@@ -143,11 +143,11 @@ public class PlayerDeath : MonoBehaviour
         return filho.AddComponent<T>();
     }
 
-    private static void Recarregar()
+    private static void Reload()
     {
         // O Player da cena nova nasce com o XP de quando entrei nela, e
         // nao do zero. Ver CharacterLevel.
-        CharacterLevel.RenascerNaProximaCena();
+        CharacterLevel.RespawnOnNextScene();
 
         // Pelo caminho e nao pelo buildIndex. A IA_Test_Scene nao esta
         // no Build Settings e mesmo assim recarregou normal no editor

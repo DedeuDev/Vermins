@@ -26,30 +26,30 @@ using UnityEngine.SceneManagement;
 /// </summary>
 public static class CrossSceneState
 {
-    private static bool temEstado;
-    private static float vida;
+    private static bool hasState;
+    private static float health;
     private static int xp;
-    private static int pocoes;
-    private static int ouro;
-    private static int joias;
-    private static int valorDasJoias;
-    private static EquipmentItem arma;
-    private static EquipmentItem armadura;
-    private static EquipmentItem anel;
+    private static int potions;
+    private static int gold;
+    private static int jewels;
+    private static int jewelsValue;
+    private static EquipmentItem weapon;
+    private static EquipmentItem armor;
+    private static EquipmentItem ring;
 
     // Campo estatico nao zera sozinho quando o editor entra em Play sem
     // recarregar o dominio, e a inscricao no sceneLoaded dobraria. Por
     // isso limpo e inscrevo de novo aqui.
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
-    private static void Ligar()
+    private static void Initialize()
     {
-        temEstado = false;
-        arma = null;
-        armadura = null;
-        anel = null;
+        hasState = false;
+        weapon = null;
+        armor = null;
+        ring = null;
 
-        SceneManager.sceneLoaded -= AoAbrirCena;
-        SceneManager.sceneLoaded += AoAbrirCena;
+        SceneManager.sceneLoaded -= HandleSceneLoaded;
+        SceneManager.sceneLoaded += HandleSceneLoaded;
     }
 
     /// <summary>
@@ -58,7 +58,7 @@ public static class CrossSceneState
     /// </summary>
     public static void Guardar()
     {
-        temEstado = false;
+        hasState = false;
 
         GameObject player = GameObject.FindGameObjectWithTag("Player");
 
@@ -78,27 +78,27 @@ public static class CrossSceneState
         var nivel = player.GetComponent<CharacterLevel>();
         var equipamento = player.GetComponent<CharacterEquipment>();
 
-        vida = saude.Current;
+        health = saude.Current;
         xp = nivel != null ? nivel.Xp : 0;
-        pocoes = cinto != null ? cinto.Count : 0;
-        ouro = carteira != null ? carteira.Amount : 0;
-        joias = bolsa != null ? bolsa.Count : 0;
-        valorDasJoias = bolsa != null ? bolsa.TotalValue : 0;
-        arma = equipamento != null ? equipamento.NoSlot(EquipmentSlot.Arma) : null;
-        armadura = equipamento != null ? equipamento.NoSlot(EquipmentSlot.Armadura) : null;
-        anel = equipamento != null ? equipamento.NoSlot(EquipmentSlot.Anel) : null;
+        potions = cinto != null ? cinto.Count : 0;
+        gold = carteira != null ? carteira.Amount : 0;
+        jewels = bolsa != null ? bolsa.Count : 0;
+        jewelsValue = bolsa != null ? bolsa.TotalValue : 0;
+        weapon = equipamento != null ? equipamento.NoSlot(EquipmentSlot.Arma) : null;
+        armor = equipamento != null ? equipamento.NoSlot(EquipmentSlot.Armadura) : null;
+        ring = equipamento != null ? equipamento.NoSlot(EquipmentSlot.Anel) : null;
 
-        temEstado = true;
+        hasState = true;
     }
 
-    private static void AoAbrirCena(Scene cena, LoadSceneMode modo)
+    private static void HandleSceneLoaded(Scene cena, LoadSceneMode modo)
     {
-        if (!temEstado)
+        if (!hasState)
             return;
 
         // Vale uma vez so. Se a cena que abriu nao tiver Player, o estado
         // se perde em vez de aparecer numa cena qualquer mais tarde.
-        temEstado = false;
+        hasState = false;
 
         GameObject player = GameObject.FindGameObjectWithTag("Player");
 
@@ -112,13 +112,13 @@ public static class CrossSceneState
 
         // Classe estatica nao roda corrotina, entao pego o Health
         // emprestado pra rodar a espera.
-        saude.StartCoroutine(Devolver(player, saude));
+        saude.StartCoroutine(RestoreNextFrame(player, saude));
     }
 
     // O sceneLoaded chega depois dos Awake e antes dos Start. O
     // CharacterAttributes aplica a build no Start e enche a vida, entao
     // se eu devolvesse aqui mesmo ele passaria por cima. Espero um frame.
-    private static IEnumerator Devolver(GameObject player, Health saude)
+    private static IEnumerator RestoreNextFrame(GameObject player, Health saude)
     {
         yield return null;
 
@@ -139,23 +139,23 @@ public static class CrossSceneState
         var equipamento = player.GetComponent<CharacterEquipment>();
 
         if (equipamento != null)
-            equipamento.Restaurar(arma, armadura, anel);
+            equipamento.Restaurar(weapon, armor, ring);
 
-        saude.Revive(vida);
+        saude.Revive(health);
 
         var cinto = player.GetComponent<PotionBelt>();
 
         if (cinto != null)
-            cinto.Restore(pocoes);
+            cinto.Restore(potions);
 
         var carteira = player.GetComponent<GoldWallet>();
 
         if (carteira != null)
-            carteira.Restore(ouro);
+            carteira.Restore(gold);
 
         var bolsa = player.GetComponent<JewelPouch>();
 
         if (bolsa != null)
-            bolsa.Restore(joias, valorDasJoias);
+            bolsa.Restore(jewels, jewelsValue);
     }
 }

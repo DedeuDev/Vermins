@@ -75,23 +75,23 @@ public class PlayerAnimator : MonoBehaviour
     private static readonly int SpeedId = Animator.StringToHash("Speed");
     private static readonly int VelXId = Animator.StringToHash("VelX");
     private static readonly int VelZId = Animator.StringToHash("VelZ");
-    private static readonly int AtacarId = Animator.StringToHash("Atacar");
-    private static readonly int MortoId = Animator.StringToHash("Morto");
-    private static readonly int VariacaoId = Animator.StringToHash("Variacao");
-    private static readonly int VelAtaqueId = Animator.StringToHash("VelAtaque");
-    private static readonly int VelLocomocaoId = Animator.StringToHash("VelLocomocao");
-    private static readonly int ApanharId = Animator.StringToHash("Apanhar");
-    private static readonly int EsquivarId = Animator.StringToHash("Esquivar");
-    private static readonly int VelEsquivaId = Animator.StringToHash("VelEsquiva");
+    private static readonly int AttackId = Animator.StringToHash("Atacar");
+    private static readonly int DeadId = Animator.StringToHash("Morto");
+    private static readonly int VariantId = Animator.StringToHash("Variacao");
+    private static readonly int AttackSpeedId = Animator.StringToHash("VelAtaque");
+    private static readonly int LocomotionSpeedId = Animator.StringToHash("VelLocomocao");
+    private static readonly int HurtId = Animator.StringToHash("Apanhar");
+    private static readonly int DodgeId = Animator.StringToHash("Esquivar");
+    private static readonly int DodgeSpeedId = Animator.StringToHash("VelEsquiva");
 
     // Hash do ESTADO, nao de parametro. Uso pra saber se a reacao esta
     // em cena neste frame, que e o que decide o peso da camada.
-    private static readonly int EstadoReagirId = Animator.StringToHash("Reagir");
+    private static readonly int ReactStateId = Animator.StringToHash("Reagir");
 
     // Tambem de estado. Os nomes tem que bater com o EstadoAtaque e o
     // EstadoLocomocao do PlayerAnimatorSetup, que e quem cria os dois.
-    private static readonly int EstadoAtaqueId = Animator.StringToHash("Ataque");
-    private static readonly int EstadoLocomocaoId = Animator.StringToHash("Locomocao");
+    private static readonly int AttackStateId = Animator.StringToHash("Ataque");
+    private static readonly int LocomotionStateId = Animator.StringToHash("Locomocao");
 
     // O estado do rolamento. O nome fica em portugues porque e o do
     // controller.
@@ -99,52 +99,52 @@ public class PlayerAnimator : MonoBehaviour
 
     // O estado parado da camada da reacao. Mesmo nome do EstadoVazio do
     // PlayerAnimatorSetup.
-    private static readonly int EstadoVazioId = Animator.StringToHash("Vazio");
+    private static readonly int EmptyStateId = Animator.StringToHash("Vazio");
 
     /// <summary>
     /// Nome da camada que toca a reacao a dano. Ela tem uma AvatarMask do
     /// torso pra cima, entao o tronco reage enquanto as pernas continuam
     /// vindo da locomocao - o jogador apanha sem parar de andar.
     /// </summary>
-    private const string CamadaDaReacao = "Reacao";
+    private const string ReactionLayerName = "Reacao";
 
     /// <summary>
     /// Folga entre o fim da animacao e o golpe seguinte. Sem ela o clipe
     /// fecharia exatamente em cima do proximo golpe, e num frame ruim os
     /// dois se encavalam.
     /// </summary>
-    private const float FolgaDoGolpe = 0.95f;
+    private const float AttackFitRatio = 0.95f;
 
     // Duracao de cada clipe de ataque, na ordem do nome (01, 02, 03), que
     // e a mesma ordem da Variacao no blend tree. Lida do controller uma
     // vez. Leio em vez de deixar campo serializado porque este numero
     // muda sozinho quando alguem recorta o clipe, e um campo ficaria
     // mentindo sem ninguem notar.
-    private float[] duracoesDoAtaque = new float[0];
+    private float[] attackDurations = new float[0];
 
     // Duracao do clipe da esquiva, lida do controller uma vez, pelo
-    // mesmo motivo do duracoesDoAtaque. Zero quando o controller nao tem
+    // mesmo motivo do attackDurations. Zero quando o controller nao tem
     // esquiva: ai o rolamento anda sem animacao, na pose de corrida.
-    private float duracaoDaEsquiva;
+    private float dodgeDuration;
 
     private NavMeshAgent agent;
     private Health health;
-    private PlayerCombat combate;
-    private Dodge esquiva;
+    private PlayerCombat combat;
+    private Dodge dodge;
 
     // Indice da camada da reacao, resolvido uma vez. Guardo porque
     // GetLayerIndex faz busca por nome e eu leio isto todo frame.
-    private int camadaDaReacao = -1;
+    private int reactionLayer = -1;
 
     // Peso atual da camada da reacao. Guardo em vez de ler do Animator
     // todo frame porque eu preciso do valor de ONTEM pra saber se estou
     // subindo ou descendo, e e isso que escolhe qual das duas rampas usar.
-    private float pesoDaReacao;
+    private float reactionWeight;
 
     // So reajo se o controller tiver as duas pecas: o trigger e a camada.
     // Sem elas o personagem apanha calado, e esta certo assim - ver o
     // comentario no Awake.
-    private bool podeReagir;
+    private bool canReact;
 
     // Amorteco o MODULO da velocidade, nunca a direcao.
     //
@@ -160,22 +160,22 @@ public class PlayerAnimator : MonoBehaviour
     // A direcao nao precisa de amortecimento: quem a suaviza ja e a
     // aceleracao do NavMeshAgent. Quem tremia era o modulo perto do zero,
     // e e so ele que eu seguro aqui.
-    private float moduloSuave;
-    private float aceleracaoSuave;
+    private float smoothedSpeed;
+    private float speedVelocity;
 
     // Ultima direcao valida. Quando o agente para, a velocidade zera e
     // nao sobra direcao pra normalizar. Sem guardar esta, VelX e VelZ
     // cairiam pra zero de um frame pro outro e o personagem pularia da
     // corrida pro parado; guardando, o modulo desce sozinho e o blend
     // desce a rampa ate o Idle.
-    private Vector3 direcaoMundo = Vector3.forward;
+    private Vector3 worldDirection = Vector3.forward;
 
     private void Awake()
     {
         agent = GetComponent<NavMeshAgent>();
         health = GetComponent<Health>();
-        combate = GetComponent<PlayerCombat>();
-        esquiva = GetComponent<Dodge>();
+        combat = GetComponent<PlayerCombat>();
+        dodge = GetComponent<Dodge>();
 
         if (animator == null)
             animator = GetComponentInChildren<Animator>();
@@ -193,7 +193,7 @@ public class PlayerAnimator : MonoBehaviour
         // posicao que o agente acha que ele tem.
         animator.applyRootMotion = false;
 
-        string faltando = ParametroQueFalta();
+        string faltando = MissingParameter();
 
         if (faltando != null)
         {
@@ -204,14 +204,14 @@ public class PlayerAnimator : MonoBehaviour
             return;
         }
 
-        MedirOClipeDeAtaque();
-        MedirOClipeDaEsquiva();
-        AcharACamadaDaReacao();
+        MeasureAttackClips();
+        MeasureDodgeClip();
+        FindReactionLayer();
 
         // Sem aviso quando falta. O controller da magia nao tem este
         // parametro e nao precisa: o SprintForward dele pisa a 4,13, mais
         // rapido que o jogador anda. So o Paladino corre mais que o clipe.
-        temVelLocomocao = TemParametro(VelLocomocaoId, AnimatorControllerParameterType.Float);
+        hasLocomotionSpeed = HasParameter(LocomotionSpeedId, AnimatorControllerParameterType.Float);
     }
 
     /// <summary>
@@ -229,19 +229,19 @@ public class PlayerAnimator : MonoBehaviour
     /// Num clone novo do repo em que alguem rode o menu, o controller sai
     /// sem a Reacao, e eu prefiro que o jogo ande a que ele nem comece.
     /// </summary>
-    private void AcharACamadaDaReacao()
+    private void FindReactionLayer()
     {
-        camadaDaReacao = animator.GetLayerIndex(CamadaDaReacao);
+        reactionLayer = animator.GetLayerIndex(ReactionLayerName);
 
-        bool temTrigger = TemParametro(ApanharId, AnimatorControllerParameterType.Trigger);
+        bool temTrigger = HasParameter(HurtId, AnimatorControllerParameterType.Trigger);
 
-        podeReagir = camadaDaReacao >= 0 && temTrigger;
+        canReact = reactionLayer >= 0 && temTrigger;
 
-        if (podeReagir)
+        if (canReact)
             return;
 
         Debug.LogWarning($"[{name}] Sem reacao a dano: " +
-                         (camadaDaReacao < 0 ? $"falta a camada '{CamadaDaReacao}' " : "") +
+                         (reactionLayer < 0 ? $"falta a camada '{ReactionLayerName}' " : "") +
                          (!temTrigger ? "falta o trigger 'Apanhar' " : "") +
                          "no Animator Controller. O resto da animacao continua.", this);
     }
@@ -268,7 +268,7 @@ public class PlayerAnimator : MonoBehaviour
     /// curto, mas locomocao, morte e o resto continuam funcionando, e
     /// derrubar tudo por causa disso seria pior.
     /// </summary>
-    private void MedirOClipeDeAtaque()
+    private void MeasureAttackClips()
     {
         RuntimeAnimatorController rac = animator.runtimeAnimatorController;
 
@@ -286,10 +286,10 @@ public class PlayerAnimator : MonoBehaviour
             }
         }
 
-        duracoesDoAtaque = new float[porNome.Count];
-        porNome.Values.CopyTo(duracoesDoAtaque, 0);
+        attackDurations = new float[porNome.Count];
+        porNome.Values.CopyTo(attackDurations, 0);
 
-        if (duracoesDoAtaque.Length == 0)
+        if (attackDurations.Length == 0)
         {
             Debug.LogWarning($"[{name}] Nao achei clipe de ataque no controller, " +
                              "entao nao sei encurtar o golpe pra caber no cooldown. " +
@@ -302,22 +302,22 @@ public class PlayerAnimator : MonoBehaviour
     /// trigger ou sem o clipe, a esquiva funciona do mesmo jeito, so que
     /// o corpo desliza na pose de corrida - aviso e sigo.
     /// </summary>
-    private void MedirOClipeDaEsquiva()
+    private void MeasureDodgeClip()
     {
-        if (esquiva == null)
+        if (dodge == null)
             return;
 
-        if (TemParametro(EsquivarId, AnimatorControllerParameterType.Trigger) &&
-            TemParametro(VelEsquivaId, AnimatorControllerParameterType.Float))
+        if (HasParameter(DodgeId, AnimatorControllerParameterType.Trigger) &&
+            HasParameter(DodgeSpeedId, AnimatorControllerParameterType.Float))
         {
             foreach (AnimationClip c in animator.runtimeAnimatorController.animationClips)
             {
                 if (c != null && (c.name.Contains("Dive") || c.name.Contains("Roll")))
-                    duracaoDaEsquiva = Mathf.Max(duracaoDaEsquiva, c.length);
+                    dodgeDuration = Mathf.Max(dodgeDuration, c.length);
             }
         }
 
-        if (duracaoDaEsquiva <= 0f)
+        if (dodgeDuration <= 0f)
         {
             Debug.LogWarning($"[{name}] O controller nao tem a esquiva. Ela " +
                              "funciona, mas sem o rolamento. Rode o menu " +
@@ -330,17 +330,17 @@ public class PlayerAnimator : MonoBehaviour
     /// clipe; os outros vao rodando entre os que sobram. No Paladino da
     /// 01, 02 e 03. Na magia, que so tem dois, da 01, 01 e 02.
     /// </summary>
-    private int ClipeDoPasso()
+    private int ClipForStep()
     {
-        int n = duracoesDoAtaque.Length;
+        int n = attackDurations.Length;
 
-        if (combate == null || n <= 1)
+        if (combat == null || n <= 1)
             return 0;
 
-        if (combate.GolpeFinal)
+        if (combat.IsFinisher)
             return n - 1;
 
-        return combate.PassoDoGolpe % (n - 1);
+        return combat.ComboStep % (n - 1);
     }
 
     /// <summary>
@@ -355,47 +355,47 @@ public class PlayerAnimator : MonoBehaviour
     /// que o clipe, o certo e o personagem esperar parado, nao se mexer
     /// em camera lenta como se estivesse na agua.
     /// </summary>
-    private float VelocidadeDoGolpe(int clipe)
+    private float AttackSpeedFor(int clipe)
     {
-        if (clipe >= duracoesDoAtaque.Length || combate == null)
+        if (clipe >= attackDurations.Length || combat == null)
             return 1f;
 
-        float tempo = combate.DuracaoDoGolpe;
+        float tempo = combat.AttackDuration;
 
         if (tempo <= 0f)
             return 1f;
 
-        return Mathf.Max(1f, duracoesDoAtaque[clipe] / (tempo * FolgaDoGolpe));
+        return Mathf.Max(1f, attackDurations[clipe] / (tempo * AttackFitRatio));
     }
 
     private void OnEnable()
     {
-        if (combate != null)
+        if (combat != null)
         {
-            combate.OnAttack += Golpear;
-            combate.OnGolpeInterrompido += CortarGolpe;
+            combat.OnAttack += HandleAttack;
+            combat.OnAttackInterrupted += HandleAttackInterrupted;
         }
 
-        if (esquiva != null)
-            esquiva.OnEsquivou += Rolar;
+        if (dodge != null)
+            dodge.OnDodged += HandleDodged;
 
         if (health != null)
-            health.OnDamaged += Apanhar;
+            health.OnDamaged += HandleDamaged;
     }
 
     private void OnDisable()
     {
-        if (combate != null)
+        if (combat != null)
         {
-            combate.OnAttack -= Golpear;
-            combate.OnGolpeInterrompido -= CortarGolpe;
+            combat.OnAttack -= HandleAttack;
+            combat.OnAttackInterrupted -= HandleAttackInterrupted;
         }
 
-        if (esquiva != null)
-            esquiva.OnEsquivou -= Rolar;
+        if (dodge != null)
+            dodge.OnDodged -= HandleDodged;
 
         if (health != null)
-            health.OnDamaged -= Apanhar;
+            health.OnDamaged -= HandleDamaged;
     }
 
     /// <summary>
@@ -421,9 +421,9 @@ public class PlayerAnimator : MonoBehaviour
     /// peso da camada chegando a 1,00 com o dano aos 20% do golpe. O
     /// flash vermelho continua marcando que apanhou.
     /// </summary>
-    private void Apanhar(float dano, GameObject quemBateu)
+    private void HandleDamaged(float dano, GameObject quemBateu)
     {
-        if (!podeReagir)
+        if (!canReact)
             return;
 
         if (dano <= 0f)
@@ -435,10 +435,10 @@ public class PlayerAnimator : MonoBehaviour
         // O Atacar armado conta como golpe: o PlayerCombat pode ter
         // comecado o golpe neste mesmo frame, antes do dano chegar, e o
         // Animator so entra no estado no frame seguinte.
-        if (NoGolpe() || animator.GetBool(AtacarId))
+        if (IsInAttack() || animator.GetBool(AttackId))
             return;
 
-        animator.SetTrigger(ApanharId);
+        animator.SetTrigger(HurtId);
     }
 
     /// <summary>
@@ -453,31 +453,31 @@ public class PlayerAnimator : MonoBehaviour
     /// mora no MeleeAttack, que o inimigo tambem usa - nao vou mexer nele
     /// so por causa da animacao do player.
     /// </summary>
-    private void Golpear(Health _)
+    private void HandleAttack(Health _)
     {
         if (health != null && health.IsDead)
             return;
 
-        int clipe = ClipeDoPasso();
+        int clipe = ClipForStep();
 
         // Recalculo a cada golpe em vez de uma vez no Awake porque a
         // Celeridade da build mexe no cooldown, e um dia um buff vai
         // mexer no meio da luta. Uma divisao por golpe nao custa nada.
-        animator.SetFloat(VelAtaqueId, VelocidadeDoGolpe(clipe));
+        animator.SetFloat(AttackSpeedId, AttackSpeedFor(clipe));
 
-        animator.SetFloat(VariacaoId, clipe);
-        animator.SetTrigger(AtacarId);
+        animator.SetFloat(VariantId, clipe);
+        animator.SetTrigger(AttackId);
 
         // O golpe manda no tronco. Uma reacao que estava tocando sai no
         // tempo normal de saida em vez de ficar por cima do golpe - antes
         // ela cobria 1,15 s, quase o golpe inteiro. E um Apanhar armado
         // neste mesmo frame morre antes de entrar.
-        if (podeReagir)
+        if (canReact)
         {
-            animator.ResetTrigger(ApanharId);
+            animator.ResetTrigger(HurtId);
 
-            if (ReagindoAgora())
-                animator.CrossFadeInFixedTime(EstadoVazioId, saidaDaReacao, camadaDaReacao);
+            if (IsReacting())
+                animator.CrossFadeInFixedTime(EmptyStateId, saidaDaReacao, reactionLayer);
         }
     }
 
@@ -491,24 +491,24 @@ public class PlayerAnimator : MonoBehaviour
     /// vira boneco quebrado. Pelo mesmo motivo tiro a reacao que estiver
     /// tocando.
     /// </summary>
-    private void Rolar(float duracao)
+    private void HandleDodged(float duracao)
     {
-        if (duracaoDaEsquiva <= 0f || duracao <= 0f)
+        if (dodgeDuration <= 0f || duracao <= 0f)
             return;
 
         if (health != null && health.IsDead)
             return;
 
-        animator.ResetTrigger(AtacarId);
-        animator.SetFloat(VelEsquivaId, duracaoDaEsquiva / duracao);
-        animator.SetTrigger(EsquivarId);
+        animator.ResetTrigger(AttackId);
+        animator.SetFloat(DodgeSpeedId, dodgeDuration / duracao);
+        animator.SetTrigger(DodgeId);
 
-        if (podeReagir)
+        if (canReact)
         {
-            animator.ResetTrigger(ApanharId);
+            animator.ResetTrigger(HurtId);
 
-            if (ReagindoAgora())
-                animator.CrossFadeInFixedTime(EstadoVazioId, saidaDaReacao, camadaDaReacao);
+            if (IsReacting())
+                animator.CrossFadeInFixedTime(EmptyStateId, saidaDaReacao, reactionLayer);
         }
     }
 
@@ -522,7 +522,7 @@ public class PlayerAnimator : MonoBehaviour
     /// o PROXIMO golpe no primeiro frame. Aqui eu so corto se o gesto
     /// estiver tocando de fato.
     /// </summary>
-    private void CortarGolpe()
+    private void HandleAttackInterrupted()
     {
         if (health != null && health.IsDead)
             return;
@@ -531,12 +531,12 @@ public class PlayerAnimator : MonoBehaviour
         // clique de andar chegar. Limpo antes de olhar o estado: nesse
         // caso o Animator ainda nem entrou no golpe, e sem limpar o
         // trigger puxaria o golpe inteiro no frame seguinte, ja andando.
-        animator.ResetTrigger(AtacarId);
+        animator.ResetTrigger(AttackId);
 
-        if (!NoGolpe())
+        if (!IsInAttack())
             return;
 
-        animator.CrossFadeInFixedTime(EstadoLocomocaoId, corteDoGolpe, 0);
+        animator.CrossFadeInFixedTime(LocomotionStateId, corteDoGolpe, 0);
     }
 
     /// <summary>
@@ -544,14 +544,14 @@ public class PlayerAnimator : MonoBehaviour
     /// corpo esta andando. Parado, deixo o clipe terminar de levantar
     /// sozinho, que e o caso em que o levantar aparece.
     ///
-    /// CrossFade no codigo pelo mesmo motivo do CortarGolpe: uma
+    /// CrossFade no codigo pelo mesmo motivo do HandleAttackInterrupted: uma
     /// transicao com condicao de Speed no controller dependeria do
-    /// moduloSuave, que vem do zero e so passaria do corte depois.
+    /// smoothedSpeed, que vem do zero e so passaria do corte depois.
     /// Devolve true no frame em que cortou.
     /// </summary>
     private bool LeaveRollWhenMoving(Vector3 velocidade)
     {
-        if (esquiva == null || esquiva.EmEsquiva || velocidade.sqrMagnitude <= 0f)
+        if (dodge == null || dodge.IsDodging || velocidade.sqrMagnitude <= 0f)
             return false;
 
         // So com ordem de andar. Sem ela o agente ainda desliza 1 ou 2
@@ -565,7 +565,7 @@ public class PlayerAnimator : MonoBehaviour
         if (animator.GetCurrentAnimatorStateInfo(0).shortNameHash != DodgeStateId)
             return false;
 
-        animator.CrossFadeInFixedTime(EstadoLocomocaoId, rollCutFade, 0);
+        animator.CrossFadeInFixedTime(LocomotionStateId, rollCutFade, 0);
         return true;
     }
 
@@ -574,12 +574,12 @@ public class PlayerAnimator : MonoBehaviour
     /// locomocao (passou dos 80%) ou pra morte nao conta: o gesto que
     /// importa ja acabou.
     /// </summary>
-    private bool NoGolpe()
+    private bool IsInAttack()
     {
         if (animator.IsInTransition(0))
-            return animator.GetNextAnimatorStateInfo(0).shortNameHash == EstadoAtaqueId;
+            return animator.GetNextAnimatorStateInfo(0).shortNameHash == AttackStateId;
 
-        return animator.GetCurrentAnimatorStateInfo(0).shortNameHash == EstadoAtaqueId;
+        return animator.GetCurrentAnimatorStateInfo(0).shortNameHash == AttackStateId;
     }
 
     private void Update()
@@ -589,14 +589,14 @@ public class PlayerAnimator : MonoBehaviour
         // Bool e nao trigger de proposito: assim o Revive desliga isto
         // sozinho e o corpo levanta, sem ninguem precisar lembrar de
         // mandar um aviso separado no respawn.
-        animator.SetBool(MortoId, morto);
+        animator.SetBool(DeadId, morto);
 
-        AtualizarPesoDaReacao(morto);
+        UpdateReactionWeight(morto);
 
-        Vector3 velocidade = VelocidadeNoChao();
+        Vector3 velocidade = GroundVelocity();
 
         if (velocidade.sqrMagnitude > 0f)
-            direcaoMundo = velocidade.normalized;
+            worldDirection = velocidade.normalized;
 
         // Saindo do rolamento ja na corrida, o blend comeca na velocidade
         // de verdade. O agente ficou em zero o rolamento inteiro (o Move
@@ -604,19 +604,19 @@ public class PlayerAnimator : MonoBehaviour
         // parado no meio da corrida.
         if (LeaveRollWhenMoving(velocidade))
         {
-            moduloSuave = velocidade.magnitude;
-            aceleracaoSuave = 0f;
+            smoothedSpeed = velocidade.magnitude;
+            speedVelocity = 0f;
         }
 
-        moduloSuave = Mathf.SmoothDamp(
-            moduloSuave,
+        smoothedSpeed = Mathf.SmoothDamp(
+            smoothedSpeed,
             velocidade.magnitude,
-            ref aceleracaoSuave,
+            ref speedVelocity,
             suavizacao,
             Mathf.Infinity,
             Time.deltaTime);
 
-        Vector3 local = transform.InverseTransformDirection(direcaoMundo) * moduloSuave;
+        Vector3 local = transform.InverseTransformDirection(worldDirection) * smoothedSpeed;
 
         animator.SetFloat(VelXId, local.x);
         animator.SetFloat(VelZId, local.z);
@@ -626,14 +626,14 @@ public class PlayerAnimator : MonoBehaviour
         // entao nao da pra escrever "quando parar" a partir de VelX e VelZ
         // juntos. Quando entrar o estado de ataque, e por aqui que ele vai
         // saber se o personagem esta parado.
-        animator.SetFloat(SpeedId, moduloSuave);
+        animator.SetFloat(SpeedId, smoothedSpeed);
 
-        if (temVelLocomocao)
-            animator.SetFloat(VelLocomocaoId, VelocidadeDaLocomocao());
+        if (hasLocomotionSpeed)
+            animator.SetFloat(LocomotionSpeedId, LocomotionSpeed());
     }
 
     // Se o controller tem o VelLocomocao. Resolvido uma vez no Awake.
-    private bool temVelLocomocao;
+    private bool hasLocomotionSpeed;
 
     /// <summary>
     /// Quantas vezes mais rapido a locomocao tem que tocar pro pe
@@ -652,12 +652,12 @@ public class PlayerAnimator : MonoBehaviour
     /// quem acompanha o pe e o blend, e desacelerar o clipe por cima
     /// deixaria o passo em camera lenta.
     /// </summary>
-    private float VelocidadeDaLocomocao()
+    private float LocomotionSpeed()
     {
         if (velocidadeDaCorrida <= 0f)
             return 1f;
 
-        return Mathf.Max(1f, moduloSuave / velocidadeDaCorrida);
+        return Mathf.Max(1f, smoothedSpeed / velocidadeDaCorrida);
     }
 
     /// <summary>
@@ -681,9 +681,9 @@ public class PlayerAnimator : MonoBehaviour
     /// jeito que esta, as duas rampas correm juntas e a pose de bind
     /// chega multiplicada por um peso que ja esta indo pra zero.
     /// </summary>
-    private void AtualizarPesoDaReacao(bool morto)
+    private void UpdateReactionWeight(bool morto)
     {
-        if (camadaDaReacao < 0)
+        if (reactionLayer < 0)
             return;
 
         // Morto zera na hora, sem rampa. O Apanhar ja se recusa a
@@ -693,19 +693,19 @@ public class PlayerAnimator : MonoBehaviour
         // clipe de morte. E como e peso, o Revive devolve sozinho.
         if (morto)
         {
-            pesoDaReacao = 0f;
-            animator.SetLayerWeight(camadaDaReacao, 0f);
+            reactionWeight = 0f;
+            animator.SetLayerWeight(reactionLayer, 0f);
             return;
         }
 
-        float alvo = ReagindoAgora() ? 1f : 0f;
-        float tempo = alvo > pesoDaReacao ? entradaDaReacao : saidaDaReacao;
+        float alvo = IsReacting() ? 1f : 0f;
+        float tempo = alvo > reactionWeight ? entradaDaReacao : saidaDaReacao;
 
-        pesoDaReacao = tempo <= 0f
+        reactionWeight = tempo <= 0f
             ? alvo
-            : Mathf.MoveTowards(pesoDaReacao, alvo, Time.deltaTime / tempo);
+            : Mathf.MoveTowards(reactionWeight, alvo, Time.deltaTime / tempo);
 
-        animator.SetLayerWeight(camadaDaReacao, pesoDaReacao);
+        animator.SetLayerWeight(reactionLayer, reactionWeight);
     }
 
     /// <summary>
@@ -717,16 +717,16 @@ public class PlayerAnimator : MonoBehaviour
     /// saindo, o destino e o Vazio e o peso comeca a cair mesmo com o
     /// clipe da reacao ainda tocando.
     /// </summary>
-    private bool ReagindoAgora()
+    private bool IsReacting()
     {
-        AnimatorStateInfo info = animator.IsInTransition(camadaDaReacao)
-            ? animator.GetNextAnimatorStateInfo(camadaDaReacao)
-            : animator.GetCurrentAnimatorStateInfo(camadaDaReacao);
+        AnimatorStateInfo info = animator.IsInTransition(reactionLayer)
+            ? animator.GetNextAnimatorStateInfo(reactionLayer)
+            : animator.GetCurrentAnimatorStateInfo(reactionLayer);
 
-        return info.shortNameHash == EstadoReagirId;
+        return info.shortNameHash == ReactStateId;
     }
 
-    private Vector3 VelocidadeNoChao()
+    private Vector3 GroundVelocity()
     {
         if (health != null && health.IsDead)
             return Vector3.zero;
@@ -744,7 +744,7 @@ public class PlayerAnimator : MonoBehaviour
     /// Devolve o nome do primeiro parametro que falta no controller, ou
     /// null se estiver tudo la.
     /// </summary>
-    private bool TemParametro(int id, AnimatorControllerParameterType tipo)
+    private bool HasParameter(int id, AnimatorControllerParameterType tipo)
     {
         foreach (AnimatorControllerParameter p in animator.parameters)
         {
@@ -755,9 +755,9 @@ public class PlayerAnimator : MonoBehaviour
         return false;
     }
 
-    private string ParametroQueFalta()
+    private string MissingParameter()
     {
-        foreach (int id in new[] { SpeedId, VelXId, VelZId, VariacaoId })
+        foreach (int id in new[] { SpeedId, VelXId, VelZId, VariantId })
         {
             bool achou = false;
 
@@ -779,10 +779,10 @@ public class PlayerAnimator : MonoBehaviour
             }
         }
 
-        if (!TemParametro(AtacarId, AnimatorControllerParameterType.Trigger))
+        if (!HasParameter(AttackId, AnimatorControllerParameterType.Trigger))
             return "Atacar";
 
-        if (!TemParametro(MortoId, AnimatorControllerParameterType.Bool))
+        if (!HasParameter(DeadId, AnimatorControllerParameterType.Bool))
             return "Morto";
 
         return null;

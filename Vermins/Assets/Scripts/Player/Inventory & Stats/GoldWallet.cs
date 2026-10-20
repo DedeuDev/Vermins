@@ -5,7 +5,7 @@ using UnityEngine;
 ///
 /// Diferente do cinto de pocao, aqui nao tem limite: ouro no chao que o
 /// jogador nao consegue pegar so irrita. Quem gasta e a HubShop
-/// (secao 4.4 do GDR), pelo TryGastar.
+/// (secao 4.4 do GDR), pelo TrySpend.
 /// </summary>
 public class GoldWallet : MonoBehaviour
 {
@@ -45,7 +45,7 @@ public class GoldWallet : MonoBehaviour
     /// sem entregar. Quantia zero ou negativa tambem devolve false, pra
     /// ninguem usar isto como um Add disfarcado.
     /// </summary>
-    public bool TryGastar(int quantia)
+    public bool TrySpend(int quantia)
     {
         if (quantia <= 0 || quantia > Amount)
             return false;

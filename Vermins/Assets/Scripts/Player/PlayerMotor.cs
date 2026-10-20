@@ -103,27 +103,27 @@ public class PlayerMotor : MonoBehaviour
 
     // Altura local do modelo como veio no prefab. E dela que a correcao
     // parte, e pra ela que o modelo volta se o raio nao achar chao.
-    private float alturaDoModelo;
+    private float modelHeight;
 
     // Embalo do SmoothDamp da altura do modelo, guardado entre frames.
-    private float velocidadeVertical;
+    private float verticalVelocity;
 
     // Embalo do giro. O SmoothDampAngle guarda a velocidade
     // angular aqui entre um frame e outro - e ela que faz o
     // corpo desacelerar em vez de parar seco.
-    private float velocidadeAngular;
+    private float angularVelocity;
 
-    private bool AgentePronto =>
+    private bool IsAgentReady =>
         agent != null && agent.isActiveAndEnabled && agent.isOnNavMesh;
 
     /// <summary>Verdadeiro enquanto o jogador esta indo pra algum lugar.</summary>
     // Conto a rota pendente para conseguir cancela-la antes que o agente
     // comece a andar, inclusive quando paro para atacar no mesmo frame.
     public bool IsMoving =>
-        AgentePronto && (agent.pathPending ||
+        IsAgentReady && (agent.pathPending ||
             (agent.hasPath && agent.remainingDistance > agent.stoppingDistance));
 
-    public Vector3 Destination => AgentePronto ? agent.destination : transform.position;
+    public Vector3 Destination => IsAgentReady ? agent.destination : transform.position;
 
     /// <summary>
     /// Verdadeiro quando o caminho que eu tenho acaba antes do destino
@@ -135,8 +135,8 @@ public class PlayerMotor : MonoBehaviour
     /// parado. Com a rota ainda pendente eu respondo false, porque o
     /// status so vale depois que ela chega.
     /// </summary>
-    public bool CaminhoNaoChega =>
-        AgentePronto && !agent.pathPending && agent.hasPath &&
+    public bool IsPathPartial =>
+        IsAgentReady && !agent.pathPending && agent.hasPath &&
         agent.pathStatus != NavMeshPathStatus.PathComplete;
 
     private void Awake()
@@ -162,19 +162,19 @@ public class PlayerMotor : MonoBehaviour
         agent.updateRotation = false;
 
         if (modelo != null)
-            alturaDoModelo = modelo.localPosition.y;
+            modelHeight = modelo.localPosition.y;
     }
 
     private void Update()
     {
-        Girar();
+        UpdateRotation();
     }
 
     // LateUpdate pra medir o chao depois de tudo que mexe no personagem
     // durante o frame, inclusive o giro do Update ai de cima.
     private void LateUpdate()
     {
-        EncostarNoChao();
+        SnapToGround();
     }
 
     /// <summary>
@@ -185,18 +185,18 @@ public class PlayerMotor : MonoBehaviour
     /// chao de verdade todo frame acerta em qualquer cena e em rampa, sem
     /// calibrar de novo. Custa um raycast por frame, so do jogador.
     /// </summary>
-    private void EncostarNoChao()
+    private void SnapToGround()
     {
         if (modelo == null)
             return;
 
-        float alvo = alturaDoModelo;
+        float alvo = modelHeight;
 
         // Comeca 0,5 m acima do pivo pra achar o chao mesmo quando o
         // modelo esta abaixo dele, e vai ate a correcao maxima abaixo
         // dos pes.
         Vector3 origem = transform.position + Vector3.up * 0.5f;
-        float distancia = 0.5f - alturaDoModelo + correcaoMaxima;
+        float distancia = 0.5f - modelHeight + correcaoMaxima;
 
         bool achouChao = Physics.Raycast(
             origem,
@@ -213,8 +213,8 @@ public class PlayerMotor : MonoBehaviour
         {
             alvo = Mathf.Clamp(
                 hit.point.y - transform.position.y,
-                alturaDoModelo - correcaoMaxima,
-                alturaDoModelo + correcaoMaxima
+                modelHeight - correcaoMaxima,
+                modelHeight + correcaoMaxima
             );
         }
 
@@ -225,7 +225,7 @@ public class PlayerMotor : MonoBehaviour
         // mais de 10 cm dentro do degrau em metade do tempo.
         Vector3 local = modelo.localPosition;
         local.y = Mathf.SmoothDamp(
-            local.y, alvo, ref velocidadeVertical, tempoDeAssentar);
+            local.y, alvo, ref verticalVelocity, tempoDeAssentar);
         modelo.localPosition = local;
     }
 
@@ -237,11 +237,11 @@ public class PlayerMotor : MonoBehaviour
     /// O giro e amortecido, nao a taxa constante: ele arranca e assenta
     /// devagar. Ver o tooltip do tempoDeGiro pra o porque.
     /// </summary>
-    private void Girar()
+    private void UpdateRotation()
     {
-        if (!AgentePronto)
+        if (!IsAgentReady)
         {
-            velocidadeAngular = 0f;
+            angularVelocity = 0f;
             return;
         }
 
@@ -256,7 +256,7 @@ public class PlayerMotor : MonoBehaviour
             // Zerar o embalo aqui e obrigatorio. Se eu deixar a
             // velocidade angular guardada, ele para de andar ainda
             // girando e sai rodando sozinho no lugar.
-            velocidadeAngular = 0f;
+            angularVelocity = 0f;
             return;
         }
 
@@ -265,7 +265,7 @@ public class PlayerMotor : MonoBehaviour
         float y = Mathf.SmoothDampAngle(
             transform.eulerAngles.y,
             alvo,
-            ref velocidadeAngular,
+            ref angularVelocity,
             tempoDeGiro,
             angularSpeed,
             Time.deltaTime
@@ -285,7 +285,7 @@ public class PlayerMotor : MonoBehaviour
     {
         // Espero o agente entrar na malha antes de aceitar uma ordem.
         // Encontrar chao perto do destino nao garante que eu possa sair.
-        if (!AgentePronto)
+        if (!IsAgentReady)
             return false;
 
         if (!NavMesh.SamplePosition(
@@ -327,7 +327,7 @@ public class PlayerMotor : MonoBehaviour
     /// </summary>
     public bool Perseguir(Vector3 pontoDoAlvo, float distanciaDeParada)
     {
-        if (!AgentePronto)
+        if (!IsAgentReady)
             return false;
 
         if (!NavMesh.SamplePosition(
@@ -352,7 +352,7 @@ public class PlayerMotor : MonoBehaviour
     /// <summary>Para na hora e esquece o caminho atual.</summary>
     public void Stop()
     {
-        if (!AgentePronto)
+        if (!IsAgentReady)
             return;
 
         agent.isStopped = true;

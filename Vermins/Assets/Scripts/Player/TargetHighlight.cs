@@ -54,18 +54,18 @@ public class TargetHighlight : MonoBehaviour
 
     // Quem esta com contorno agora, e os materiais que cada renderer dele
     // tinha antes, pra devolver do jeito que estava.
-    private Component contornado;
+    private Component outlined;
 
     // Copia do material do contorno com a cor do item. Criada aqui pra
     // nao precisar de outro asset nem de outro campo no prefab.
-    private Material contornoDeItem;
-    private Renderer[] renderersContornados;
-    private Material[][] materiaisOriginais;
+    private Material itemOutline;
+    private Renderer[] outlinedRenderers;
+    private Material[][] originalMaterials;
 
-    private LineRenderer anel;
-    private Vector3[] pontos;
-    private Health alvoDoAnel;
-    private float raioDoAlvo;
+    private LineRenderer ring;
+    private Vector3[] points;
+    private Health ringTarget;
+    private float targetRadius;
 
     private void Awake()
     {
@@ -74,8 +74,8 @@ public class TargetHighlight : MonoBehaviour
 
         if (contorno != null)
         {
-            contornoDeItem = new Material(contorno);
-            contornoDeItem.SetColor("_CorDoContorno", corDoContornoDeItem);
+            itemOutline = new Material(contorno);
+            itemOutline.SetColor("_CorDoContorno", corDoContornoDeItem);
         }
 
         // Mesma montagem do MoveMarker: fora do Player, deitado no
@@ -83,64 +83,64 @@ public class TargetHighlight : MonoBehaviour
         var objeto = new GameObject("AnelDoAlvo");
         objeto.transform.rotation = Quaternion.Euler(90f, 0f, 0f);
 
-        anel = objeto.AddComponent<LineRenderer>();
-        anel.sharedMaterial = materialDoAnel;
-        anel.useWorldSpace = false;
-        anel.loop = true;
-        anel.alignment = LineAlignment.TransformZ;
-        anel.positionCount = segmentos;
-        anel.widthMultiplier = espessuraDoAnel;
-        anel.startColor = corDoAnel;
-        anel.endColor = corDoAnel;
-        anel.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
-        anel.receiveShadows = false;
-        anel.enabled = false;
+        ring = objeto.AddComponent<LineRenderer>();
+        ring.sharedMaterial = materialDoAnel;
+        ring.useWorldSpace = false;
+        ring.loop = true;
+        ring.alignment = LineAlignment.TransformZ;
+        ring.positionCount = segmentos;
+        ring.widthMultiplier = espessuraDoAnel;
+        ring.startColor = corDoAnel;
+        ring.endColor = corDoAnel;
+        ring.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+        ring.receiveShadows = false;
+        ring.enabled = false;
 
-        pontos = new Vector3[segmentos];
+        points = new Vector3[segmentos];
     }
 
     private void OnDisable()
     {
         // Sem isso, trocar de cena com o mouse num inimigo deixava o
         // contorno nele.
-        TirarContorno();
-        alvoDoAnel = null;
+        ClearOutline();
+        ringTarget = null;
 
-        if (anel != null)
-            anel.enabled = false;
+        if (ring != null)
+            ring.enabled = false;
     }
 
     private void OnDestroy()
     {
-        if (anel != null)
-            Destroy(anel.gameObject);
+        if (ring != null)
+            Destroy(ring.gameObject);
 
-        if (contornoDeItem != null)
-            Destroy(contornoDeItem);
+        if (itemOutline != null)
+            Destroy(itemOutline);
     }
 
     private void LateUpdate()
     {
         // O cursor so acha item quando nao tem inimigo embaixo, entao no
         // maximo um dos dois vem preenchido.
-        if (cursor.InimigoSobOMouse != null)
-            AtualizarContorno(cursor.InimigoSobOMouse, contorno);
+        if (cursor.EnemyUnderMouse != null)
+            UpdateOutline(cursor.EnemyUnderMouse, contorno);
         else
-            AtualizarContorno(cursor.ColetavelSobOMouse, contornoDeItem);
-        AtualizarAnel(combat.HasTarget ? combat.Target : null);
+            UpdateOutline(cursor.PickupUnderMouse, itemOutline);
+        UpdateRing(combat.HasTarget ? combat.Target : null);
     }
 
-    private void AtualizarContorno(Component alvo, Material material)
+    private void UpdateOutline(Component alvo, Material material)
     {
-        if (alvo == contornado)
+        if (alvo == outlined)
             return;
 
-        TirarContorno();
+        ClearOutline();
 
         if (alvo == null || material == null)
             return;
 
-        contornado = alvo;
+        outlined = alvo;
 
         // So malha. LineRenderer e particula no inimigo nao tem normal
         // que preste pro contorno, e o rotulo do item e texto.
@@ -149,18 +149,18 @@ public class TargetHighlight : MonoBehaviour
 
         foreach (var r in todos)
         {
-            if (Contornavel(r))
+            if (CanOutline(r))
                 quantos++;
         }
 
-        renderersContornados = new Renderer[quantos];
-        materiaisOriginais = new Material[quantos][];
+        outlinedRenderers = new Renderer[quantos];
+        originalMaterials = new Material[quantos][];
 
         int i = 0;
 
         foreach (var r in todos)
         {
-            if (!Contornavel(r))
+            if (!CanOutline(r))
                 continue;
 
             Material[] originais = r.sharedMaterials;
@@ -168,8 +168,8 @@ public class TargetHighlight : MonoBehaviour
             originais.CopyTo(comContorno, 0);
             comContorno[originais.Length] = material;
 
-            renderersContornados[i] = r;
-            materiaisOriginais[i] = originais;
+            outlinedRenderers[i] = r;
+            originalMaterials[i] = originais;
             r.sharedMaterials = comContorno;
             i++;
         }
@@ -177,42 +177,42 @@ public class TargetHighlight : MonoBehaviour
 
     // O TextMeshPro desenha com MeshRenderer tambem; sem o teste o nome do
     // item ganhava contorno em volta de cada letra.
-    private static bool Contornavel(Renderer r)
+    private static bool CanOutline(Renderer r)
     {
         return (r is MeshRenderer || r is SkinnedMeshRenderer) &&
                r.GetComponent<TMPro.TMP_Text>() == null;
     }
 
-    private void TirarContorno()
+    private void ClearOutline()
     {
-        if (renderersContornados != null)
+        if (outlinedRenderers != null)
         {
-            for (int i = 0; i < renderersContornados.Length; i++)
+            for (int i = 0; i < outlinedRenderers.Length; i++)
             {
                 // Se o inimigo foi destruido, o renderer ja foi junto.
-                if (renderersContornados[i] != null)
-                    renderersContornados[i].sharedMaterials = materiaisOriginais[i];
+                if (outlinedRenderers[i] != null)
+                    outlinedRenderers[i].sharedMaterials = originalMaterials[i];
             }
         }
 
-        contornado = null;
-        renderersContornados = null;
-        materiaisOriginais = null;
+        outlined = null;
+        outlinedRenderers = null;
+        originalMaterials = null;
     }
 
-    private void AtualizarAnel(Health alvo)
+    private void UpdateRing(Health alvo)
     {
         if (alvo == null)
         {
-            alvoDoAnel = null;
-            anel.enabled = false;
+            ringTarget = null;
+            ring.enabled = false;
             return;
         }
 
-        if (alvo != alvoDoAnel)
+        if (alvo != ringTarget)
         {
-            alvoDoAnel = alvo;
-            raioDoAlvo = MedirRaio(alvo) + folgaDoRaio;
+            ringTarget = alvo;
+            targetRadius = MeasureRadius(alvo) + folgaDoRaio;
         }
 
         // O pivo do inimigo nao fica no pe (o agente dele tem baseOffset),
@@ -230,26 +230,26 @@ public class TargetHighlight : MonoBehaviour
             pe.y = hit.point.y;
         }
 
-        anel.transform.position = pe + Vector3.up * alturaAcimaDoChao;
+        ring.transform.position = pe + Vector3.up * alturaAcimaDoChao;
 
-        float raio = raioDoAlvo *
+        float raio = targetRadius *
             (1f + pulso * Mathf.Sin(Time.time * velocidadeDoPulso));
 
         for (int i = 0; i < segmentos; i++)
         {
             float angulo = i * Mathf.PI * 2f / segmentos;
-            pontos[i] = new Vector3(Mathf.Cos(angulo) * raio, Mathf.Sin(angulo) * raio, 0f);
+            points[i] = new Vector3(Mathf.Cos(angulo) * raio, Mathf.Sin(angulo) * raio, 0f);
         }
 
-        anel.SetPositions(pontos);
-        anel.enabled = true;
+        ring.SetPositions(points);
+        ring.enabled = true;
     }
 
     /// <summary>
     /// Raio do corpo do alvo no chao, pelos colliders solidos dele. Meio
     /// metro se ele nao tiver nenhum.
     /// </summary>
-    private static float MedirRaio(Health alvo)
+    private static float MeasureRadius(Health alvo)
     {
         float raio = 0f;
 

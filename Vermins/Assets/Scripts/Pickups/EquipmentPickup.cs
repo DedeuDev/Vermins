@@ -3,7 +3,7 @@ using UnityEngine;
 /// <summary>
 /// Equipamento no chao: arma, armadura ou anel que caiu de um inimigo.
 ///
-/// Quem cria e o DropOnDeath, que sorteia o item e chama o Definir logo
+/// Quem cria e o DropOnDeath, que sorteia o item e chama o SetItem logo
 /// depois do Instantiate. O rotulo so e montado no Start do Pickup, um
 /// frame depois, entao o nome e a cor ja estao certos quando ele aparece.
 ///
@@ -17,19 +17,19 @@ public class EquipmentPickup : Pickup
 
     public EquipmentItem Item => item;
 
-    protected override string TextoDoRotulo => item != null ? item.NomeDoItem : "?";
+    protected override string LabelText => item != null ? item.ItemName : "?";
 
     // Branco, azul e amarelo, como nos dois jogos: da pra saber se vale a
     // pena ir buscar sem ler o nome.
-    protected override Color CorDoRotulo =>
-        item != null ? EquipmentItem.CorDaRaridade(item.Rarity) : Color.white;
+    protected override Color LabelColor =>
+        item != null ? EquipmentItem.RarityColor(item.Rarity) : Color.white;
 
-    public void Definir(EquipmentItem novoItem)
+    public void SetItem(EquipmentItem novoItem)
     {
         item = novoItem;
     }
 
-    protected override bool Entregar(Collider quemEncostou)
+    protected override bool Deliver(Collider quemEncostou)
     {
         // Inimigo passando por cima nao tem equipamento e nao leva.
         var equipamento = quemEncostou.GetComponentInParent<CharacterEquipment>();
@@ -42,7 +42,7 @@ public class EquipmentPickup : Pickup
         if (equipamento.NoSlot(item.Slot) != null)
             return false;
 
-        equipamento.Equipar(item);
+        equipamento.Equip(item);
         return true;
     }
 }

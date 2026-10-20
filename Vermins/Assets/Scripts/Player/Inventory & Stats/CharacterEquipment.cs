@@ -4,7 +4,7 @@ using UnityEngine;
 /// O que o Player esta vestindo: um item por slot.
 ///
 /// Este script so guarda e avisa. Ele nao escreve vida nem dano: quando
-/// um slot troca, ele dispara OnEquipamentoMudou e o CharacterAttributes
+/// um slot troca, ele dispara OnEquipmentChanged e o CharacterAttributes
 /// reaplica tudo. Build, nivel e equipamento mexem nos mesmos numeros,
 /// entao quem escreve continua sendo um so.
 ///
@@ -31,16 +31,16 @@ public class CharacterEquipment : MonoBehaviour
     [SerializeField] private EquipmentItem itemDeTeste;
 
     /// <summary>
-    /// Dispara quando algum slot troca. Quem escuta le PontosSomados.
+    /// Dispara quando algum slot troca. Quem escuta le TotalBonus.
     /// </summary>
-    public event System.Action OnEquipamentoMudou;
+    public event System.Action OnEquipmentChanged;
 
     /// <summary>
     /// Os pontos dos tres slots somados. Calculo na hora em vez de guardar:
     /// sao tres somas, so roda quando o equipamento muda, e assim nunca
     /// fica desatualizado se alguem mexer no Inspector.
     /// </summary>
-    public BonusPoints PontosSomados => PontosDe(arma) + PontosDe(armadura) + PontosDe(anel);
+    public BonusPoints TotalBonus => BonusOf(arma) + BonusOf(armadura) + BonusOf(anel);
 
     public EquipmentItem NoSlot(EquipmentSlot slot)
     {
@@ -58,7 +58,7 @@ public class CharacterEquipment : MonoBehaviour
     /// slot vazio, entao hoje nunca sai nada.
     /// Vestir o que ja esta vestido nao faz nada e nao dispara evento.
     /// </summary>
-    public EquipmentItem Equipar(EquipmentItem item)
+    public EquipmentItem Equip(EquipmentItem item)
     {
         if (item == null)
             return null;
@@ -67,20 +67,20 @@ public class CharacterEquipment : MonoBehaviour
         if (saiu == item)
             return null;
 
-        Colocar(item.Slot, item);
-        OnEquipamentoMudou?.Invoke();
+        SetSlot(item.Slot, item);
+        OnEquipmentChanged?.Invoke();
         return saiu;
     }
 
     /// <summary>Tira o item do slot e devolve ele, ou null se estava vazio.</summary>
-    public EquipmentItem Desequipar(EquipmentSlot slot)
+    public EquipmentItem Unequip(EquipmentSlot slot)
     {
         EquipmentItem saiu = NoSlot(slot);
         if (saiu == null)
             return null;
 
-        Colocar(slot, null);
-        OnEquipamentoMudou?.Invoke();
+        SetSlot(slot, null);
+        OnEquipmentChanged?.Invoke();
         return saiu;
     }
 
@@ -97,10 +97,10 @@ public class CharacterEquipment : MonoBehaviour
         arma = novaArma;
         armadura = novaArmadura;
         anel = novoAnel;
-        OnEquipamentoMudou?.Invoke();
+        OnEquipmentChanged?.Invoke();
     }
 
-    private void Colocar(EquipmentSlot slot, EquipmentItem item)
+    private void SetSlot(EquipmentSlot slot, EquipmentItem item)
     {
         switch (slot)
         {
@@ -110,13 +110,13 @@ public class CharacterEquipment : MonoBehaviour
         }
     }
 
-    private static BonusPoints PontosDe(EquipmentItem item)
+    private static BonusPoints BonusOf(EquipmentItem item)
     {
-        return item != null ? item.Pontos : default;
+        return item != null ? item.Bonus : default;
     }
 
     [ContextMenu("Equipar item de teste")]
-    private void EquiparItemDeTeste()
+    private void EquipTestItem()
     {
         if (itemDeTeste == null)
         {
@@ -124,14 +124,14 @@ public class CharacterEquipment : MonoBehaviour
             return;
         }
 
-        Equipar(itemDeTeste);
+        Equip(itemDeTeste);
     }
 
     [ContextMenu("Tirar tudo")]
-    private void TirarTudo()
+    private void UnequipAll()
     {
-        Desequipar(EquipmentSlot.Arma);
-        Desequipar(EquipmentSlot.Armadura);
-        Desequipar(EquipmentSlot.Anel);
+        Unequip(EquipmentSlot.Arma);
+        Unequip(EquipmentSlot.Armadura);
+        Unequip(EquipmentSlot.Anel);
     }
 }

@@ -53,109 +53,109 @@ public class DamageNumbers : MonoBehaviour
 
     [SerializeField] private int quantosTextos = 12;
 
-    private class Numero
+    private class Entry
     {
-        public TextMeshPro texto;
-        public Vector3 inicio;
-        public float nasceu = -1f;
-        public float escala;
+        public TextMeshPro label;
+        public Vector3 startPosition;
+        public float spawnTime = -1f;
+        public float scale;
     }
 
     private PlayerCombat combat;
-    private readonly List<Numero> numeros = new List<Numero>();
-    private Transform raiz;
+    private readonly List<Entry> entries = new List<Entry>();
+    private Transform root;
 
     private void Awake()
     {
         combat = GetComponent<PlayerCombat>();
 
-        raiz = new GameObject("DamageNumbers").transform;
+        root = new GameObject("DamageNumbers").transform;
 
         for (int i = 0; i < quantosTextos; i++)
-            numeros.Add(CriarNumero(i));
+            entries.Add(CreateEntry(i));
     }
 
     private void OnEnable()
     {
-        combat.OnGolpeAcertou += Acertou;
+        combat.OnAttackHit += HandleHit;
     }
 
     private void OnDisable()
     {
-        combat.OnGolpeAcertou -= Acertou;
+        combat.OnAttackHit -= HandleHit;
     }
 
     private void OnDestroy()
     {
-        if (raiz != null)
-            Destroy(raiz.gameObject);
+        if (root != null)
+            Destroy(root.gameObject);
     }
 
-    private Numero CriarNumero(int i)
+    private Entry CreateEntry(int i)
     {
         var objeto = new GameObject("Numero" + i);
-        objeto.transform.SetParent(raiz, false);
+        objeto.transform.SetParent(root, false);
 
-        var texto = objeto.AddComponent<TextMeshPro>();
-        texto.alignment = TextAlignmentOptions.Center;
-        texto.fontStyle = FontStyles.Bold;
-        texto.textWrappingMode = TextWrappingModes.NoWrap;
-        texto.rectTransform.sizeDelta = new Vector2(4f, 1.5f);
+        var label = objeto.AddComponent<TextMeshPro>();
+        label.alignment = TextAlignmentOptions.Center;
+        label.fontStyle = FontStyles.Bold;
+        label.textWrappingMode = TextWrappingModes.NoWrap;
+        label.rectTransform.sizeDelta = new Vector2(4f, 1.5f);
 
         // Contorno escuro pra ler em cima do chao claro da cidade e do
         // esgoto escuro. Isso cria um material por texto, mas sao so doze.
-        texto.outlineWidth = 0.25f;
-        texto.outlineColor = new Color32(20, 12, 8, 255);
+        label.outlineWidth = 0.25f;
+        label.outlineColor = new Color32(20, 12, 8, 255);
 
         objeto.SetActive(false);
 
-        return new Numero { texto = texto };
+        return new Entry { label = label };
     }
 
-    private void Acertou(Health alvo, float dano)
+    private void HandleHit(Health alvo, float dano)
     {
         if (dano <= 0f)
             return;
 
         bool matou = alvo.IsDead;
-        bool critico = combat.UltimoAcertoCritico;
-        Numero n = Livre();
+        bool critico = combat.LastHitWasCrit;
+        Entry n = GetFreeEntry();
 
-        n.texto.text = critico ? Mathf.RoundToInt(dano) + "!" : Mathf.RoundToInt(dano).ToString();
-        n.texto.fontSize = tamanho;
-        n.texto.color = matou ? corDaMorte : critico ? corDoCritico : corNormal;
-        n.escala = Mathf.Max(
+        n.label.text = critico ? Mathf.RoundToInt(dano) + "!" : Mathf.RoundToInt(dano).ToString();
+        n.label.fontSize = tamanho;
+        n.label.color = matou ? corDaMorte : critico ? corDoCritico : corNormal;
+        n.scale = Mathf.Max(
             matou ? escalaDaMorte : 1f,
             critico ? escalaDoCritico : 1f,
-            combat.GolpeFinal ? escalaDoFinal : 1f);
+            combat.IsFinisher ? escalaDoFinal : 1f);
 
         Vector3 lado = Random.insideUnitSphere * espalhamento;
         lado.y = 0f;
-        n.inicio = TopoDe(alvo.gameObject) + Vector3.up * folgaAcimaDaCabeca + lado;
-        n.nasceu = Time.time;
+        n.startPosition = TopOf(alvo.gameObject) + Vector3.up * folgaAcimaDaCabeca + lado;
+        n.spawnTime = Time.time;
 
         Camera cam = Camera.main;
 
         if (cam != null)
-            n.texto.transform.rotation = cam.transform.rotation;
+            n.label.transform.rotation = cam.transform.rotation;
 
-        n.texto.gameObject.SetActive(true);
-        Desenhar(n, 0f);
+        n.label.gameObject.SetActive(true);
+        Draw(n, 0f);
     }
 
     /// <summary>
     /// Um texto desocupado, ou o mais velho se estiverem todos no ar.
     /// </summary>
-    private Numero Livre()
+    private Entry GetFreeEntry()
     {
-        Numero maisVelho = numeros[0];
+        Entry maisVelho = entries[0];
 
-        foreach (var n in numeros)
+        foreach (var n in entries)
         {
-            if (n.nasceu < 0f)
+            if (n.spawnTime < 0f)
                 return n;
 
-            if (n.nasceu < maisVelho.nasceu)
+            if (n.spawnTime < maisVelho.spawnTime)
                 maisVelho = n;
         }
 
@@ -163,7 +163,7 @@ public class DamageNumbers : MonoBehaviour
     }
 
     /// <summary>Topo do corpo pelos renderers, ou 2 m acima do pivo.</summary>
-    private static Vector3 TopoDe(GameObject corpo)
+    private static Vector3 TopOf(GameObject corpo)
     {
         var renderers = corpo.GetComponentsInChildren<Renderer>();
 
@@ -180,25 +180,25 @@ public class DamageNumbers : MonoBehaviour
 
     private void Update()
     {
-        foreach (var n in numeros)
+        foreach (var n in entries)
         {
-            if (n.nasceu < 0f)
+            if (n.spawnTime < 0f)
                 continue;
 
-            float t = (Time.time - n.nasceu) / duracao;
+            float t = (Time.time - n.spawnTime) / duracao;
 
             if (t >= 1f)
             {
-                n.nasceu = -1f;
-                n.texto.gameObject.SetActive(false);
+                n.spawnTime = -1f;
+                n.label.gameObject.SetActive(false);
                 continue;
             }
 
-            Desenhar(n, t);
+            Draw(n, t);
         }
     }
 
-    private void Desenhar(Numero n, float t)
+    private void Draw(Entry n, float t)
     {
         // Sobe rapido e assenta (ease-out). Nasce grande e encolhe no
         // primeiro quinto do tempo, que e o "pulo" que faz o olho ir nele.
@@ -207,11 +207,11 @@ public class DamageNumbers : MonoBehaviour
         float pulo = Mathf.Lerp(1.5f, 1f, Mathf.Clamp01(t / 0.2f));
         float alfa = 1f - Mathf.Clamp01((t - 0.5f) / 0.5f);
 
-        n.texto.transform.position = n.inicio + Vector3.up * (subida * subiu);
-        n.texto.transform.localScale = Vector3.one * (n.escala * pulo);
+        n.label.transform.position = n.startPosition + Vector3.up * (subida * subiu);
+        n.label.transform.localScale = Vector3.one * (n.scale * pulo);
 
-        Color c = n.texto.color;
+        Color c = n.label.color;
         c.a = alfa;
-        n.texto.color = c;
+        n.label.color = c;
     }
 }

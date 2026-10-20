@@ -40,35 +40,35 @@ public class CharacterAttributes : MonoBehaviour
 
     // Opcional: um inimigo que use este componente nao tem nivel, e ai o
     // bonus fica em 1.
-    private CharacterLevel nivel;
+    private CharacterLevel level;
 
     // Opcional pelo mesmo motivo: sem ele, os pontos extras ficam em zero.
-    private CharacterEquipment equipamento;
+    private CharacterEquipment equipment;
 
     public BuildAttributes Build => build;
 
     private void Awake()
     {
-        nivel = GetComponent<CharacterLevel>();
-        equipamento = GetComponent<CharacterEquipment>();
+        level = GetComponent<CharacterLevel>();
+        equipment = GetComponent<CharacterEquipment>();
     }
 
     private void OnEnable()
     {
-        if (nivel != null)
-            nivel.OnNivelMudou += AoMudarDeNivel;
+        if (level != null)
+            level.OnLevelChanged += HandleLevelChanged;
 
-        if (equipamento != null)
-            equipamento.OnEquipamentoMudou += AoMudarDeEquipamento;
+        if (equipment != null)
+            equipment.OnEquipmentChanged += HandleEquipmentChanged;
     }
 
     private void OnDisable()
     {
-        if (nivel != null)
-            nivel.OnNivelMudou -= AoMudarDeNivel;
+        if (level != null)
+            level.OnLevelChanged -= HandleLevelChanged;
 
-        if (equipamento != null)
-            equipamento.OnEquipamentoMudou -= AoMudarDeEquipamento;
+        if (equipment != null)
+            equipment.OnEquipmentChanged -= HandleEquipmentChanged;
     }
 
     /// <summary>
@@ -83,13 +83,13 @@ public class CharacterAttributes : MonoBehaviour
     /// </summary>
     private void Start()
     {
-        Aplicar();
+        Apply();
     }
 
     [ContextMenu("Aplicar agora")]
-    public void Aplicar()
+    public void Apply()
     {
-        Aplicar(encherAVidaAoAplicar);
+        Apply(encherAVidaAoAplicar);
     }
 
     /// <summary>
@@ -97,9 +97,9 @@ public class CharacterAttributes : MonoBehaviour
     /// que volta do save ou da passagem de cena nao enche: quem restaura
     /// devolve a vida que estava logo depois.
     /// </summary>
-    private void AoMudarDeNivel(bool subiuJogando)
+    private void HandleLevelChanged(bool subiuJogando)
     {
-        Aplicar(subiuJogando);
+        Apply(subiuJogando);
     }
 
     /// <summary>
@@ -107,19 +107,19 @@ public class CharacterAttributes : MonoBehaviour
     /// atual fica onde estava. Se enchesse, tirar e por um anel no meio
     /// da luta viraria cura infinita.
     /// </summary>
-    private void AoMudarDeEquipamento()
+    private void HandleEquipmentChanged()
     {
-        Aplicar(false);
+        Apply(false);
     }
 
-    private void Aplicar(bool encherAVida)
+    private void Apply(bool encherAVida)
     {
         if (build == null)
         {
             // Sem build eu nao tenho de que numero partir. Multiplicar o
             // que esta na cena faria o bonus compor a cada nivel, entao
             // prefiro avisar a aplicar errado.
-            if (nivel != null)
+            if (level != null)
             {
                 Debug.LogWarning(
                     $"[{name}] Tem CharacterLevel mas nenhuma build ligada, " +
@@ -138,21 +138,21 @@ public class CharacterAttributes : MonoBehaviour
         // Health ou no MeleeAttack: ali ja tem o bonus do nivel anterior,
         // e multiplicar em cima faria os 10% por nivel virarem composto.
         // No nivel 10 seriam +136% em vez de +90%.
-        float bonus = nivel != null ? nivel.Multiplicador : 1f;
-        BonusPoints extra = equipamento != null ? equipamento.PontosSomados : default;
+        float bonus = level != null ? level.Multiplier : 1f;
+        BonusPoints extra = equipment != null ? equipment.TotalBonus : default;
 
         if (vida != null)
-            vida.DefinirVidaMaxima(build.VidaMaximaCom(extra.Vitalidade) * bonus, encherAVida);
+            vida.DefinirVidaMaxima(build.MaxHealthWith(extra.Vitality) * bonus, encherAVida);
 
         if (arma != null)
-            arma.Damage = build.DanoCom(extra.Poder) * bonus;
+            arma.Damage = build.DamageWith(extra.Power) * bonus;
 
         // O PlayerCombat so existe no jogador. Um inimigo pode usar este
         // mesmo componente pra vida e dano sem ter os outros dois.
         if (combate != null)
         {
-            combate.AttackCooldown = build.CooldownCom(extra.Celeridade);
-            combate.AttackRange = build.AlcanceEmMetros;
+            combate.AttackCooldown = build.CooldownWith(extra.Haste);
+            combate.AttackRange = build.RangeInMeters;
         }
 
         if (vida == null && arma == null && combate == null)

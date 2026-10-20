@@ -44,7 +44,7 @@ public class AnimationEventRelay : MonoBehaviour
     public void SoltarMagia()
     {
         if (combate != null)
-            combate.SoltarProjetil();
+            combate.ReleaseProjectile();
     }
 
     /// <summary>
@@ -55,6 +55,6 @@ public class AnimationEventRelay : MonoBehaviour
     public void AcertarGolpe()
     {
         if (combate != null)
-            combate.AcertarGolpe();
+            combate.LandHit();
     }
 }

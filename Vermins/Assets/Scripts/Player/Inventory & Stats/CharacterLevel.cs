@@ -20,7 +20,7 @@ using UnityEngine;
 /// Este script nao mexe em vida nem em dano. Quem aplica o bonus e o
 /// CharacterAttributes, junto com a build - ver la o porque.
 ///
-/// So o corpo a corpo da XP: a magia nao dispara o OnGolpeAcertou. Hoje
+/// So o corpo a corpo da XP: a magia nao dispara o OnAttackHit. Hoje
 /// isso nao pesa porque o PlayerMagia.prefab esta guardado.
 /// </summary>
 [DisallowMultipleComponent]
@@ -63,49 +63,49 @@ public class CharacterLevel : MonoBehaviour
              "1,4 o texto nasce um pouco acima da cabeca.")]
     [SerializeField] private float alturaDoAviso = 1.4f;
 
-    private PlayerCombat combate;
+    private PlayerCombat combat;
     private int xp;
-    private int nivel = 1;
+    private int level = 1;
 
-    private TextMeshPro aviso;
-    private float avisoNasceu = -1f;
+    private TextMeshPro levelUpText;
+    private float levelUpStartTime = -1f;
 
     // O XP com que o Player entrou na cena, e se a proxima cena e o
     // renascimento de uma morte. Sao estaticos porque a morte recarrega a
     // cena, e o Player que morreu deixa de existir.
-    private static int xpDaEntrada;
-    private static bool renascer;
+    private static int xpOnEntry;
+    private static bool pendingRespawn;
 
     public int Xp => xp;
-    public int Nivel => nivel;
-    public int NivelMaximo => nivelMaximo;
-    public bool NoMaximo => nivel >= nivelMaximo;
+    public int Level => level;
+    public int MaxLevel => nivelMaximo;
+    public bool IsMaxLevel => level >= nivelMaximo;
 
     /// <summary>
     /// Por quanto multiplicar a vida maxima e o dano da build. Vale 1 no
     /// nivel 1, entao sem XP nenhum o jogo fica igual ao de antes.
     /// </summary>
-    public float Multiplicador => 1f + (nivel - 1) * bonusPorNivel;
+    public float Multiplier => 1f + (level - 1) * bonusPorNivel;
 
     /// <summary>XP total em que o nivel atual comecou.</summary>
-    public int XpDoNivelAtual => XpParaChegarNoNivel(nivel);
+    public int CurrentLevelXp => XpForLevel(level);
 
     /// <summary>XP total do proximo nivel. No maximo, o do proprio nivel maximo.</summary>
-    public int XpDoProximoNivel => XpParaChegarNoNivel(Mathf.Min(nivel + 1, nivelMaximo));
+    public int NextLevelXp => XpForLevel(Mathf.Min(level + 1, nivelMaximo));
 
     /// <summary>
     /// Quanto do nivel atual ja foi, de 0 a 1. E esse numero que a barra
     /// de XP quer.
     /// </summary>
-    public float ProgressoNoNivel
+    public float LevelProgress
     {
         get
         {
-            if (NoMaximo)
+            if (IsMaxLevel)
                 return 1f;
 
-            int inicio = XpDoNivelAtual;
-            return (float)(xp - inicio) / (XpDoProximoNivel - inicio);
+            int inicio = CurrentLevelXp;
+            return (float)(xp - inicio) / (NextLevelXp - inicio);
         }
     }
 
@@ -114,16 +114,16 @@ public class CharacterLevel : MonoBehaviour
     /// se subiu jogando (true) ou se o XP veio de fora, do save ou da
     /// passagem de cena (false). So subir jogando enche a vida.
     /// </summary>
-    public event System.Action<bool> OnNivelMudou;
+    public event System.Action<bool> OnLevelChanged;
 
     // Campo estatico nao zera sozinho quando o editor entra em Play sem
     // recarregar o dominio. Sem isto, um Play novo depois de morrer
     // nasceria com o XP da sessao anterior.
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
-    private static void Zerar()
+    private static void ResetStatics()
     {
-        xpDaEntrada = 0;
-        renascer = false;
+        xpOnEntry = 0;
+        pendingRespawn = false;
     }
 
     /// <summary>
@@ -131,16 +131,16 @@ public class CharacterLevel : MonoBehaviour
     /// entrou na cena. Quem chama e o PlayerDeath, logo antes de
     /// recarregar.
     /// </summary>
-    public static void RenascerNaProximaCena()
+    public static void RespawnOnNextScene()
     {
-        renascer = true;
+        pendingRespawn = true;
     }
 
     private void Awake()
     {
-        combate = GetComponent<PlayerCombat>();
+        combat = GetComponent<PlayerCombat>();
 
-        CriarAviso();
+        CreateLevelUpText();
 
         // Morrer recarrega a cena e o Player nasce do zero. Com XP isso
         // seria cruel demais: quem morresse na terceira dungeon voltaria
@@ -150,62 +150,62 @@ public class CharacterLevel : MonoBehaviour
         // Faco aqui no Awake de proposito. Todo Awake termina antes do
         // Start do CharacterAttributes, entao a build ja aplica o nivel
         // certo e enche a vida dele, sem precisar de evento.
-        if (renascer)
+        if (pendingRespawn)
         {
-            renascer = false;
-            xp = xpDaEntrada;
-            nivel = NivelDoXp(xp);
+            pendingRespawn = false;
+            xp = xpOnEntry;
+            level = LevelForXp(xp);
         }
         else
         {
             // Cena aberta sem morte: jogo novo, passagem ou load do save.
             // Os dois ultimos chamam o Restaurar logo depois, e e ele que
             // anota a entrada de verdade.
-            xpDaEntrada = 0;
+            xpOnEntry = 0;
         }
     }
 
     private void OnEnable()
     {
-        combate.OnGolpeAcertou += AoAcertar;
+        combat.OnAttackHit += HandleHit;
     }
 
     private void OnDisable()
     {
-        combate.OnGolpeAcertou -= AoAcertar;
+        combat.OnAttackHit -= HandleHit;
 
         // O Update para junto com o componente. Sem isto o aviso ficaria
         // parado no ar pra sempre.
-        avisoNasceu = -1f;
+        levelUpStartTime = -1f;
 
-        if (aviso != null)
-            aviso.gameObject.SetActive(false);
+        if (levelUpText != null)
+            levelUpText.gameObject.SetActive(false);
     }
 
     private void OnDestroy()
     {
-        if (aviso != null)
-            Destroy(aviso.gameObject);
+        if (levelUpText != null)
+            Destroy(levelUpText.gameObject);
     }
 
     private void Update()
     {
-        if (avisoNasceu < 0f)
+        if (levelUpStartTime < 0f)
             return;
 
-        float t = (Time.time - avisoNasceu) / duracaoDoAviso;
+        float t = (Time.time - levelUpStartTime) / duracaoDoAviso;
 
         if (t >= 1f)
         {
-            avisoNasceu = -1f;
-            aviso.gameObject.SetActive(false);
+            levelUpStartTime = -1f;
+            levelUpText.gameObject.SetActive(false);
             return;
         }
 
-        DesenharAviso(t);
+        DrawLevelUp(t);
     }
 
-    private void AoAcertar(Health alvo, float dano)
+    private void HandleHit(Health alvo, float dano)
     {
         // Golpe que nao matou nao da nada. A mesma morte nao conta duas
         // vezes: o Health ignora dano em quem ja morreu, entao o acerto
@@ -213,32 +213,32 @@ public class CharacterLevel : MonoBehaviour
         if (!alvo.IsDead)
             return;
 
-        Ganhar(Mathf.RoundToInt(alvo.Max));
+        AddXp(Mathf.RoundToInt(alvo.Max));
     }
 
     /// <summary>
     /// Soma XP. E publico pra quest e debug poderem dar XP tambem, sem
     /// fingir uma morte.
     /// </summary>
-    public void Ganhar(int quantia)
+    public void AddXp(int quantia)
     {
-        if (quantia <= 0 || NoMaximo)
+        if (quantia <= 0 || IsMaxLevel)
             return;
 
-        int antes = nivel;
+        int antes = level;
 
         // Paro o XP no nivel maximo em vez de deixar acumulando. Sem o
         // teto o HUD mostraria um XP que nao serve pra nada.
-        xp = Mathf.Min(xp + quantia, XpParaChegarNoNivel(nivelMaximo));
-        nivel = NivelDoXp(xp);
+        xp = Mathf.Min(xp + quantia, XpForLevel(nivelMaximo));
+        level = LevelForXp(xp);
 
-        if (nivel == antes)
+        if (level == antes)
             return;
 
-        Debug.Log($"[{name}] Subiu pro nivel {nivel} com {xp} de XP.", this);
+        Debug.Log($"[{name}] Subiu pro nivel {level} com {xp} de XP.", this);
 
-        OnNivelMudou?.Invoke(true);
-        MostrarAviso();
+        OnLevelChanged?.Invoke(true);
+        ShowLevelUp();
     }
 
     /// <summary>
@@ -247,9 +247,9 @@ public class CharacterLevel : MonoBehaviour
     /// inimigo de 30 seriam 225.
     /// </summary>
     [ContextMenu("Teste: ganhar 1000 de XP")]
-    private void GanharMilDeTeste()
+    private void AddTestXp()
     {
-        Ganhar(1000);
+        AddXp(1000);
     }
 
     /// <summary>
@@ -263,14 +263,14 @@ public class CharacterLevel : MonoBehaviour
     /// </summary>
     public void Restaurar(int xpTotal)
     {
-        xp = Mathf.Clamp(xpTotal, 0, XpParaChegarNoNivel(nivelMaximo));
-        nivel = NivelDoXp(xp);
+        xp = Mathf.Clamp(xpTotal, 0, XpForLevel(nivelMaximo));
+        level = LevelForXp(xp);
 
         // O XP que veio de fora e o da entrada nesta cena: se eu morrer
         // daqui, e pra ele que eu volto.
-        xpDaEntrada = xp;
+        xpOnEntry = xp;
 
-        OnNivelMudou?.Invoke(false);
+        OnLevelChanged?.Invoke(false);
     }
 
     /// <summary>
@@ -278,7 +278,7 @@ public class CharacterLevel : MonoBehaviour
     /// vezes o nivel de onde se sai, entao o total e a soma de 1 ate n-1:
     /// com 150, o nivel 2 pede 150, o 3 pede 450 e o 4 pede 900.
     /// </summary>
-    public int XpParaChegarNoNivel(int alvo)
+    public int XpForLevel(int alvo)
     {
         alvo = Mathf.Clamp(alvo, 1, nivelMaximo);
 
@@ -286,11 +286,11 @@ public class CharacterLevel : MonoBehaviour
         return xpDoPrimeiroNivel * ((alvo - 1) * alvo / 2);
     }
 
-    private int NivelDoXp(int xpTotal)
+    private int LevelForXp(int xpTotal)
     {
         int n = 1;
 
-        while (n < nivelMaximo && xpTotal >= XpParaChegarNoNivel(n + 1))
+        while (n < nivelMaximo && xpTotal >= XpForLevel(n + 1))
             n++;
 
         return n;
@@ -302,44 +302,44 @@ public class CharacterLevel : MonoBehaviour
     /// filho: o Player gira pra todo lado no combate e o texto giraria
     /// junto. Sigo a posicao dele no Update.
     /// </summary>
-    private void CriarAviso()
+    private void CreateLevelUpText()
     {
         var objeto = new GameObject("AvisoDeNivel");
 
-        aviso = objeto.AddComponent<TextMeshPro>();
-        aviso.alignment = TextAlignmentOptions.Center;
-        aviso.fontStyle = FontStyles.Bold;
-        aviso.textWrappingMode = TextWrappingModes.NoWrap;
-        aviso.rectTransform.sizeDelta = new Vector2(8f, 2f);
+        levelUpText = objeto.AddComponent<TextMeshPro>();
+        levelUpText.alignment = TextAlignmentOptions.Center;
+        levelUpText.fontStyle = FontStyles.Bold;
+        levelUpText.textWrappingMode = TextWrappingModes.NoWrap;
+        levelUpText.rectTransform.sizeDelta = new Vector2(8f, 2f);
 
         // O mesmo contorno escuro do numero de dano, pra ler em cima do
         // chao claro da cidade e do esgoto escuro.
-        aviso.outlineWidth = 0.25f;
-        aviso.outlineColor = new Color32(20, 12, 8, 255);
+        levelUpText.outlineWidth = 0.25f;
+        levelUpText.outlineColor = new Color32(20, 12, 8, 255);
 
         objeto.SetActive(false);
     }
 
-    private void MostrarAviso()
+    private void ShowLevelUp()
     {
         // A string nova nasce so aqui, uma vez por nivel, e nao por frame.
-        aviso.text = "Nível " + nivel;
-        aviso.fontSize = tamanhoDoAviso;
-        aviso.color = corDoAviso;
-        avisoNasceu = Time.time;
+        levelUpText.text = "Nível " + level;
+        levelUpText.fontSize = tamanhoDoAviso;
+        levelUpText.color = corDoAviso;
+        levelUpStartTime = Time.time;
 
         // A camera nunca gira, entao copiar a rotacao dela uma vez deixa
         // o texto de frente o tempo todo.
         Camera cam = Camera.main;
 
         if (cam != null)
-            aviso.transform.rotation = cam.transform.rotation;
+            levelUpText.transform.rotation = cam.transform.rotation;
 
-        aviso.gameObject.SetActive(true);
-        DesenharAviso(0f);
+        levelUpText.gameObject.SetActive(true);
+        DrawLevelUp(0f);
     }
 
-    private void DesenharAviso(float t)
+    private void DrawLevelUp(float t)
     {
         // A mesma curva do DamageNumbers: sobe rapido e assenta, nasce
         // grande e encolhe no primeiro quinto do tempo, e so apaga na
@@ -348,12 +348,12 @@ public class CharacterLevel : MonoBehaviour
         float pulo = Mathf.Lerp(1.5f, 1f, Mathf.Clamp01(t / 0.2f));
         float alfa = 1f - Mathf.Clamp01((t - 0.5f) / 0.5f);
 
-        aviso.transform.position =
+        levelUpText.transform.position =
             transform.position + Vector3.up * (alturaDoAviso + subidaDoAviso * subiu);
-        aviso.transform.localScale = Vector3.one * pulo;
+        levelUpText.transform.localScale = Vector3.one * pulo;
 
-        Color c = aviso.color;
+        Color c = levelUpText.color;
         c.a = alfa;
-        aviso.color = c;
+        levelUpText.color = c;
     }
 }
