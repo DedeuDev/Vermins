@@ -76,6 +76,9 @@ public class EquipmentItem : ScriptableObject
     // por cima dela.
     public const int MaxPerAttribute = 3;
 
+    [Header("Interface")]
+    public Sprite icon;
+
     [Header("Identidade")]
     [FormerlySerializedAs("nomeDoItem")]
     [SerializeField] private string itemName = "Sem nome";

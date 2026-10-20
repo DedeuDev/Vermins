@@ -37,6 +37,7 @@ public static class CrossSceneState
     private static EquipmentItem weapon;
     private static EquipmentItem armor;
     private static EquipmentItem ring;
+    private static string[] inventoryItems;
 
     // Campo estatico nao zera sozinho quando o editor entra em Play sem
     // recarregar o dominio, e a inscricao no sceneLoaded dobraria. Por
@@ -48,6 +49,7 @@ public static class CrossSceneState
         weapon = null;
         armor = null;
         ring = null;
+        inventoryItems = null;
 
         SceneManager.sceneLoaded -= HandleSceneLoaded;
         SceneManager.sceneLoaded += HandleSceneLoaded;
@@ -78,6 +80,7 @@ public static class CrossSceneState
         var bolsa = player.GetComponent<JewelPouch>();
         var nivel = player.GetComponent<CharacterLevel>();
         var equipamento = player.GetComponent<CharacterEquipment>();
+        var inventario = player.GetComponent<InventorySystem>();
 
         health = saude.Current;
         xp = nivel != null ? nivel.Xp : 0;
@@ -89,6 +92,9 @@ public static class CrossSceneState
         weapon = equipamento != null ? equipamento.GetItem(EquipmentSlot.Weapon) : null;
         armor = equipamento != null ? equipamento.GetItem(EquipmentSlot.Armor) : null;
         ring = equipamento != null ? equipamento.GetItem(EquipmentSlot.Ring) : null;
+        inventoryItems = inventario != null
+        ? inventario.GetSavedItemNames()
+        : null;
 
         hasState = true;
     }
@@ -159,5 +165,10 @@ public static class CrossSceneState
 
         if (bolsa != null)
             bolsa.Restore(jewels, jewelsValue);
+
+        var inventario = player.GetComponent<InventorySystem>();
+
+        if (inventario != null && inventoryItems != null)
+            inventario.RestoreItems(inventoryItems);
     }
 }

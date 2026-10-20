@@ -1,3 +1,4 @@
+
 using UnityEngine;
 
 /// <summary>
@@ -7,9 +8,10 @@ using UnityEngine;
 /// depois do Instantiate. O rotulo so e montado no Start do Pickup, um
 /// frame depois, entao o nome e a cor ja estao certos quando ele aparece.
 ///
-/// Encostar veste o item se o slot dele estiver vazio. Com o slot
-/// ocupado o item fica no chao: trocar pelo que ja esta vestido e coisa
-/// da tela de inventario do Rogger, que ainda nao existe.
+/// Ao encostar, o jogador equipa o item se o slot correspondente estiver
+/// vazio. Se o slot estiver ocupado, o item e guardado na mochila, caso
+/// exista espaco. Se nao for possivel equipar nem guardar, ele permanece
+/// no chao para que o jogador possa pega-lo depois.
 /// </summary>
 public class EquipmentPickup : Pickup
 {
@@ -37,12 +39,20 @@ public class EquipmentPickup : Pickup
         if (item == null || equipamento == null)
             return false;
 
-        // Nao troco sozinho. Trocar soltaria o item velho aqui mesmo, em
-        // cima do jogador, e ele pegaria de volta na hora ao andar.
-        if (equipamento.GetItem(item.Slot) != null)
-            return false;
+        // Se o slot estiver vazio, equipa normalmente.
+        if (equipamento.GetItem(item.Slot) == null)
+        {
+            equipamento.Equip(item);
+            return true;
+        }
 
-        equipamento.Equip(item);
-        return true;
+        // Com o slot ocupado, tenta guardar o equipamento na mochila.
+        var inventario = quemEncostou.GetComponentInParent<InventorySystem>();
+
+        if (inventario != null && inventario.TryAddEquipment(item))
+            return true;
+
+        // Se a mochila estiver cheia ou indisponivel, o item fica no chao.
+        return false;
     }
 }

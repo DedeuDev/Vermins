@@ -64,18 +64,17 @@ public class CharacterEquipment : MonoBehaviour
     /// Vestir o que ja esta vestido nao faz nada e nao dispara evento.
     /// </summary>
     public EquipmentItem Equip(EquipmentItem item)
-    {
-        if (item == null)
-            return null;
+{
+    if (item == null)
+        return null;
 
-        EquipmentItem saiu = GetItem(item.Slot);
-        if (saiu == item)
-            return null;
+    EquipmentItem saiu = GetItem(item.Slot);
 
-        SetSlot(item.Slot, item);
-        OnEquipmentChanged?.Invoke();
-        return saiu;
-    }
+    SetSlot(item.Slot, item);
+    OnEquipmentChanged?.Invoke();
+
+    return saiu;
+}
 
     /// <summary>Tira o item do slot e devolve ele, ou null se estava vazio.</summary>
     public EquipmentItem Unequip(EquipmentSlot slot)

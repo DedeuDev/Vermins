@@ -12,6 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 51860ef7f5f31644a8aa9dd269b67787, type: 3}
   m_Name: EspadaGasta
   m_EditorClassIdentifier: Assembly-CSharp::ItemDeEquipamento
+  icon: {fileID: 21300000, guid: 467fb3d199554f449950ee9bf6778a34, type: 3}
   itemName: Espada Gasta
   slot: 0
   rarity: 0

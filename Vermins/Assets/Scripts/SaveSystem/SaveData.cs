@@ -1,3 +1,4 @@
+
 using UnityEngine;
 
 [System.Serializable]
@@ -40,4 +41,7 @@ public class SaveData
     public string playerArma;
     public string playerArmadura;
     public string playerAnel;
+
+    // Itens da mochila, preservando a posição de cada espaço.
+    public string[] playerInventoryItems;
 }

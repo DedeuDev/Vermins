@@ -111,6 +111,14 @@ public class SaveSystem : MonoBehaviour
             data.playerAnel = EquipmentItem.SaveName(equipamento.GetItem(EquipmentSlot.Ring));
         }
 
+        //Salvar os itens
+        InventorySystem inventory = player.GetComponent<InventorySystem>();
+
+        if (inventory != null)
+        {
+         data.playerInventoryItems = inventory.GetSavedItemNames();
+        }
+        
         string json = JsonUtility.ToJson(data, true);
 
         File.WriteAllText(savePath, json);
@@ -241,6 +249,14 @@ public class SaveSystem : MonoBehaviour
                             EquipmentItem.FindByName(pendingLoadData.playerAnel)
                         );
                     }
+
+                    //Carregar os itens
+                    InventorySystem inventory = player.GetComponent<InventorySystem>();
+
+                    if (inventory != null)
+                   {
+                    inventory.RestoreItems(pendingLoadData.playerInventoryItems);
+                   }
 
                     Health health = player.GetComponent<Health>();
 
