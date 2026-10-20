@@ -12,10 +12,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: bcfbe4bb95c8c5240b957b451e4062e3, type: 3}
   m_Name: Equilibrado
   m_EditorClassIdentifier: Assembly-CSharp::AtributosDeBuild
-  nomeDaBuild: Equilibrado
-  comoElaJoga: A referencia. Cinco em tudo, e de proposito ela devolve exatamente
-    os numeros que o jogo tinha antes dos atributos existirem.
-  poder: 5
-  celeridade: 5
-  vitalidade: 5
-  alcance: 5
+  buildName: Equilibrado
+  playstyle: A referencia. Cinco em tudo, e de proposito ela devolve exatamente os
+    numeros que o jogo tinha antes dos atributos existirem.
+  power: 5
+  haste: 5
+  vitality: 5
+  range: 5

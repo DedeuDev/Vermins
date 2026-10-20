@@ -12,9 +12,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 51860ef7f5f31644a8aa9dd269b67787, type: 3}
   m_Name: EspadaGasta
   m_EditorClassIdentifier: Assembly-CSharp::ItemDeEquipamento
-  nomeDoItem: Espada Gasta
+  itemName: Espada Gasta
   slot: 0
-  raridade: 0
-  poder: 1
-  celeridade: 0
-  vitalidade: 0
+  rarity: 0
+  power: 1
+  haste: 0
+  vitality: 0

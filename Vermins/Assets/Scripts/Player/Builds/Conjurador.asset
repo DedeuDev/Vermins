@@ -12,10 +12,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: bcfbe4bb95c8c5240b957b451e4062e3, type: 3}
   m_Name: Conjurador
   m_EditorClassIdentifier: Assembly-CSharp::AtributosDeBuild
-  nomeDaBuild: Conjurador
-  comoElaJoga: Canhao de vidro. Bate quase o dobro e recarrega rapido, mas so alcanca
+  buildName: Conjurador
+  playstyle: Canhao de vidro. Bate quase o dobro e recarrega rapido, mas so alcanca
     6 m e morre em quatro mordidas.
-  poder: 9
-  celeridade: 6
-  vitalidade: 3
-  alcance: 2
+  power: 9
+  haste: 6
+  vitality: 3
+  range: 2

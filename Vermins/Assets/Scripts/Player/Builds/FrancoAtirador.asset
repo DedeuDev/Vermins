@@ -12,10 +12,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: bcfbe4bb95c8c5240b957b451e4062e3, type: 3}
   m_Name: FrancoAtirador
   m_EditorClassIdentifier: Assembly-CSharp::AtributosDeBuild
-  nomeDaBuild: Franco-atirador
-  comoElaJoga: Mata de 13 m, longe do cone de visao do inimigo. Em compensacao e
-    o mais lento pra recarregar e o segundo mais fragil.
-  poder: 6
-  celeridade: 3
-  vitalidade: 2
-  alcance: 9
+  buildName: Franco-atirador
+  playstyle: Mata de 13 m, longe do cone de visao do inimigo. Em compensacao e o
+    mais lento pra recarregar e o segundo mais fragil.
+  power: 6
+  haste: 3
+  vitality: 2
+  range: 9

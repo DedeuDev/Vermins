@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.Serialization;
 
 public enum EquipmentSlot
 {
@@ -31,11 +32,11 @@ public readonly struct BonusPoints
     public readonly int Haste;
     public readonly int Vitality;
 
-    public BonusPoints(int poder, int celeridade, int vitalidade)
+    public BonusPoints(int power, int haste, int vitality)
     {
-        Power = poder;
-        Haste = celeridade;
-        Vitality = vitalidade;
+        Power = power;
+        Haste = haste;
+        Vitality = vitality;
     }
 
     public int Total => Power + Haste + Vitality;
@@ -75,34 +76,39 @@ public class EquipmentItem : ScriptableObject
     public const int MaxPerAttribute = 3;
 
     [Header("Identidade")]
-    [SerializeField] private string nomeDoItem = "Sem nome";
+    [FormerlySerializedAs("nomeDoItem")]
+    [SerializeField] private string itemName = "Sem nome";
     [SerializeField] private EquipmentSlot slot;
-    [SerializeField] private Rarity raridade;
+    [FormerlySerializedAs("raridade")]
+    [SerializeField] private Rarity rarity;
 
     [Header("Pontos (somam ate o teto da raridade)")]
     [Tooltip("Vira dano por golpe, igual ao Poder da build.")]
     [Range(0, MaxPerAttribute)]
-    [SerializeField] private int poder;
+    [FormerlySerializedAs("poder")]
+    [SerializeField] private int power;
 
     [Tooltip("Diminui o tempo entre golpes, igual a Celeridade da build.")]
     [Range(0, MaxPerAttribute)]
-    [SerializeField] private int celeridade;
+    [FormerlySerializedAs("celeridade")]
+    [SerializeField] private int haste;
 
     [Tooltip("Vira vida maxima, igual a Vitalidade da build. Equipar nao " +
              "enche a vida: o teto sobe e a vida atual fica onde estava.")]
     [Range(0, MaxPerAttribute)]
-    [SerializeField] private int vitalidade;
+    [FormerlySerializedAs("vitalidade")]
+    [SerializeField] private int vitality;
 
-    public string ItemName => string.IsNullOrWhiteSpace(nomeDoItem) ? name : nomeDoItem;
+    public string ItemName => string.IsNullOrWhiteSpace(itemName) ? name : itemName;
     public EquipmentSlot Slot => slot;
-    public Rarity Rarity => raridade;
+    public Rarity Rarity => rarity;
 
-    public BonusPoints Bonus => new BonusPoints(poder, celeridade, vitalidade);
+    public BonusPoints Bonus => new BonusPoints(power, haste, vitality);
 
     /// <summary>Quantos pontos um item desta raridade pode somar no total.</summary>
-    public static int PointsForRarity(Rarity raridade)
+    public static int PointsForRarity(Rarity rarity)
     {
-        switch (raridade)
+        switch (rarity)
         {
             case Rarity.Magic: return 2;
             case Rarity.Rare: return 3;
@@ -167,9 +173,9 @@ public class EquipmentItem : ScriptableObject
     /// Fica aqui, e nao no rotulo do chao, porque o HUD e a tela de
     /// inventario do Rogger vao precisar da mesma cor.
     /// </summary>
-    public static Color RarityColor(Rarity raridade)
+    public static Color RarityColor(Rarity rarity)
     {
-        switch (raridade)
+        switch (rarity)
         {
             case Rarity.Magic: return new Color(0.45f, 0.6f, 1f);
             case Rarity.Rare: return new Color(1f, 0.9f, 0.25f);
@@ -179,16 +185,16 @@ public class EquipmentItem : ScriptableObject
 
     private void OnValidate()
     {
-        int total = poder + celeridade + vitalidade;
-        int teto = PointsForRarity(raridade);
+        int total = power + haste + vitality;
+        int teto = PointsForRarity(rarity);
 
         // Aviso em vez de cortar, igual a build: mexer no numero sozinho
         // no OnValidate apagaria o que alguem acabou de digitar.
         if (total > teto)
         {
             Debug.LogWarning(
-                $"[{name}] Este item {raridade} soma {total} pontos e o teto " +
-                $"de {raridade} e {teto}. Ele funciona do mesmo jeito, mas ai " +
+                $"[{name}] Este item {rarity} soma {total} pontos e o teto " +
+                $"de {rarity} e {teto}. Ele funciona do mesmo jeito, mas ai " +
                 "a raridade deixa de dizer quao forte o item e.", this);
         }
         else if (total == 0)

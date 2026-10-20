@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.Serialization;
 
 /// <summary>
 /// Uma build do personagem: quatro atributos e as contas que transformam
@@ -28,35 +29,41 @@ public class BuildAttributes : ScriptableObject
     public const int MaxPerAttribute = 10;
 
     [Header("Identidade")]
-    [SerializeField] private string nomeDaBuild = "Sem nome";
+    [FormerlySerializedAs("nomeDaBuild")]
+    [SerializeField] private string buildName = "Sem nome";
 
     [Tooltip("Como esta build joga, em uma frase. Aparece so aqui, mas " +
              "e o que impede a gente de criar duas builds que na pratica " +
              "sao a mesma coisa com numeros diferentes.")]
     [TextArea(2, 4)]
-    [SerializeField] private string comoElaJoga;
+    [FormerlySerializedAs("comoElaJoga")]
+    [SerializeField] private string playstyle;
 
     [Header("Atributos (somam 20)")]
     [Tooltip("Forca da magia. Vira dano por golpe.")]
     [Range(MinPerAttribute, MaxPerAttribute)]
-    [SerializeField] private int poder = 5;
+    [FormerlySerializedAs("poder")]
+    [SerializeField] private int power = 5;
 
     [Tooltip("Rapidez do conjurador. Diminui o tempo entre um golpe e o " +
              "proximo. A animacao acompanha sozinha - o Animator le a " +
              "velocidade por parametro e nao gravada.")]
     [Range(MinPerAttribute, MaxPerAttribute)]
-    [SerializeField] private int celeridade = 5;
+    [FormerlySerializedAs("celeridade")]
+    [SerializeField] private int haste = 5;
 
     [Tooltip("Quanto o corpo aguenta. Vira vida maxima.")]
     [Range(MinPerAttribute, MaxPerAttribute)]
-    [SerializeField] private int vitalidade = 5;
+    [FormerlySerializedAs("vitalidade")]
+    [SerializeField] private int vitality = 5;
 
     [Tooltip("De quao longe a magia sai. E o atributo mais perigoso dos " +
              "quatro: a 9 m o jogador ja mata um inimigo sozinho sem " +
              "levar dano nenhum. So nao desbalanceia porque subir ele " +
              "custa dano ou vida, que e pra isso que o orcamento existe.")]
     [Range(MinPerAttribute, MaxPerAttribute)]
-    [SerializeField] private int alcance = 5;
+    [FormerlySerializedAs("alcance")]
+    [SerializeField] private int range = 5;
 
     // As bases foram escolhidas pra que uma build 5/5/5/5 devolva
     // EXATAMENTE os numeros que o jogo ja tinha antes dos atributos
@@ -75,15 +82,15 @@ public class BuildAttributes : ScriptableObject
     private const float BaseRange = 4f;
     private const float RangePerPoint = 1f;
 
-    public string BuildName => string.IsNullOrWhiteSpace(nomeDaBuild) ? name : nomeDaBuild;
-    public string Playstyle => comoElaJoga;
+    public string BuildName => string.IsNullOrWhiteSpace(buildName) ? name : buildName;
+    public string Playstyle => playstyle;
 
-    public int Power => poder;
-    public int Haste => celeridade;
-    public int Vitality => vitalidade;
-    public int Range => alcance;
+    public int Power => power;
+    public int Haste => haste;
+    public int Vitality => vitality;
+    public int Range => range;
 
-    public int TotalSpent => poder + celeridade + vitalidade + alcance;
+    public int TotalSpent => power + haste + vitality + range;
 
     // Sem equipamento. E o numero que serve pra comparar uma build com
     // a outra.
@@ -94,7 +101,7 @@ public class BuildAttributes : ScriptableObject
     // As contas "Com" recebem os pontos que o equipamento soma por cima
     // da build. Somo no ponto, e nao no resultado, pra que um ponto de
     // anel valha o mesmo que um ponto de build.
-    public float DamageWith(int poderExtra) => BaseDamage + (poder + poderExtra) * DamagePerPoint;
+    public float DamageWith(int poderExtra) => BaseDamage + (power + poderExtra) * DamagePerPoint;
 
     /// <summary>
     /// Segundos entre um golpe e o proximo.
@@ -110,11 +117,11 @@ public class BuildAttributes : ScriptableObject
     /// importa: 10 da build e +9 de tres raros param em 0,62 s.
     /// </summary>
     public float CooldownWith(int celeridadeExtra) =>
-        BaseCooldown / (1f + (celeridade + celeridadeExtra) * HastePerPoint);
+        BaseCooldown / (1f + (haste + celeridadeExtra) * HastePerPoint);
 
-    public float MaxHealthWith(int vitalidadeExtra) => BaseHealth + (vitalidade + vitalidadeExtra) * HealthPerPoint;
+    public float MaxHealthWith(int vitalidadeExtra) => BaseHealth + (vitality + vitalidadeExtra) * HealthPerPoint;
 
-    public float RangeInMeters => BaseRange + alcance * RangePerPoint;
+    public float RangeInMeters => BaseRange + range * RangePerPoint;
 
     private void OnValidate()
     {

@@ -12,9 +12,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 51860ef7f5f31644a8aa9dd269b67787, type: 3}
   m_Name: AnelDoVento
   m_EditorClassIdentifier: Assembly-CSharp::ItemDeEquipamento
-  nomeDoItem: Anel do Vento
+  itemName: Anel do Vento
   slot: 2
-  raridade: 2
-  poder: 1
-  celeridade: 2
-  vitalidade: 0
+  rarity: 2
+  power: 1
+  haste: 2
+  vitality: 0
