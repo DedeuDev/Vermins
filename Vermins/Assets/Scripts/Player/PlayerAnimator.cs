@@ -1,5 +1,6 @@
 using UnityEngine;
 using UnityEngine.AI;
+using UnityEngine.Serialization;
 
 /// <summary>
 /// Liga a animacao na velocidade real do NavMeshAgent.
@@ -37,12 +38,14 @@ public class PlayerAnimator : MonoBehaviour
              "Medi o descompasso somado num trajeto de 38 m: com 0,12 da " +
              "1,28 m de escorregao, com 0,06 da 0,64 m. Abaixo disso o " +
              "blend comeca a trancar.")]
-    [SerializeField] private float suavizacao = 0.06f;
+    [FormerlySerializedAs("suavizacao")]
+    [SerializeField] private float smoothing = 0.06f;
 
     [Tooltip("Abaixo disso eu trato como parado. O NavMeshAgent nunca zera " +
              "a velocidade de verdade e sem esse corte o personagem fica " +
              "tremendo entre parado e andando.")]
-    [SerializeField] private float velocidadeMinima = 0.1f;
+    [FormerlySerializedAs("velocidadeMinima")]
+    [SerializeField] private float minSpeed = 0.1f;
 
     [Tooltip("Velocidade em que o pe da corrida pra frente pisa, em m/s. " +
              "Acima dela o blend tree nao tem clipe mais rapido, entao eu " +
@@ -50,22 +53,26 @@ public class PlayerAnimator : MonoBehaviour
              "com 2,58 aqui, ela toca a 1,47x. O numero sai no log do menu " +
              "Vermins/Player/Montar Animator do Paladino - se trocar o " +
              "clipe de corrida, copie de la.")]
-    [SerializeField] private float velocidadeDaCorrida = 2.58f;
+    [FormerlySerializedAs("velocidadeDaCorrida")]
+    [SerializeField] private float runSpeed = 2.58f;
 
     [Header("Reacao a dano")]
     [Tooltip("Segundos pra camada da reacao entrar. Tem que casar com a " +
              "duracao da transicao pro estado Reagir la no controller, " +
              "senao uma rampa termina antes da outra e aparece um degrau.")]
-    [SerializeField] private float entradaDaReacao = 0.08f;
+    [FormerlySerializedAs("entradaDaReacao")]
+    [SerializeField] private float reactionFadeIn = 0.08f;
 
     [Tooltip("Segundos pra camada da reacao sair. Casa com a duracao da " +
              "transicao de volta pro Vazio pelo mesmo motivo.")]
-    [SerializeField] private float saidaDaReacao = 0.15f;
+    [FormerlySerializedAs("saidaDaReacao")]
+    [SerializeField] private float reactionFadeOut = 0.15f;
 
     [Tooltip("Segundos do blend quando uma ordem de andar corta o golpe. " +
              "Curto de proposito: e o tempo em que as pernas ainda estao " +
              "no gesto enquanto o corpo ja anda.")]
-    [SerializeField] private float corteDoGolpe = 0.1f;
+    [FormerlySerializedAs("corteDoGolpe")]
+    [SerializeField] private float attackCutFade = 0.1f;
 
     [Tooltip("Segundos do blend quando o jogador sai andando no fim do " +
              "rolamento. Sem isto o clipe esperava o exit time de 85% e " +
@@ -477,7 +484,7 @@ public class PlayerAnimator : MonoBehaviour
             animator.ResetTrigger(HurtId);
 
             if (IsReacting())
-                animator.CrossFadeInFixedTime(EmptyStateId, saidaDaReacao, reactionLayer);
+                animator.CrossFadeInFixedTime(EmptyStateId, reactionFadeOut, reactionLayer);
         }
     }
 
@@ -508,7 +515,7 @@ public class PlayerAnimator : MonoBehaviour
             animator.ResetTrigger(HurtId);
 
             if (IsReacting())
-                animator.CrossFadeInFixedTime(EmptyStateId, saidaDaReacao, reactionLayer);
+                animator.CrossFadeInFixedTime(EmptyStateId, reactionFadeOut, reactionLayer);
         }
     }
 
@@ -536,7 +543,7 @@ public class PlayerAnimator : MonoBehaviour
         if (!IsInAttack())
             return;
 
-        animator.CrossFadeInFixedTime(LocomotionStateId, corteDoGolpe, 0);
+        animator.CrossFadeInFixedTime(LocomotionStateId, attackCutFade, 0);
     }
 
     /// <summary>
@@ -612,7 +619,7 @@ public class PlayerAnimator : MonoBehaviour
             smoothedSpeed,
             velocidade.magnitude,
             ref speedVelocity,
-            suavizacao,
+            smoothing,
             Mathf.Infinity,
             Time.deltaTime);
 
@@ -654,10 +661,10 @@ public class PlayerAnimator : MonoBehaviour
     /// </summary>
     private float LocomotionSpeed()
     {
-        if (velocidadeDaCorrida <= 0f)
+        if (runSpeed <= 0f)
             return 1f;
 
-        return Mathf.Max(1f, smoothedSpeed / velocidadeDaCorrida);
+        return Mathf.Max(1f, smoothedSpeed / runSpeed);
     }
 
     /// <summary>
@@ -699,7 +706,7 @@ public class PlayerAnimator : MonoBehaviour
         }
 
         float alvo = IsReacting() ? 1f : 0f;
-        float tempo = alvo > reactionWeight ? entradaDaReacao : saidaDaReacao;
+        float tempo = alvo > reactionWeight ? reactionFadeIn : reactionFadeOut;
 
         reactionWeight = tempo <= 0f
             ? alvo
@@ -737,7 +744,7 @@ public class PlayerAnimator : MonoBehaviour
         // conta e isso viraria "corrida" numa descida.
         velocidade.y = 0f;
 
-        return velocidade.magnitude < velocidadeMinima ? Vector3.zero : velocidade;
+        return velocidade.magnitude < minSpeed ? Vector3.zero : velocidade;
     }
 
     /// <summary>

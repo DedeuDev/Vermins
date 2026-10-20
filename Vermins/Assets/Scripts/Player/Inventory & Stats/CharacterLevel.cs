@@ -1,5 +1,6 @@
 using TMPro;
 using UnityEngine;
+using UnityEngine.Serialization;
 
 /// <summary>
 /// Experiencia e nivel do Player.
@@ -32,36 +33,44 @@ public class CharacterLevel : MonoBehaviour
              "isto vezes n, entao o nivel 10 pede 6750 no total. Medi 42 " +
              "inimigos por dungeon: com o boss sao 2260 de XP em cada uma, " +
              "e quem mata tudo chega no nivel 10 no fim da terceira.")]
-    [SerializeField, Min(1)] private int xpDoPrimeiroNivel = 150;
+    [FormerlySerializedAs("xpDoPrimeiroNivel")]
+    [SerializeField, Min(1)] private int firstLevelXp = 150;
 
     [Tooltip("Daqui pra cima o XP para de subir.")]
-    [SerializeField, Min(1)] private int nivelMaximo = 10;
+    [FormerlySerializedAs("nivelMaximo")]
+    [SerializeField, Min(1)] private int maxLevel = 10;
 
     [Header("Bonus")]
     [Tooltip("Quanto cada nivel acima do 1 soma de vida maxima e de dano, " +
              "em cima do que a build da. Soma e nao compoe: o nivel 10 e " +
              "+90%, e nao 1,1 elevado a 9.")]
-    [SerializeField, Range(0f, 1f)] private float bonusPorNivel = 0.1f;
+    [FormerlySerializedAs("bonusPorNivel")]
+    [SerializeField, Range(0f, 1f)] private float bonusPerLevel = 0.1f;
 
     [Header("Aviso de nivel")]
     [Tooltip("Cor do \"Nivel N\" que sobe da cabeca ao subir de nivel.")]
-    [SerializeField] private Color corDoAviso = new Color(1f, 0.8f, 0.25f, 1f);
+    [FormerlySerializedAs("corDoAviso")]
+    [SerializeField] private Color levelUpColor = new Color(1f, 0.8f, 0.25f, 1f);
 
     [Tooltip("Tamanho da fonte do TextMeshPro no mundo. O numero de dano " +
              "usa 5; pus maior porque subir de nivel e mais raro e mais " +
              "importante que um golpe.")]
-    [SerializeField] private float tamanhoDoAviso = 8f;
+    [FormerlySerializedAs("tamanhoDoAviso")]
+    [SerializeField] private float levelUpSize = 8f;
 
     [Tooltip("Quanto tempo o aviso fica na tela.")]
-    [SerializeField] private float duracaoDoAviso = 2f;
+    [FormerlySerializedAs("duracaoDoAviso")]
+    [SerializeField] private float levelUpDuration = 2f;
 
     [Tooltip("Quanto o aviso sobe, em metros, ate sumir.")]
-    [SerializeField] private float subidaDoAviso = 1.2f;
+    [FormerlySerializedAs("subidaDoAviso")]
+    [SerializeField] private float levelUpRise = 1.2f;
 
     [Tooltip("Altura acima do pivo do Player onde o aviso nasce. O pivo " +
              "fica no peito (baseOffset 0,92, capsula de 2 m), entao com " +
              "1,4 o texto nasce um pouco acima da cabeca.")]
-    [SerializeField] private float alturaDoAviso = 1.4f;
+    [FormerlySerializedAs("alturaDoAviso")]
+    [SerializeField] private float levelUpHeight = 1.4f;
 
     private PlayerCombat combat;
     private int xp;
@@ -78,20 +87,20 @@ public class CharacterLevel : MonoBehaviour
 
     public int Xp => xp;
     public int Level => level;
-    public int MaxLevel => nivelMaximo;
-    public bool IsMaxLevel => level >= nivelMaximo;
+    public int MaxLevel => maxLevel;
+    public bool IsMaxLevel => level >= maxLevel;
 
     /// <summary>
     /// Por quanto multiplicar a vida maxima e o dano da build. Vale 1 no
     /// nivel 1, entao sem XP nenhum o jogo fica igual ao de antes.
     /// </summary>
-    public float Multiplier => 1f + (level - 1) * bonusPorNivel;
+    public float Multiplier => 1f + (level - 1) * bonusPerLevel;
 
     /// <summary>XP total em que o nivel atual comecou.</summary>
     public int CurrentLevelXp => XpForLevel(level);
 
     /// <summary>XP total do proximo nivel. No maximo, o do proprio nivel maximo.</summary>
-    public int NextLevelXp => XpForLevel(Mathf.Min(level + 1, nivelMaximo));
+    public int NextLevelXp => XpForLevel(Mathf.Min(level + 1, maxLevel));
 
     /// <summary>
     /// Quanto do nivel atual ja foi, de 0 a 1. E esse numero que a barra
@@ -193,7 +202,7 @@ public class CharacterLevel : MonoBehaviour
         if (levelUpStartTime < 0f)
             return;
 
-        float t = (Time.time - levelUpStartTime) / duracaoDoAviso;
+        float t = (Time.time - levelUpStartTime) / levelUpDuration;
 
         if (t >= 1f)
         {
@@ -229,7 +238,7 @@ public class CharacterLevel : MonoBehaviour
 
         // Paro o XP no nivel maximo em vez de deixar acumulando. Sem o
         // teto o HUD mostraria um XP que nao serve pra nada.
-        xp = Mathf.Min(xp + quantia, XpForLevel(nivelMaximo));
+        xp = Mathf.Min(xp + quantia, XpForLevel(maxLevel));
         level = LevelForXp(xp);
 
         if (level == antes)
@@ -263,7 +272,7 @@ public class CharacterLevel : MonoBehaviour
     /// </summary>
     public void Restaurar(int xpTotal)
     {
-        xp = Mathf.Clamp(xpTotal, 0, XpForLevel(nivelMaximo));
+        xp = Mathf.Clamp(xpTotal, 0, XpForLevel(maxLevel));
         level = LevelForXp(xp);
 
         // O XP que veio de fora e o da entrada nesta cena: se eu morrer
@@ -274,23 +283,23 @@ public class CharacterLevel : MonoBehaviour
     }
 
     /// <summary>
-    /// XP total pra chegar no nivel. Cada nivel custa xpDoPrimeiroNivel
+    /// XP total pra chegar no nivel. Cada nivel custa firstLevelXp
     /// vezes o nivel de onde se sai, entao o total e a soma de 1 ate n-1:
     /// com 150, o nivel 2 pede 150, o 3 pede 450 e o 4 pede 900.
     /// </summary>
     public int XpForLevel(int alvo)
     {
-        alvo = Mathf.Clamp(alvo, 1, nivelMaximo);
+        alvo = Mathf.Clamp(alvo, 1, maxLevel);
 
         // (n - 1) * n e sempre par, entao a divisao nao perde nada.
-        return xpDoPrimeiroNivel * ((alvo - 1) * alvo / 2);
+        return firstLevelXp * ((alvo - 1) * alvo / 2);
     }
 
     private int LevelForXp(int xpTotal)
     {
         int n = 1;
 
-        while (n < nivelMaximo && xpTotal >= XpForLevel(n + 1))
+        while (n < maxLevel && xpTotal >= XpForLevel(n + 1))
             n++;
 
         return n;
@@ -324,8 +333,8 @@ public class CharacterLevel : MonoBehaviour
     {
         // A string nova nasce so aqui, uma vez por nivel, e nao por frame.
         levelUpText.text = "Nível " + level;
-        levelUpText.fontSize = tamanhoDoAviso;
-        levelUpText.color = corDoAviso;
+        levelUpText.fontSize = levelUpSize;
+        levelUpText.color = levelUpColor;
         levelUpStartTime = Time.time;
 
         // A camera nunca gira, entao copiar a rotacao dela uma vez deixa
@@ -349,7 +358,7 @@ public class CharacterLevel : MonoBehaviour
         float alfa = 1f - Mathf.Clamp01((t - 0.5f) / 0.5f);
 
         levelUpText.transform.position =
-            transform.position + Vector3.up * (alturaDoAviso + subidaDoAviso * subiu);
+            transform.position + Vector3.up * (levelUpHeight + levelUpRise * subiu);
         levelUpText.transform.localScale = Vector3.one * pulo;
 
         Color c = levelUpText.color;

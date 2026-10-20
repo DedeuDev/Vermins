@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.Serialization;
 
 /// <summary>
 /// Mostra em quem o jogador vai bater e em quem ele ja esta batendo.
@@ -18,36 +19,47 @@ public class TargetHighlight : MonoBehaviour
 {
     [Header("Contorno no inimigo sob o mouse")]
     [Tooltip("Material com o shader Vermins/Contorno.")]
-    [SerializeField] private Material contorno;
+    [FormerlySerializedAs("contorno")]
+    [SerializeField] private Material outlineMaterial;
 
     [Tooltip("Cor do contorno no item sob o mouse. Clara, pra nao " +
              "confundir com o vermelho do inimigo.")]
-    [SerializeField] private Color corDoContornoDeItem = new Color(1f, 0.95f, 0.75f, 1f);
+    [FormerlySerializedAs("corDoContornoDeItem")]
+    [SerializeField] private Color itemOutlineColor = new Color(1f, 0.95f, 0.75f, 1f);
 
     [Header("Anel no alvo travado")]
     [Tooltip("Material transparente com cor de vertice. Uso o mesmo do " +
              "marcador de destino.")]
-    [SerializeField] private Material materialDoAnel;
+    [FormerlySerializedAs("materialDoAnel")]
+    [SerializeField] private Material ringMaterial;
 
-    [SerializeField] private Color corDoAnel = new Color(0.9f, 0.15f, 0.1f, 0.9f);
+    [FormerlySerializedAs("corDoAnel")]
+    [SerializeField] private Color ringColor = new Color(0.9f, 0.15f, 0.1f, 0.9f);
 
-    [SerializeField] private float espessuraDoAnel = 0.06f;
+    [FormerlySerializedAs("espessuraDoAnel")]
+    [SerializeField] private float ringThickness = 0.06f;
 
     [Tooltip("Quanto o anel passa da borda do corpo do alvo.")]
-    [SerializeField] private float folgaDoRaio = 0.25f;
+    [FormerlySerializedAs("folgaDoRaio")]
+    [SerializeField] private float radiusPadding = 0.25f;
 
     [Tooltip("Quanto o raio cresce e encolhe no pulso, em fracao do raio.")]
-    [SerializeField] private float pulso = 0.06f;
+    [FormerlySerializedAs("pulso")]
+    [SerializeField] private float pulseAmount = 0.06f;
 
-    [SerializeField] private float velocidadeDoPulso = 4f;
+    [FormerlySerializedAs("velocidadeDoPulso")]
+    [SerializeField] private float pulseSpeed = 4f;
 
-    [SerializeField] private int segmentos = 48;
+    [FormerlySerializedAs("segmentos")]
+    [SerializeField] private int segments = 48;
 
     [Tooltip("Layers do chao visivel. Mesma do clique no PlayerController.")]
-    [SerializeField] private LayerMask mascaraDoChao = (1 << 7) | (1 << 8);
+    [FormerlySerializedAs("mascaraDoChao")]
+    [SerializeField] private LayerMask groundMask = (1 << 7) | (1 << 8);
 
     [Tooltip("Folga acima do chao pra o anel nao piscar dentro dele.")]
-    [SerializeField] private float alturaAcimaDoChao = 0.03f;
+    [FormerlySerializedAs("alturaAcimaDoChao")]
+    [SerializeField] private float groundOffset = 0.03f;
 
     private ContextualCursor cursor;
     private PlayerCombat combat;
@@ -72,10 +84,10 @@ public class TargetHighlight : MonoBehaviour
         cursor = GetComponent<ContextualCursor>();
         combat = GetComponent<PlayerCombat>();
 
-        if (contorno != null)
+        if (outlineMaterial != null)
         {
-            itemOutline = new Material(contorno);
-            itemOutline.SetColor("_CorDoContorno", corDoContornoDeItem);
+            itemOutline = new Material(outlineMaterial);
+            itemOutline.SetColor("_CorDoContorno", itemOutlineColor);
         }
 
         // Mesma montagem do MoveMarker: fora do Player, deitado no
@@ -84,19 +96,19 @@ public class TargetHighlight : MonoBehaviour
         objeto.transform.rotation = Quaternion.Euler(90f, 0f, 0f);
 
         ring = objeto.AddComponent<LineRenderer>();
-        ring.sharedMaterial = materialDoAnel;
+        ring.sharedMaterial = ringMaterial;
         ring.useWorldSpace = false;
         ring.loop = true;
         ring.alignment = LineAlignment.TransformZ;
-        ring.positionCount = segmentos;
-        ring.widthMultiplier = espessuraDoAnel;
-        ring.startColor = corDoAnel;
-        ring.endColor = corDoAnel;
+        ring.positionCount = segments;
+        ring.widthMultiplier = ringThickness;
+        ring.startColor = ringColor;
+        ring.endColor = ringColor;
         ring.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
         ring.receiveShadows = false;
         ring.enabled = false;
 
-        points = new Vector3[segmentos];
+        points = new Vector3[segments];
     }
 
     private void OnDisable()
@@ -124,7 +136,7 @@ public class TargetHighlight : MonoBehaviour
         // O cursor so acha item quando nao tem inimigo embaixo, entao no
         // maximo um dos dois vem preenchido.
         if (cursor.EnemyUnderMouse != null)
-            UpdateOutline(cursor.EnemyUnderMouse, contorno);
+            UpdateOutline(cursor.EnemyUnderMouse, outlineMaterial);
         else
             UpdateOutline(cursor.PickupUnderMouse, itemOutline);
         UpdateRing(combat.HasTarget ? combat.Target : null);
@@ -212,7 +224,7 @@ public class TargetHighlight : MonoBehaviour
         if (alvo != ringTarget)
         {
             ringTarget = alvo;
-            targetRadius = MeasureRadius(alvo) + folgaDoRaio;
+            targetRadius = MeasureRadius(alvo) + radiusPadding;
         }
 
         // O pivo do inimigo nao fica no pe (o agente dele tem baseOffset),
@@ -224,20 +236,20 @@ public class TargetHighlight : MonoBehaviour
                 Vector3.down,
                 out RaycastHit hit,
                 4f,
-                mascaraDoChao,
+                groundMask,
                 QueryTriggerInteraction.Ignore))
         {
             pe.y = hit.point.y;
         }
 
-        ring.transform.position = pe + Vector3.up * alturaAcimaDoChao;
+        ring.transform.position = pe + Vector3.up * groundOffset;
 
         float raio = targetRadius *
-            (1f + pulso * Mathf.Sin(Time.time * velocidadeDoPulso));
+            (1f + pulseAmount * Mathf.Sin(Time.time * pulseSpeed));
 
-        for (int i = 0; i < segmentos; i++)
+        for (int i = 0; i < segments; i++)
         {
-            float angulo = i * Mathf.PI * 2f / segmentos;
+            float angulo = i * Mathf.PI * 2f / segments;
             points[i] = new Vector3(Mathf.Cos(angulo) * raio, Mathf.Sin(angulo) * raio, 0f);
         }
 

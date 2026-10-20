@@ -1,6 +1,7 @@
 using UnityEngine;
 using UnityEngine.AI;
 using UnityEngine.InputSystem;
+using UnityEngine.Serialization;
 
 /// <summary>
 /// HUD de debug do jogador: vida, nivel, pocoes, ouro, joias, equipamento, alvo, velocidade e fps num canto da tela.
@@ -27,21 +28,27 @@ using UnityEngine.InputSystem;
 [RequireComponent(typeof(Health))]
 public class PlayerDebugHUD : MonoBehaviour
 {
-    [SerializeField] private bool visivel = true;
+    [FormerlySerializedAs("visivel")]
+    [SerializeField] private bool visible = true;
 
     [Tooltip("Liga e desliga o HUD, pra ele nao aparecer em print e video.")]
-    [SerializeField] private Key teclaParaEsconder = Key.F1;
+    [FormerlySerializedAs("teclaParaEsconder")]
+    [SerializeField] private Key toggleKey = Key.F1;
 
     [Tooltip("Abre e fecha a loja de debug. Funciona em qualquer cena, " +
              "nao so no hub: e pra testar a conta, nao o lugar.")]
-    [SerializeField] private Key teclaDaLoja = Key.F2;
+    [FormerlySerializedAs("teclaDaLoja")]
+    [SerializeField] private Key shopKey = Key.F2;
 
     [Header("Icones das linhas")]
     [Tooltip("Os mesmos de Placeholders/Icones. Vazio, a linha ganha um " +
              "quadradinho na cor do rotulo do item no chao.")]
-    [SerializeField] private Texture2D iconeDaPocao;
-    [SerializeField] private Texture2D iconeDoOuro;
-    [SerializeField] private Texture2D iconeDaJoia;
+    [FormerlySerializedAs("iconeDaPocao")]
+    [SerializeField] private Texture2D potionIcon;
+    [FormerlySerializedAs("iconeDoOuro")]
+    [SerializeField] private Texture2D goldIcon;
+    [FormerlySerializedAs("iconeDaJoia")]
+    [SerializeField] private Texture2D jewelIcon;
 
     /// <summary>
     /// Se o mouse esta em cima dos controles do teto de fps ou da loja
@@ -231,8 +238,8 @@ public class PlayerDebugHUD : MonoBehaviour
         equipment = GetComponent<CharacterEquipment>();
         shop = GetComponent<HubShop>();
 
-        header = new GUIContent($"<b>DEBUG</b>   ({teclaParaEsconder} esconde)");
-        shopHeader = new GUIContent($"<b>LOJA</b> (debug)   ({teclaDaLoja} fecha)");
+        header = new GUIContent($"<b>DEBUG</b>   ({toggleKey} esconde)");
+        shopHeader = new GUIContent($"<b>LOJA</b> (debug)   ({shopKey} fecha)");
 
         // Sem a passada de Layout. Tudo aqui e desenhado em retangulo
         // fixo, e o GUILayout era a outra parte do lixo.
@@ -246,16 +253,16 @@ public class PlayerDebugHUD : MonoBehaviour
         // quero deixar acao sobrando no asset do jogo depois.
         Keyboard teclado = Keyboard.current;
 
-        if (teclado != null && teclado[teclaParaEsconder].wasPressedThisFrame)
-            visivel = !visivel;
+        if (teclado != null && teclado[toggleKey].wasPressedThisFrame)
+            visible = !visible;
 
         // Sem HubShop no Player, o F2 nao abre nada.
-        if (shop != null && teclado != null && teclado[teclaDaLoja].wasPressedThisFrame)
+        if (shop != null && teclado != null && teclado[shopKey].wasPressedThisFrame)
             isShopOpen = !isShopOpen;
 
         MeasureFps();
 
-        if (visivel)
+        if (visible)
             UpdateTexts();
     }
 
@@ -495,7 +502,7 @@ public class PlayerDebugHUD : MonoBehaviour
     {
         // A loja esconde junto com o HUD, pra nenhum dos dois sair em
         // print.
-        if (!visivel)
+        if (!visible)
         {
             controlsRect = default;
             shopRect = default;
@@ -534,9 +541,9 @@ public class PlayerDebugHUD : MonoBehaviour
 
         // Cores dos rotulos dos itens no chao (Pickup), pra a pocao do
         // HUD ter a mesma cor da pocao caida.
-        if (belt != null) DrawLine(potionsLine.Content, x, largura, ref y, iconeDaPocao, new Color(1f, 0.4f, 0.4f));
-        if (wallet != null) DrawLine(goldLine.Content, x, largura, ref y, iconeDoOuro, new Color(1f, 0.85f, 0.3f));
-        if (pouch != null) DrawLine(jewelsLine.Content, x, largura, ref y, iconeDaJoia, new Color(0.45f, 0.85f, 1f));
+        if (belt != null) DrawLine(potionsLine.Content, x, largura, ref y, potionIcon, new Color(1f, 0.4f, 0.4f));
+        if (wallet != null) DrawLine(goldLine.Content, x, largura, ref y, goldIcon, new Color(1f, 0.85f, 0.3f));
+        if (pouch != null) DrawLine(jewelsLine.Content, x, largura, ref y, jewelIcon, new Color(0.45f, 0.85f, 1f));
 
         // Azul do item magico, pra a linha nao se confundir com a do ouro.
         if (equipment != null) DrawLine(equipmentLine.Content, x, largura, ref y, null, EquipmentItem.RarityColor(Rarity.Magic));

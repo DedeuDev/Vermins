@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
+using UnityEngine.Serialization;
 
 /// <summary>
 /// Numero de dano subindo em cima do inimigo quando a espada acerta. O
@@ -17,41 +18,53 @@ using UnityEngine;
 [RequireComponent(typeof(PlayerCombat))]
 public class DamageNumbers : MonoBehaviour
 {
-    [SerializeField] private Color corNormal = new Color(1f, 0.97f, 0.9f, 1f);
-    [SerializeField] private Color corDaMorte = new Color(1f, 0.6f, 0.15f, 1f);
+    [FormerlySerializedAs("corNormal")]
+    [SerializeField] private Color normalColor = new Color(1f, 0.97f, 0.9f, 1f);
+    [FormerlySerializedAs("corDaMorte")]
+    [SerializeField] private Color killColor = new Color(1f, 0.6f, 0.15f, 1f);
 
     [Tooltip("Tamanho da fonte do TextMeshPro no mundo.")]
-    [SerializeField] private float tamanho = 5f;
+    [FormerlySerializedAs("tamanho")]
+    [SerializeField] private float fontSize = 5f;
 
     [Tooltip("Quanto o golpe que mata sai maior.")]
-    [SerializeField] private float escalaDaMorte = 1.4f;
+    [FormerlySerializedAs("escalaDaMorte")]
+    [SerializeField] private float killScale = 1.4f;
 
     [Tooltip("Quanto o golpe final do combo sai maior. Fica na cor normal: " +
              "o laranja e so de quem morreu.")]
-    [SerializeField] private float escalaDoFinal = 1.25f;
+    [FormerlySerializedAs("escalaDoFinal")]
+    [SerializeField] private float finisherScale = 1.25f;
 
     [Tooltip("Cor do critico. Amarelo, como no Diablo 4. Se o critico " +
              "mata, fica o laranja da morte e o ! continua dizendo que foi " +
              "critico.")]
-    [SerializeField] private Color corDoCritico = new Color(1f, 0.85f, 0.2f, 1f);
+    [FormerlySerializedAs("corDoCritico")]
+    [SerializeField] private Color critColor = new Color(1f, 0.85f, 0.2f, 1f);
 
     [Tooltip("Quanto o critico sai maior.")]
-    [SerializeField] private float escalaDoCritico = 1.5f;
+    [FormerlySerializedAs("escalaDoCritico")]
+    [SerializeField] private float critScale = 1.5f;
 
     [Tooltip("Quanto tempo o numero fica na tela.")]
-    [SerializeField] private float duracao = 0.8f;
+    [FormerlySerializedAs("duracao")]
+    [SerializeField] private float duration = 0.8f;
 
     [Tooltip("Quanto o numero sobe, em metros, ate sumir.")]
-    [SerializeField] private float subida = 0.9f;
+    [FormerlySerializedAs("subida")]
+    [SerializeField] private float riseDistance = 0.9f;
 
     [Tooltip("Altura acima do topo do inimigo onde o numero nasce.")]
-    [SerializeField] private float folgaAcimaDaCabeca = 0.2f;
+    [FormerlySerializedAs("folgaAcimaDaCabeca")]
+    [SerializeField] private float headOffset = 0.2f;
 
     [Tooltip("Espalha um pouco de lado, pra golpes seguidos nao " +
              "escreverem um numero em cima do outro.")]
-    [SerializeField] private float espalhamento = 0.35f;
+    [FormerlySerializedAs("espalhamento")]
+    [SerializeField] private float spread = 0.35f;
 
-    [SerializeField] private int quantosTextos = 12;
+    [FormerlySerializedAs("quantosTextos")]
+    [SerializeField] private int poolSize = 12;
 
     private class Entry
     {
@@ -71,7 +84,7 @@ public class DamageNumbers : MonoBehaviour
 
         root = new GameObject("DamageNumbers").transform;
 
-        for (int i = 0; i < quantosTextos; i++)
+        for (int i = 0; i < poolSize; i++)
             entries.Add(CreateEntry(i));
     }
 
@@ -122,16 +135,16 @@ public class DamageNumbers : MonoBehaviour
         Entry n = GetFreeEntry();
 
         n.label.text = critico ? Mathf.RoundToInt(dano) + "!" : Mathf.RoundToInt(dano).ToString();
-        n.label.fontSize = tamanho;
-        n.label.color = matou ? corDaMorte : critico ? corDoCritico : corNormal;
+        n.label.fontSize = fontSize;
+        n.label.color = matou ? killColor : critico ? critColor : normalColor;
         n.scale = Mathf.Max(
-            matou ? escalaDaMorte : 1f,
-            critico ? escalaDoCritico : 1f,
-            combat.IsFinisher ? escalaDoFinal : 1f);
+            matou ? killScale : 1f,
+            critico ? critScale : 1f,
+            combat.IsFinisher ? finisherScale : 1f);
 
-        Vector3 lado = Random.insideUnitSphere * espalhamento;
+        Vector3 lado = Random.insideUnitSphere * spread;
         lado.y = 0f;
-        n.startPosition = TopOf(alvo.gameObject) + Vector3.up * folgaAcimaDaCabeca + lado;
+        n.startPosition = TopOf(alvo.gameObject) + Vector3.up * headOffset + lado;
         n.spawnTime = Time.time;
 
         Camera cam = Camera.main;
@@ -185,7 +198,7 @@ public class DamageNumbers : MonoBehaviour
             if (n.spawnTime < 0f)
                 continue;
 
-            float t = (Time.time - n.spawnTime) / duracao;
+            float t = (Time.time - n.spawnTime) / duration;
 
             if (t >= 1f)
             {
@@ -207,7 +220,7 @@ public class DamageNumbers : MonoBehaviour
         float pulo = Mathf.Lerp(1.5f, 1f, Mathf.Clamp01(t / 0.2f));
         float alfa = 1f - Mathf.Clamp01((t - 0.5f) / 0.5f);
 
-        n.label.transform.position = n.startPosition + Vector3.up * (subida * subiu);
+        n.label.transform.position = n.startPosition + Vector3.up * (riseDistance * subiu);
         n.label.transform.localScale = Vector3.one * (n.scale * pulo);
 
         Color c = n.label.color;

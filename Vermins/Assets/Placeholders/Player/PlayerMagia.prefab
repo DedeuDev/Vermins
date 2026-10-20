@@ -102,10 +102,16 @@ MonoBehaviour:
   moveSpeed: 4.130416
   acceleration: 80
   angularSpeed: 900
-  tempoDeGiro: 0.08
+  turnTime: 0.08
   baseOffset: 0.9167
   sampleDistance: 1
-  raioDeBuscaDoAlvo: 2
+  targetSampleRadius: 2
+  model: {fileID: 0}
+  groundMask:
+    serializedVersion: 2
+    m_Bits: 384
+  maxCorrection: 0.25
+  settleTime: 0.1
 --- !u!114 &1560906489059685245
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -126,6 +132,7 @@ MonoBehaviour:
     serializedVersion: 2
     m_Bits: 507
   viewCamera: {fileID: 0}
+  dodgeBufferWindow: 0.2
 --- !u!114 &4685338922939695176
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -169,11 +176,19 @@ MonoBehaviour:
   attackRange: 9
   attackCooldown: 1.2
   turnSpeed: 720
-  projetil: {fileID: 9151330617227145017, guid: 97ef60d97bd87f146bcd17db235ff6c5, type: 3}
-  oQueBloqueiaVisao:
+  weaponRange: 2.2
+  hitTolerance: 0.5
+  comboLength: 3
+  comboWindow: 0.6
+  finisherMultiplier: 2
+  critChance: 0.1
+  critMultiplier: 1.5
+  finisherDelay: 1.3
+  projectile: {fileID: 9151330617227145017, guid: 97ef60d97bd87f146bcd17db235ff6c5, type: 3}
+  sightBlockMask:
     serializedVersion: 2
     m_Bits: 8
-  alturaDoRaio: 0
+  rayHeight: 0
   repathThreshold: 0.25
 --- !u!114 &8620426368299879575
 MonoBehaviour:
@@ -188,10 +203,13 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerAnimator
   animator: {fileID: 628638940877237483}
-  suavizacao: 0.06
-  velocidadeMinima: 0.1
-  entradaDaReacao: 0.08
-  saidaDaReacao: 0.15
+  smoothing: 0.06
+  minSpeed: 0.1
+  runSpeed: 2.58
+  reactionFadeIn: 0.08
+  reactionFadeOut: 0.15
+  attackCutFade: 0.1
+  rollCutFade: 0.1
 --- !u!114 &8066983424184151542
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -220,7 +238,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::AtributosDoPersonagem
   build: {fileID: 11400000, guid: 31f630484796c03449d43049151a8564, type: 2}
-  encherAVidaAoAplicar: 1
+  refillHealthOnApply: 1
 --- !u!1001 &6472739606368850298
 PrefabInstance:
   m_ObjectHideFlags: 0

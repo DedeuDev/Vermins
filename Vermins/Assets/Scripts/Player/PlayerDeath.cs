@@ -2,6 +2,7 @@ using System.Collections;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
+using UnityEngine.Serialization;
 
 /// <summary>
 /// O que acontece quando o jogador morre: a tela escurece, aparece
@@ -21,22 +22,28 @@ public class PlayerDeath : MonoBehaviour
     [Header("Tempo")]
     [Tooltip("Segundos entre morrer e a tela comecar a escurecer. O " +
              "clipe de morte tem 3.63 s, mas nao precisa ver ate o fim.")]
-    [SerializeField] private float esperaAntesDeEscurecer = 1.2f;
+    [FormerlySerializedAs("esperaAntesDeEscurecer")]
+    [SerializeField] private float fadeDelay = 1.2f;
 
-    [SerializeField] private float duracaoDoEscurecer = 1f;
+    [FormerlySerializedAs("duracaoDoEscurecer")]
+    [SerializeField] private float fadeDuration = 1f;
 
     [Tooltip("Segundos com a tela escura antes de recarregar, pro " +
              "jogador conseguir ler.")]
-    [SerializeField] private float esperaNaTelaEscura = 1.8f;
+    [FormerlySerializedAs("esperaNaTelaEscura")]
+    [SerializeField] private float holdDuration = 1.8f;
 
     [Header("Tela")]
-    [SerializeField] private string mensagem = "Você morreu";
-    [SerializeField] private Color corDoTexto = new Color(0.62f, 0.1f, 0.08f);
+    [FormerlySerializedAs("mensagem")]
+    [SerializeField] private string message = "Você morreu";
+    [FormerlySerializedAs("corDoTexto")]
+    [SerializeField] private Color textColor = new Color(0.62f, 0.1f, 0.08f);
 
     [Tooltip("Nao vai ate 1 de proposito: o corpo caido continua " +
              "aparecendo por baixo.")]
     [Range(0f, 1f)]
-    [SerializeField] private float escuroMaximo = 0.8f;
+    [FormerlySerializedAs("escuroMaximo")]
+    [SerializeField] private float maxDarkness = 0.8f;
 
     private Health health;
     private bool isReloading;
@@ -70,19 +77,19 @@ public class PlayerDeath : MonoBehaviour
 
     private IEnumerator FadeAndReload()
     {
-        yield return new WaitForSeconds(esperaAntesDeEscurecer);
+        yield return new WaitForSeconds(fadeDelay);
 
         CanvasGroup tela = CreateOverlay();
 
-        for (float t = 0f; t < duracaoDoEscurecer; t += Time.deltaTime)
+        for (float t = 0f; t < fadeDuration; t += Time.deltaTime)
         {
-            tela.alpha = t / duracaoDoEscurecer;
+            tela.alpha = t / fadeDuration;
             yield return null;
         }
 
         tela.alpha = 1f;
 
-        yield return new WaitForSeconds(esperaNaTelaEscura);
+        yield return new WaitForSeconds(holdDuration);
 
         Reload();
     }
@@ -114,15 +121,15 @@ public class PlayerDeath : MonoBehaviour
         grupo.interactable = false;
 
         var fundo = CreateChild<Image>(raiz, "Fundo");
-        fundo.color = new Color(0f, 0f, 0f, escuroMaximo);
+        fundo.color = new Color(0f, 0f, 0f, maxDarkness);
         fundo.raycastTarget = false;
 
         var texto = CreateChild<Text>(raiz, "Mensagem");
-        texto.text = mensagem;
+        texto.text = message;
         texto.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
         texto.fontSize = 96;
         texto.alignment = TextAnchor.MiddleCenter;
-        texto.color = corDoTexto;
+        texto.color = textColor;
         texto.raycastTarget = false;
 
         return grupo;

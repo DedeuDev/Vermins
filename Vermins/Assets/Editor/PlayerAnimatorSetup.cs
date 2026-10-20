@@ -946,7 +946,7 @@ public static class PlayerAnimatorSetup
         // acelerar a locomocao acima dele. Imprimo porque la em runtime
         // nao da pra ler a posicao do blend.
         sb.AppendLine(string.Format(ci,
-            "  corrida pra frente: {0:F2} m/s -> copie no 'Velocidade Da Corrida' do PlayerAnimator",
+            "  corrida pra frente: {0:F2} m/s -> copie no 'Run Speed' do PlayerAnimator",
             corridaPraFrente));
 
         if (ataque.motion is BlendTree arvoreAtaque)

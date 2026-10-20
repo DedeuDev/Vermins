@@ -1,6 +1,7 @@
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.InputSystem;
+using UnityEngine.Serialization;
 
 /// <summary>
 /// Le o input e traduz em ordens pro PlayerMotor.
@@ -42,7 +43,8 @@ public class PlayerController : MonoBehaviour
     [Tooltip("Por quanto tempo a esquiva apertada antes da hora fica " +
              "guardada. Apertando ate isso antes da recarga acabar, ela " +
              "sai sozinha assim que puder, em vez de se perder.")]
-    [SerializeField] private float janelaDaEsquiva = 0.2f;
+    [FormerlySerializedAs("janelaDaEsquiva")]
+    [SerializeField] private float dodgeBufferWindow = 0.2f;
 
     private InputSystem_Actions input;
     private PlayerMotor motor;
@@ -254,7 +256,7 @@ public class PlayerController : MonoBehaviour
     /// <summary>
     /// Dodge e tecla: vai pro lado do mouse, esteja ele no chao, num
     /// inimigo ou em cima da UI. Apertada na recarga, fica guardada pela
-    /// janelaDaEsquiva e sai sozinha quando der, pro lado em que o mouse
+    /// dodgeBufferWindow e sai sozinha quando der, pro lado em que o mouse
     /// estava no aperto.
     /// </summary>
     private void TryBufferedDodge()
@@ -262,7 +264,7 @@ public class PlayerController : MonoBehaviour
         if (input.Player.Esquiva.WasPressedThisFrame())
         {
             bufferedDodgePoint = CursorGroundPoint();
-            bufferedDodgeUntil = Time.time + janelaDaEsquiva;
+            bufferedDodgeUntil = Time.time + dodgeBufferWindow;
         }
 
         if (Time.time > bufferedDodgeUntil || !dodge.TryDodge(bufferedDodgePoint))

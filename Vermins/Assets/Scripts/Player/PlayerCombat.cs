@@ -1,5 +1,6 @@
 using UnityEngine;
 using UnityEngine.AI;
+using UnityEngine.Serialization;
 
 /// <summary>
 /// Persegue o alvo, chega no alcance, vira de frente e bate no ritmo
@@ -20,7 +21,7 @@ using UnityEngine.AI;
 /// dano era aplicado ANTES da animacao comecar, entao a magia acertava
 /// com o braco ainda abaixado.
 ///
-/// Hoje tem dois jeitos de bater, e quem escolhe e o campo projetil:
+/// Hoje tem dois jeitos de bater, e quem escolhe e o campo projectile:
 ///   - com projetil: magia. Alcance da build, a bola nasce no evento
 ///     SoltarMagia. E o PlayerMagia.prefab, guardado.
 ///   - sem projetil: corpo a corpo. Alcance da arma, o dano sai no evento
@@ -35,7 +36,7 @@ public class PlayerCombat : MonoBehaviour
 {
     [Header("Ataque")]
     [Tooltip("SO VALE COM PROJETIL (magia). No corpo a corpo quem manda e o " +
-             "alcanceDaArma, la embaixo. E a build sobrescreve este numero " +
+             "weaponRange, la embaixo. E a build sobrescreve este numero " +
              "no Start, pelo CharacterAttributes - mexer aqui na cena so " +
              "tem efeito sem build ligada. " +
              "Distancia de centro a centro. Era 2, de corpo a corpo, e " +
@@ -43,9 +44,9 @@ public class PlayerCombat : MonoBehaviour
              "perto. O inimigo alcanca 1,5 m, entao o jogador tem uns " +
              "tres golpes antes do bicho encostar - e isso que faz valer " +
              "a pena recuar em vez de ficar parado trocando dano. " +
-             "O dano sai da bola (campo projetil), e antes de lancar o " +
+             "O dano sai da bola (campo projectile), e antes de lancar o " +
              "VisaoLimpa confere parede. Na magia esse teste e so contra " +
-             "a layer do oQueBloqueiaVisao: as paredes da dungeon nao tem " +
+             "a layer do sightBlockMask: as paredes da dungeon nao tem " +
              "collider, entao la a bola ainda passa por elas.")]
     [SerializeField] private float attackRange = 9f;
 
@@ -73,48 +74,57 @@ public class PlayerCombat : MonoBehaviour
              "Com 2,2 aqui e o inimigo com raio de ~0,5, a lamina sempre " +
              "atravessa o corpo dele. Um atributo que empurrasse isto pra " +
              "3 m faria o dano sair no ar, longe da lamina.")]
-    [SerializeField] private float alcanceDaArma = 2.2f;
+    [FormerlySerializedAs("alcanceDaArma")]
+    [SerializeField] private float weaponRange = 2.2f;
 
     [Tooltip("Quanto o alvo pode se afastar entre o comeco do golpe e a " +
              "pancada (0,4 a 0,5 s) e ainda levar o dano. E mais ou menos o " +
              "raio do inimigo: generoso de proposito, porque errar um golpe " +
              "que visivelmente passou no bicho parece injusto.")]
-    [SerializeField] private float folgaDaPancada = 0.5f;
+    [FormerlySerializedAs("folgaDaPancada")]
+    [SerializeField] private float hitTolerance = 0.5f;
 
     [Header("Combo")]
     [Tooltip("Quantos golpes tem a sequencia. O ultimo e o golpe final: " +
              "demora mais e tira mais. Com 1 nao tem combo, todo golpe e " +
              "igual.")]
-    [SerializeField] private int golpesNoCombo = 3;
+    [FormerlySerializedAs("golpesNoCombo")]
+    [SerializeField] private int comboLength = 3;
 
     [Tooltip("Quanto tempo depois de o golpe terminar o proximo ainda conta " +
              "como sequencia. Passou disso, volta pro primeiro. Segurando o " +
              "clique no bicho os golpes emendam na hora e o combo corre " +
              "sozinho; a janela e pra trocar de alvo sem perder a conta.")]
-    [SerializeField] private float janelaDoCombo = 0.6f;
+    [FormerlySerializedAs("janelaDoCombo")]
+    [SerializeField] private float comboWindow = 0.6f;
 
     [Tooltip("Quanto o golpe final tira, em vezes o dano da arma.")]
-    [SerializeField] private float danoDoFinal = 2f;
+    [FormerlySerializedAs("danoDoFinal")]
+    [SerializeField] private float finisherMultiplier = 2f;
 
     [Header("Critico")]
     [Tooltip("Chance de cada pancada sair critica, de 0 a 1. O Diablo 4 " +
              "comeca com 5%; pus 10% pra ele aparecer o bastante pra ser " +
              "sentido enquanto nao tem equipamento somando.")]
-    [SerializeField, Range(0f, 1f)] private float chanceDeCritico = 0.1f;
+    [FormerlySerializedAs("chanceDeCritico")]
+    [SerializeField, Range(0f, 1f)] private float critChance = 0.1f;
 
     [Tooltip("Quanto o critico tira, em vezes o dano. Multiplica junto com " +
              "o do golpe final: final critico tira 2 x 1,5 = 3 vezes.")]
-    [SerializeField, Min(1f)] private float danoDoCritico = 1.5f;
+    [FormerlySerializedAs("danoDoCritico")]
+    [SerializeField, Min(1f)] private float critMultiplier = 1.5f;
 
     [Tooltip("Quanto o golpe final demora, em vezes o cooldown. O clipe " +
              "dele levanta a espada acima da cabeca antes de descer, e essa " +
              "espera e o que faz ele pesar mais que os outros.")]
-    [SerializeField] private float tempoDoFinal = 1.3f;
+    [FormerlySerializedAs("tempoDoFinal")]
+    [SerializeField] private float finisherDelay = 1.3f;
 
     [Header("Magia")]
     [Tooltip("A bola que sai da mao. Vazio = corpo a corpo: o dano sai " +
              "no evento AcertarGolpe e o alcance passa a ser o da arma.")]
-    [SerializeField] private Projectile projetil;
+    [FormerlySerializedAs("projetil")]
+    [SerializeField] private Projectile projectile;
 
     [Tooltip("Contra o que testar se a visao esta limpa. Deixei so o " +
              "Obstaculo porque no blockout as 50 paredes estao nele e o " +
@@ -122,7 +132,8 @@ public class PlayerCombat : MonoBehaviour
              "proprios inimigos e metade da cenografia barrariam o " +
              "tiro. Quem colocar parede nova fora da Obstaculo tem que " +
              "lembrar de marcar aqui, senao da pra atirar atraves dela.")]
-    [SerializeField] private LayerMask oQueBloqueiaVisao = 1 << 3;
+    [FormerlySerializedAs("oQueBloqueiaVisao")]
+    [SerializeField] private LayerMask sightBlockMask = 1 << 3;
 
     [Tooltip("Sobe o raio da linha de visao. Deixei em zero porque o " +
              "transform do personagem JA esta na altura do peito, e nao " +
@@ -131,7 +142,8 @@ public class PlayerCombat : MonoBehaviour
              "raio ja sai reto de peito a peito e nao raspa no chao. " +
              "Sobrou como knob pro dia em que entrar um inimigo baixo " +
              "demais e o raio comecar a passar por cima dele.")]
-    [SerializeField] private float alturaDoRaio;
+    [FormerlySerializedAs("alturaDoRaio")]
+    [SerializeField] private float rayHeight;
 
     [Header("Perseguicao")]
     [Tooltip("So refaz o caminho quando o alvo anda mais que isso. " +
@@ -203,7 +215,7 @@ public class PlayerCombat : MonoBehaviour
     /// Se o golpe que esta saindo e o final da sequencia. Quem escuta o
     /// OnAttackHit le isto pra pesar mais a pancada.
     /// </summary>
-    public bool IsFinisher => golpesNoCombo > 1 && castStep == golpesNoCombo - 1;
+    public bool IsFinisher => comboLength > 1 && castStep == comboLength - 1;
 
     /// <summary>
     /// Se a pancada que acabou de acertar foi critica. Vale durante o
@@ -217,20 +229,20 @@ public class PlayerCombat : MonoBehaviour
     /// </summary>
     public float CritChance
     {
-        get => chanceDeCritico;
-        set => chanceDeCritico = Mathf.Clamp01(value);
+        get => critChance;
+        set => critChance = Mathf.Clamp01(value);
     }
 
     /// <summary>Multiplicador do critico. Nunca abaixo de 1.</summary>
     public float CritMultiplier
     {
-        get => danoDoCritico;
-        set => danoDoCritico = Mathf.Max(1f, value);
+        get => critMultiplier;
+        set => critMultiplier = Mathf.Max(1f, value);
     }
 
     /// <summary>
     /// Quanto tempo o golpe que esta saindo tem ate o proximo, ja com o
-    /// tempoDoFinal. O PlayerAnimator usa pra acertar a velocidade do
+    /// finisherDelay. O PlayerAnimator usa pra acertar a velocidade do
     /// clipe.
     /// </summary>
     public float AttackDuration => castDuration;
@@ -262,13 +274,13 @@ public class PlayerCombat : MonoBehaviour
         set => attackRange = Mathf.Max(0.5f, value);
     }
 
-    public bool IsMelee => projetil == null;
+    public bool IsMelee => projectile == null;
 
     /// <summary>
     /// O alcance que vale agora: o da build na magia, o da arma no corpo
     /// a corpo. Tudo que decide perseguir ou bater passa por aqui.
     /// </summary>
-    private float EffectiveRange => IsMelee ? alcanceDaArma : attackRange;
+    private float EffectiveRange => IsMelee ? weaponRange : attackRange;
 
     /// <summary>
     /// Disparado quando o golpe COMECA, e nao quando acerta.
@@ -474,7 +486,7 @@ public class PlayerCombat : MonoBehaviour
             ? castTarget.transform.position
             : origem + transform.forward;
 
-        Projectile bola = Instantiate(projetil, origem, Quaternion.identity);
+        Projectile bola = Instantiate(projectile, origem, Quaternion.identity);
         bola.Lancar(mira - origem, weapon.Damage, gameObject);
     }
 
@@ -519,8 +531,8 @@ public class PlayerCombat : MonoBehaviour
 
         // Sorteio na pancada, e nao no comeco do golpe: golpe cortado ou
         // que errou nao gasta sorteio nenhum.
-        bool critico = Random.value < chanceDeCritico;
-        float multiplicador = (IsFinisher ? danoDoFinal : 1f) * (critico ? danoDoCritico : 1f);
+        bool critico = Random.value < critChance;
+        float multiplicador = (IsFinisher ? finisherMultiplier : 1f) * (critico ? critMultiplier : 1f);
 
         if (!weapon.TryHit(castTarget, multiplicador))
             return;
@@ -551,7 +563,7 @@ public class PlayerCombat : MonoBehaviour
     private Health TargetInFront(Vector3 frente)
     {
         int quantos = Physics.OverlapSphereNonAlloc(
-            transform.position, alcanceDaArma + folgaDaPancada,
+            transform.position, weaponRange + hitTolerance,
             BladeOverlaps, ~0, QueryTriggerInteraction.Ignore);
 
         Health melhor = null;
@@ -583,7 +595,7 @@ public class PlayerCombat : MonoBehaviour
     /// <summary>
     /// Se, no frame da pancada, a espada chega no alvo.
     ///
-    /// O golpe comeca com o alvo dentro do alcanceDaArma, mas a pancada
+    /// O golpe comeca com o alvo dentro do weaponRange, mas a pancada
     /// so vem 0,4 a 0,5 s depois. Nesse meio tempo o bicho pode ter
     /// andado, e a pergunta aqui e se ainda e justo contar como acerto.
     /// </summary>
@@ -603,7 +615,7 @@ public class PlayerCombat : MonoBehaviour
         // golpe e "a espada passou nele e nao tirou vida", que e o que
         // o jogador mais sente como injusto. A folga e mais ou menos o
         // raio do inimigo.
-        if (ate.magnitude > alcanceDaArma + folgaDaPancada)
+        if (ate.magnitude > weaponRange + hitTolerance)
             return false;
 
         // Metade da frente. O Player gira pro alvo o golpe inteiro, entao
@@ -740,13 +752,13 @@ public class PlayerCombat : MonoBehaviour
     {
         // Aqui o nextAttackTime ainda e o fim do golpe anterior. Se ja
         // passou da janela, a sequencia esfriou e recomeca do primeiro.
-        if (Time.time > nextAttackTime + janelaDoCombo)
+        if (Time.time > nextAttackTime + comboWindow)
             nextStep = 0;
 
         castStep = nextStep;
-        nextStep = (nextStep + 1) % Mathf.Max(1, golpesNoCombo);
+        nextStep = (nextStep + 1) % Mathf.Max(1, comboLength);
 
-        castDuration = IsFinisher ? attackCooldown * tempoDoFinal : attackCooldown;
+        castDuration = IsFinisher ? attackCooldown * finisherDelay : attackCooldown;
         nextAttackTime = Time.time + castDuration;
 
         castTarget = alvo;
@@ -776,10 +788,10 @@ public class PlayerCombat : MonoBehaviour
     /// </summary>
     private bool HasLineOfSight(Health alvo)
     {
-        Vector3 de = transform.position + Vector3.up * alturaDoRaio;
-        Vector3 para = alvo.transform.position + Vector3.up * alturaDoRaio;
+        Vector3 de = transform.position + Vector3.up * rayHeight;
+        Vector3 para = alvo.transform.position + Vector3.up * rayHeight;
 
-        if (Physics.Linecast(de, para, oQueBloqueiaVisao,
+        if (Physics.Linecast(de, para, sightBlockMask,
                              QueryTriggerInteraction.Ignore))
         {
             return false;

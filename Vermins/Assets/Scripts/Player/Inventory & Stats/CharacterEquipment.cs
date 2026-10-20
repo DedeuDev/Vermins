@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.Serialization;
 
 /// <summary>
 /// O que o Player esta vestindo: um item por slot.
@@ -21,14 +22,18 @@ using UnityEngine;
 public class CharacterEquipment : MonoBehaviour
 {
     [Header("Vestindo agora")]
-    [SerializeField] private EquipmentItem arma;
-    [SerializeField] private EquipmentItem armadura;
-    [SerializeField] private EquipmentItem anel;
+    [FormerlySerializedAs("arma")]
+    [SerializeField] private EquipmentItem weapon;
+    [FormerlySerializedAs("armadura")]
+    [SerializeField] private EquipmentItem armor;
+    [FormerlySerializedAs("anel")]
+    [SerializeField] private EquipmentItem ring;
 
     [Header("Teste")]
     [Tooltip("Item que o menu 'Equipar item de teste' veste, pra testar " +
              "sem ir atras de drop.")]
-    [SerializeField] private EquipmentItem itemDeTeste;
+    [FormerlySerializedAs("itemDeTeste")]
+    [SerializeField] private EquipmentItem testItem;
 
     /// <summary>
     /// Dispara quando algum slot troca. Quem escuta le TotalBonus.
@@ -40,15 +45,15 @@ public class CharacterEquipment : MonoBehaviour
     /// sao tres somas, so roda quando o equipamento muda, e assim nunca
     /// fica desatualizado se alguem mexer no Inspector.
     /// </summary>
-    public BonusPoints TotalBonus => BonusOf(arma) + BonusOf(armadura) + BonusOf(anel);
+    public BonusPoints TotalBonus => BonusOf(weapon) + BonusOf(armor) + BonusOf(ring);
 
     public EquipmentItem NoSlot(EquipmentSlot slot)
     {
         switch (slot)
         {
-            case EquipmentSlot.Arma: return arma;
-            case EquipmentSlot.Armadura: return armadura;
-            default: return anel;
+            case EquipmentSlot.Arma: return weapon;
+            case EquipmentSlot.Armadura: return armor;
+            default: return ring;
         }
     }
 
@@ -91,12 +96,12 @@ public class CharacterEquipment : MonoBehaviour
     /// </summary>
     public void Restaurar(EquipmentItem novaArma, EquipmentItem novaArmadura, EquipmentItem novoAnel)
     {
-        if (arma == novaArma && armadura == novaArmadura && anel == novoAnel)
+        if (weapon == novaArma && armor == novaArmadura && ring == novoAnel)
             return;
 
-        arma = novaArma;
-        armadura = novaArmadura;
-        anel = novoAnel;
+        weapon = novaArma;
+        armor = novaArmadura;
+        ring = novoAnel;
         OnEquipmentChanged?.Invoke();
     }
 
@@ -104,9 +109,9 @@ public class CharacterEquipment : MonoBehaviour
     {
         switch (slot)
         {
-            case EquipmentSlot.Arma: arma = item; break;
-            case EquipmentSlot.Armadura: armadura = item; break;
-            default: anel = item; break;
+            case EquipmentSlot.Arma: weapon = item; break;
+            case EquipmentSlot.Armadura: armor = item; break;
+            default: ring = item; break;
         }
     }
 
@@ -118,13 +123,13 @@ public class CharacterEquipment : MonoBehaviour
     [ContextMenu("Equipar item de teste")]
     private void EquipTestItem()
     {
-        if (itemDeTeste == null)
+        if (testItem == null)
         {
             Debug.LogWarning($"[{name}] Arrasta um item em 'Item de teste' antes.", this);
             return;
         }
 
-        Equip(itemDeTeste);
+        Equip(testItem);
     }
 
     [ContextMenu("Tirar tudo")]

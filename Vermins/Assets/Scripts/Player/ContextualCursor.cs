@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.Serialization;
 
 /// <summary>
 /// Troca o cursor do mouse conforme o que esta embaixo dele: espada em
@@ -17,16 +18,23 @@ public class ContextualCursor : MonoBehaviour
 {
     private enum CursorKind { Normal, Attack, Talk, PickUp }
 
-    [SerializeField] private Texture2D cursorDeAtaque;
-    [SerializeField] private Vector2 pontaDoAtaque = new Vector2(3f, 3f);
+    [FormerlySerializedAs("cursorDeAtaque")]
+    [SerializeField] private Texture2D attackCursor;
+    [FormerlySerializedAs("pontaDoAtaque")]
+    [SerializeField] private Vector2 attackHotspot = new Vector2(3f, 3f);
 
-    [SerializeField] private Texture2D cursorDeConversa;
-    [SerializeField] private Vector2 pontaDaConversa = new Vector2(3f, 3f);
+    [FormerlySerializedAs("cursorDeConversa")]
+    [SerializeField] private Texture2D talkCursor;
+    [FormerlySerializedAs("pontaDaConversa")]
+    [SerializeField] private Vector2 talkHotspot = new Vector2(3f, 3f);
 
-    [SerializeField] private Texture2D cursorDePegar;
-    [SerializeField] private Vector2 pontaDoPegar = new Vector2(12f, 4f);
+    [FormerlySerializedAs("cursorDePegar")]
+    [SerializeField] private Texture2D pickUpCursor;
+    [FormerlySerializedAs("pontaDoPegar")]
+    [SerializeField] private Vector2 pickUpHotspot = new Vector2(12f, 4f);
 
-    [SerializeField] private float alcanceDoRaio = 200f;
+    [FormerlySerializedAs("alcanceDoRaio")]
+    [SerializeField] private float maxRayDistance = 200f;
 
     /// <summary>
     /// O inimigo que esta embaixo do mouse neste frame, ou null. O
@@ -102,7 +110,7 @@ public class ContextualCursor : MonoBehaviour
         int quantos = Physics.RaycastNonAlloc(
             ray,
             hits,
-            alcanceDoRaio,
+            maxRayDistance,
             Physics.DefaultRaycastLayers,
             QueryTriggerInteraction.Collide
         );
@@ -143,13 +151,13 @@ public class ContextualCursor : MonoBehaviour
         switch (tipo)
         {
             case CursorKind.Attack:
-                Cursor.SetCursor(cursorDeAtaque, pontaDoAtaque, CursorMode.Auto);
+                Cursor.SetCursor(attackCursor, attackHotspot, CursorMode.Auto);
                 break;
             case CursorKind.Talk:
-                Cursor.SetCursor(cursorDeConversa, pontaDaConversa, CursorMode.Auto);
+                Cursor.SetCursor(talkCursor, talkHotspot, CursorMode.Auto);
                 break;
             case CursorKind.PickUp:
-                Cursor.SetCursor(cursorDePegar, pontaDoPegar, CursorMode.Auto);
+                Cursor.SetCursor(pickUpCursor, pickUpHotspot, CursorMode.Auto);
                 break;
             default:
                 Cursor.SetCursor(null, Vector2.zero, CursorMode.Auto);

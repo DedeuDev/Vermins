@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.Serialization;
 
 /// <summary>
 /// Espirra sangue no ponto do golpe: quando a espada do jogador acerta um
@@ -16,19 +17,25 @@ public class HitParticles : MonoBehaviour
     [Tooltip("Material de particula com textura redonda e cor de vertice.")]
     [SerializeField] private Material material;
 
-    [SerializeField] private Color corEscura = new Color(0.6f, 0.03f, 0.03f, 1f);
-    [SerializeField] private Color corClara = new Color(0.95f, 0.12f, 0.06f, 1f);
+    [FormerlySerializedAs("corEscura")]
+    [SerializeField] private Color darkColor = new Color(0.6f, 0.03f, 0.03f, 1f);
+    [FormerlySerializedAs("corClara")]
+    [SerializeField] private Color lightColor = new Color(0.95f, 0.12f, 0.06f, 1f);
 
-    [SerializeField] private int particulasNoAcerto = 14;
+    [FormerlySerializedAs("particulasNoAcerto")]
+    [SerializeField] private int hitCount = 14;
 
     [Tooltip("O golpe que mata e o final do combo espirram mais.")]
-    [SerializeField] private int particulasNaMorte = 26;
+    [FormerlySerializedAs("particulasNaMorte")]
+    [SerializeField] private int killCount = 26;
 
-    [SerializeField] private int particulasAoApanhar = 10;
+    [FormerlySerializedAs("particulasAoApanhar")]
+    [SerializeField] private int hurtCount = 10;
 
     [Tooltip("Altura do peito, de onde o golpe parte e onde o jogador " +
              "leva o dano.")]
-    [SerializeField] private float alturaDoPeito = 1.1f;
+    [FormerlySerializedAs("alturaDoPeito")]
+    [SerializeField] private float chestHeight = 1.1f;
 
     private PlayerCombat combat;
     private Health health;
@@ -65,21 +72,21 @@ public class HitParticles : MonoBehaviour
 
     private void HandleHit(Health alvo, float dano)
     {
-        Vector3 origem = transform.position + Vector3.up * alturaDoPeito;
+        Vector3 origem = transform.position + Vector3.up * chestHeight;
         Spray(PointOnBody(alvo.gameObject, origem), origem,
-            alvo.IsDead || combat.IsFinisher ? particulasNaMorte : particulasNoAcerto);
+            alvo.IsDead || combat.IsFinisher ? killCount : hitCount);
     }
 
     private void HandleDamaged(float dano, GameObject quemBateu)
     {
-        Vector3 peito = transform.position + Vector3.up * alturaDoPeito;
+        Vector3 peito = transform.position + Vector3.up * chestHeight;
 
         // Sem saber quem bateu (veneno, queda), o sangue sai pra cima.
         Vector3 origem = quemBateu != null
-            ? quemBateu.transform.position + Vector3.up * alturaDoPeito
+            ? quemBateu.transform.position + Vector3.up * chestHeight
             : peito + Vector3.down;
 
-        Spray(PointOnBody(gameObject, origem), origem, particulasAoApanhar);
+        Spray(PointOnBody(gameObject, origem), origem, hurtCount);
     }
 
     /// <summary>
@@ -100,7 +107,7 @@ public class HitParticles : MonoBehaviour
             return ponto;
         }
 
-        return corpo.transform.position + Vector3.up * alturaDoPeito;
+        return corpo.transform.position + Vector3.up * chestHeight;
     }
 
     private void Spray(Vector3 ponto, Vector3 origem, int quantas)
@@ -145,7 +152,7 @@ public class HitParticles : MonoBehaviour
         main.startLifetime = new ParticleSystem.MinMaxCurve(0.25f, 0.45f);
         main.startSpeed = new ParticleSystem.MinMaxCurve(2.5f, 5f);
         main.startSize = new ParticleSystem.MinMaxCurve(0.08f, 0.18f);
-        main.startColor = new ParticleSystem.MinMaxGradient(corEscura, corClara);
+        main.startColor = new ParticleSystem.MinMaxGradient(darkColor, lightColor);
         main.gravityModifier = 1.5f;
         main.maxParticles = 200;
 

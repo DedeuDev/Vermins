@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.Serialization;
 
 /// <summary>
 /// A conta da loja do hub (secao 4.4 do GDR): vender joias e equipamento,
@@ -31,27 +32,32 @@ public class HubShop : MonoBehaviour
 {
     [Header("Compra")]
     [Tooltip("Quanto custa uma pocao. Valor de teste, nao e definitivo.")]
-    [SerializeField, Min(1)] private int precoDaPocao = 25;
+    [FormerlySerializedAs("precoDaPocao")]
+    [SerializeField, Min(1)] private int potionPrice = 25;
 
     [Header("Venda de equipamento (por raridade)")]
-    [SerializeField, Min(1)] private int vendaComum = 10;
-    [SerializeField, Min(1)] private int vendaMagico = 25;
-    [SerializeField, Min(1)] private int vendaRaro = 60;
+    [FormerlySerializedAs("vendaComum")]
+    [SerializeField, Min(1)] private int commonSellPrice = 10;
+    [FormerlySerializedAs("vendaMagico")]
+    [SerializeField, Min(1)] private int magicSellPrice = 25;
+    [FormerlySerializedAs("vendaRaro")]
+    [SerializeField, Min(1)] private int rareSellPrice = 60;
 
     [Header("Venda de joia")]
     [Tooltip("Fracao do valor guardado que a loja paga. Em 1 paga o valor " +
              "inteiro, que e o que o rotulo da joia promete.")]
-    [SerializeField, Range(0.1f, 1f)] private float fracaoDaJoia = 1f;
+    [FormerlySerializedAs("fracaoDaJoia")]
+    [SerializeField, Range(0.1f, 1f)] private float jewelSellFraction = 1f;
 
     private GoldWallet wallet;
     private JewelPouch pouch;
     private PotionBelt belt;
     private CharacterEquipment equipment;
 
-    public int PotionPrice => precoDaPocao;
+    public int PotionPrice => potionPrice;
 
     /// <summary>Quanto o SellJewels pagaria agora, pra tela mostrar antes.</summary>
-    public int JewelsValue => Mathf.RoundToInt(pouch.TotalValue * fracaoDaJoia);
+    public int JewelsValue => Mathf.RoundToInt(pouch.TotalValue * jewelSellFraction);
 
     private void Awake()
     {
@@ -69,9 +75,9 @@ public class HubShop : MonoBehaviour
 
         switch (item.Rarity)
         {
-            case Rarity.Magic: return vendaMagico;
-            case Rarity.Rare: return vendaRaro;
-            default: return vendaComum;
+            case Rarity.Magic: return magicSellPrice;
+            case Rarity.Rare: return rareSellPrice;
+            default: return commonSellPrice;
         }
     }
 
@@ -82,11 +88,11 @@ public class HubShop : MonoBehaviour
     /// </summary>
     public bool BuyPotion()
     {
-        if (belt.IsFull || wallet.Amount < precoDaPocao)
+        if (belt.IsFull || wallet.Amount < potionPrice)
             return false;
 
         belt.TryStore();
-        wallet.TrySpend(precoDaPocao);
+        wallet.TrySpend(potionPrice);
         return true;
     }
 

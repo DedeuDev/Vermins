@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.Serialization;
 
 /// <summary>
 /// Mostra no chao onde o jogador mandou andar: um anel que fecha e some
@@ -19,22 +20,29 @@ public class MoveMarker : MonoBehaviour
              "Particles/Unlit). E a cor do LineRenderer que da o fade.")]
     [SerializeField] private Material material;
 
-    [SerializeField] private Color cor = new Color(1f, 0.85f, 0.55f, 0.9f);
+    [FormerlySerializedAs("cor")]
+    [SerializeField] private Color color = new Color(1f, 0.85f, 0.55f, 0.9f);
 
-    [Tooltip("Raio do anel no clique. Ele fecha ate o raioFinal.")]
-    [SerializeField] private float raioInicial = 0.55f;
+    [Tooltip("Raio do anel no clique. Ele fecha ate o endRadius.")]
+    [FormerlySerializedAs("raioInicial")]
+    [SerializeField] private float startRadius = 0.55f;
 
-    [SerializeField] private float raioFinal = 0.2f;
+    [FormerlySerializedAs("raioFinal")]
+    [SerializeField] private float endRadius = 0.2f;
 
     [Tooltip("Quanto tempo o anel fica na tela.")]
-    [SerializeField] private float duracao = 0.4f;
+    [FormerlySerializedAs("duracao")]
+    [SerializeField] private float duration = 0.4f;
 
-    [SerializeField] private float espessura = 0.05f;
+    [FormerlySerializedAs("espessura")]
+    [SerializeField] private float thickness = 0.05f;
 
-    [SerializeField] private int segmentos = 40;
+    [FormerlySerializedAs("segmentos")]
+    [SerializeField] private int segments = 40;
 
     [Tooltip("Folga acima do chao pra o anel nao piscar dentro dele.")]
-    [SerializeField] private float alturaAcimaDoChao = 0.03f;
+    [FormerlySerializedAs("alturaAcimaDoChao")]
+    [SerializeField] private float groundOffset = 0.03f;
 
     private LineRenderer ring;
 
@@ -58,8 +66,8 @@ public class MoveMarker : MonoBehaviour
         ring.useWorldSpace = false;
         ring.loop = true;
         ring.alignment = LineAlignment.TransformZ;
-        ring.positionCount = segmentos;
-        ring.widthMultiplier = espessura;
+        ring.positionCount = segments;
+        ring.widthMultiplier = thickness;
         ring.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
         ring.receiveShadows = false;
         ring.enabled = false;
@@ -90,7 +98,7 @@ public class MoveMarker : MonoBehaviour
         if (segurando)
             return;
 
-        ring.transform.position = ponto + Vector3.up * alturaAcimaDoChao;
+        ring.transform.position = ponto + Vector3.up * groundOffset;
         startTime = Time.time;
         Draw(0f);
         ring.enabled = true;
@@ -101,7 +109,7 @@ public class MoveMarker : MonoBehaviour
         if (startTime < 0f)
             return;
 
-        float t = (Time.time - startTime) / duracao;
+        float t = (Time.time - startTime) / duration;
 
         if (t >= 1f)
         {
@@ -118,18 +126,18 @@ public class MoveMarker : MonoBehaviour
         // vai no sentido contrario: quase inteiro no comeco e cai no
         // fim. Assim o anel e bem visivel no instante do clique.
         float fechamento = 1f - (1f - t) * (1f - t);
-        float raio = Mathf.Lerp(raioInicial, raioFinal, fechamento);
+        float raio = Mathf.Lerp(startRadius, endRadius, fechamento);
 
-        for (int i = 0; i < segmentos; i++)
+        for (int i = 0; i < segments; i++)
         {
-            float angulo = i * Mathf.PI * 2f / segmentos;
+            float angulo = i * Mathf.PI * 2f / segments;
             ring.SetPosition(i, new Vector3(
                 Mathf.Cos(angulo) * raio,
                 Mathf.Sin(angulo) * raio,
                 0f));
         }
 
-        Color c = cor;
+        Color c = color;
         c.a *= 1f - t * t;
         ring.startColor = c;
         ring.endColor = c;

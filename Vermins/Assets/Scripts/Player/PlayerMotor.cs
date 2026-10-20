@@ -1,5 +1,6 @@
 using UnityEngine;
 using UnityEngine.AI;
+using UnityEngine.Serialization;
 
 /// <summary>
 /// Cuida so de mover o jogador pelo NavMesh. Nao le input e nao
@@ -36,7 +37,7 @@ public class PlayerMotor : MonoBehaviour
     [Tooltip("Teto de graus por segundo pra virar o corpo. Quem gira e " +
              "este script, nao o NavMeshAgent - veja o Girar() la embaixo. " +
              "Numa curva normal o giro nem encosta aqui; quem manda e o " +
-             "tempoDeGiro. Este teto so pega na inversao de 180, que e o " +
+             "turnTime. Este teto so pega na inversao de 180, que e o " +
              "giro mais violento que existe: sem ele o corpo dava saltos " +
              "de 21,7 graus de um frame pro outro a 60 fps, e com 900 cai " +
              "pra 13,9. Custa 0,07 s a mais pra completar a inversao.")]
@@ -54,7 +55,8 @@ public class PlayerMotor : MonoBehaviour
              "90. Subir muito daqui pra cima comeca a parecer que ele anda " +
              "de lado - medi 0,18 e ja da 19,4% do tempo mais de 10 graus " +
              "torto.")]
-    [SerializeField] private float tempoDeGiro = 0.08f;
+    [FormerlySerializedAs("tempoDeGiro")]
+    [SerializeField] private float turnTime = 0.08f;
 
     [Header("NavMesh")]
     [Tooltip("Altura do pivo do personagem acima do NavMesh. O 0,9167 " +
@@ -76,28 +78,33 @@ public class PlayerMotor : MonoBehaviour
              "proprio personagem: ele ja esta pisando em NavMesh, entao o " +
              "ponto mais perto e o chao dele mesmo. Nao confundir com o " +
              "sampleDistance ai de cima, que procura embaixo do mouse.")]
-    [SerializeField] private float raioDeBuscaDoAlvo = 2f;
+    [FormerlySerializedAs("raioDeBuscaDoAlvo")]
+    [SerializeField] private float targetSampleRadius = 2f;
 
     [Header("Pes no chao")]
     [Tooltip("O filho com o modelo e o Animator. So ele sobe e desce " +
              "pra encostar no chao - o agente e o collider ficam onde " +
              "estao.")]
-    [SerializeField] private Transform modelo;
+    [FormerlySerializedAs("modelo")]
+    [SerializeField] private Transform model;
 
     [Tooltip("Layers do chao visivel. Mesma do clique no PlayerController.")]
-    [SerializeField] private LayerMask mascaraDoChao = (1 << 7) | (1 << 8);
+    [FormerlySerializedAs("mascaraDoChao")]
+    [SerializeField] private LayerMask groundMask = (1 << 7) | (1 << 8);
 
     [Tooltip("Quanto o modelo pode sair da altura original, pra cima ou " +
              "pra baixo. A maior correcao que eu medi foi 6,5 cm. O teto e " +
              "pra um degrau ou uma quina nao puxarem o modelo pra longe do " +
              "agente.")]
-    [SerializeField] private float correcaoMaxima = 0.25f;
+    [FormerlySerializedAs("correcaoMaxima")]
+    [SerializeField] private float maxCorrection = 0.25f;
 
     [Tooltip("Tempo pro modelo chegar na altura nova do chao. Sem isso, " +
              "na escada da HUBCity (degrau de 36 cm) o modelo ficava " +
              "parado e pulava 26 a 40 cm num frame so a cada degrau. No " +
              "chao plano nao muda nada, porque o alvo nao se mexe.")]
-    [SerializeField] private float tempoDeAssentar = 0.1f;
+    [FormerlySerializedAs("tempoDeAssentar")]
+    [SerializeField] private float settleTime = 0.1f;
 
     private NavMeshAgent agent;
 
@@ -161,8 +168,8 @@ public class PlayerMotor : MonoBehaviour
         // Girando eu mesmo pela desiredVelocity, cai pra 1%.
         agent.updateRotation = false;
 
-        if (modelo != null)
-            modelHeight = modelo.localPosition.y;
+        if (model != null)
+            modelHeight = model.localPosition.y;
     }
 
     private void Update()
@@ -187,7 +194,7 @@ public class PlayerMotor : MonoBehaviour
     /// </summary>
     private void SnapToGround()
     {
-        if (modelo == null)
+        if (model == null)
             return;
 
         float alvo = modelHeight;
@@ -196,14 +203,14 @@ public class PlayerMotor : MonoBehaviour
         // modelo esta abaixo dele, e vai ate a correcao maxima abaixo
         // dos pes.
         Vector3 origem = transform.position + Vector3.up * 0.5f;
-        float distancia = 0.5f - modelHeight + correcaoMaxima;
+        float distancia = 0.5f - modelHeight + maxCorrection;
 
         bool achouChao = Physics.Raycast(
             origem,
             Vector3.down,
             out RaycastHit hit,
             distancia,
-            mascaraDoChao,
+            groundMask,
             QueryTriggerInteraction.Ignore
         );
 
@@ -213,8 +220,8 @@ public class PlayerMotor : MonoBehaviour
         {
             alvo = Mathf.Clamp(
                 hit.point.y - transform.position.y,
-                modelHeight - correcaoMaxima,
-                modelHeight + correcaoMaxima
+                modelHeight - maxCorrection,
+                modelHeight + maxCorrection
             );
         }
 
@@ -223,10 +230,10 @@ public class PlayerMotor : MonoBehaviour
         // do degrau e a suavizacao corta o pulo sem ficar pra tras. Testei
         // no mundo primeiro: o modelo atrasava na subida e o pe passava
         // mais de 10 cm dentro do degrau em metade do tempo.
-        Vector3 local = modelo.localPosition;
+        Vector3 local = model.localPosition;
         local.y = Mathf.SmoothDamp(
-            local.y, alvo, ref verticalVelocity, tempoDeAssentar);
-        modelo.localPosition = local;
+            local.y, alvo, ref verticalVelocity, settleTime);
+        model.localPosition = local;
     }
 
     /// <summary>
@@ -235,7 +242,7 @@ public class PlayerMotor : MonoBehaviour
     /// entao o personagem comeca a virar antes de sair do lugar - que e
     /// como um ARPG se comporta.
     /// O giro e amortecido, nao a taxa constante: ele arranca e assenta
-    /// devagar. Ver o tooltip do tempoDeGiro pra o porque.
+    /// devagar. Ver o tooltip do turnTime pra o porque.
     /// </summary>
     private void UpdateRotation()
     {
@@ -266,7 +273,7 @@ public class PlayerMotor : MonoBehaviour
             transform.eulerAngles.y,
             alvo,
             ref angularVelocity,
-            tempoDeGiro,
+            turnTime,
             angularSpeed,
             Time.deltaTime
         );
@@ -333,7 +340,7 @@ public class PlayerMotor : MonoBehaviour
         if (!NavMesh.SamplePosition(
                 pontoDoAlvo,
                 out NavMeshHit hit,
-                raioDeBuscaDoAlvo,
+                targetSampleRadius,
                 NavMesh.AllAreas))
         {
             return false;

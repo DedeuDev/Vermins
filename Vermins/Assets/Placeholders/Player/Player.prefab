@@ -118,16 +118,16 @@ MonoBehaviour:
   moveSpeed: 3.8
   acceleration: 80
   angularSpeed: 900
-  tempoDeGiro: 0.08
+  turnTime: 0.08
   baseOffset: 0.9167
   sampleDistance: 1
-  raioDeBuscaDoAlvo: 2
-  modelo: {fileID: 5134751653310568211}
-  mascaraDoChao:
+  targetSampleRadius: 2
+  model: {fileID: 5134751653310568211}
+  groundMask:
     serializedVersion: 2
     m_Bits: 384
-  correcaoMaxima: 0.25
-  tempoDeAssentar: 0.1
+  maxCorrection: 0.25
+  settleTime: 0.1
 --- !u!114 &740039248088454938
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -148,7 +148,7 @@ MonoBehaviour:
     serializedVersion: 2
     m_Bits: 507
   viewCamera: {fileID: 0}
-  janelaDaEsquiva: 0.2
+  dodgeBufferWindow: 0.2
 --- !u!114 &2527989469152364073
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -192,19 +192,19 @@ MonoBehaviour:
   attackRange: 9
   attackCooldown: 1.2
   turnSpeed: 720
-  alcanceDaArma: 2.2
-  folgaDaPancada: 0.5
-  golpesNoCombo: 3
-  janelaDoCombo: 0.6
-  danoDoFinal: 2
-  chanceDeCritico: 0.1
-  danoDoCritico: 1.5
-  tempoDoFinal: 1.3
-  projetil: {fileID: 0}
-  oQueBloqueiaVisao:
+  weaponRange: 2.2
+  hitTolerance: 0.5
+  comboLength: 3
+  comboWindow: 0.6
+  finisherMultiplier: 2
+  critChance: 0.1
+  critMultiplier: 1.5
+  finisherDelay: 1.3
+  projectile: {fileID: 0}
+  sightBlockMask:
     serializedVersion: 2
     m_Bits: 8
-  alturaDoRaio: 0
+  rayHeight: 0
   repathThreshold: 0.25
 --- !u!114 &4170373248188095926
 MonoBehaviour:
@@ -219,12 +219,13 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerAnimator
   animator: {fileID: 1270685491868519785}
-  suavizacao: 0.06
-  velocidadeMinima: 0.1
-  velocidadeDaCorrida: 2.58
-  entradaDaReacao: 0.08
-  saidaDaReacao: 0.15
-  corteDoGolpe: 0.1
+  smoothing: 0.06
+  minSpeed: 0.1
+  runSpeed: 2.58
+  reactionFadeIn: 0.08
+  reactionFadeOut: 0.15
+  attackCutFade: 0.1
+  rollCutFade: 0.1
 --- !u!114 &986444102126284620
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -253,7 +254,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::AtributosDoPersonagem
   build: {fileID: 11400000, guid: 31f630484796c03449d43049151a8564, type: 2}
-  encherAVidaAoAplicar: 1
+  refillHealthOnApply: 1
 --- !u!114 &7438796906429670652
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -266,12 +267,12 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f3f7ff639df2c0944806df4cfddd7e4f, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerDeath
-  esperaAntesDeEscurecer: 1.2
-  duracaoDoEscurecer: 1
-  esperaNaTelaEscura: 1.8
-  mensagem: "Voc\xEA morreu"
-  corDoTexto: {r: 0.62, g: 0.1, b: 0.08, a: 1}
-  escuroMaximo: 0.8
+  fadeDelay: 1.2
+  fadeDuration: 1
+  holdDuration: 1.8
+  message: "Voc\xEA morreu"
+  textColor: {r: 0.62, g: 0.1, b: 0.08, a: 1}
+  maxDarkness: 0.8
 --- !u!114 &2607160341806432445
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -284,11 +285,12 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d612ee28f1bd9b945931ef148eb75562, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerDebugHUD
-  visivel: 1
-  teclaParaEsconder: 94
-  iconeDaPocao: {fileID: 2800000, guid: 9aec0f00eee9677419229b03b6a4a6f2, type: 3}
-  iconeDoOuro: {fileID: 2800000, guid: 0adf6811038c59b4e97bed8ea06fe67c, type: 3}
-  iconeDaJoia: {fileID: 2800000, guid: 87cc1a660d089814ab75fd129b5dfeb1, type: 3}
+  visible: 1
+  toggleKey: 94
+  shopKey: 95
+  potionIcon: {fileID: 2800000, guid: 9aec0f00eee9677419229b03b6a4a6f2, type: 3}
+  goldIcon: {fileID: 2800000, guid: 0adf6811038c59b4e97bed8ea06fe67c, type: 3}
+  jewelIcon: {fileID: 2800000, guid: 87cc1a660d089814ab75fd129b5dfeb1, type: 3}
 --- !u!114 &6934464736222207046
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -360,13 +362,13 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::MarcadorDeDestino
   material: {fileID: 2100000, guid: 00be738bd4525bd4fb78dd56f43e258a, type: 2}
-  cor: {r: 1, g: 0.85, b: 0.55, a: 0.9}
-  raioInicial: 0.55
-  raioFinal: 0.2
-  duracao: 0.4
-  espessura: 0.05
-  segmentos: 40
-  alturaAcimaDoChao: 0.03
+  color: {r: 1, g: 0.85, b: 0.55, a: 0.9}
+  startRadius: 0.55
+  endRadius: 0.2
+  duration: 0.4
+  thickness: 0.05
+  segments: 40
+  groundOffset: 0.03
 --- !u!114 &8270852290185748641
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -379,13 +381,13 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 8077d28602d2807469d5276945944c4b, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::CursorContextual
-  cursorDeAtaque: {fileID: 2800000, guid: 8a2d702194738e14a90a0a901c5fc86b, type: 3}
-  pontaDoAtaque: {x: 3, y: 3}
-  cursorDeConversa: {fileID: 2800000, guid: e1754891f4903d743898a7db4d170455, type: 3}
-  pontaDaConversa: {x: 3, y: 3}
-  cursorDePegar: {fileID: 2800000, guid: 293de78beb5d76c439a0d5b7c0af97d7, type: 3}
-  pontaDoPegar: {x: 12, y: 4}
-  alcanceDoRaio: 200
+  attackCursor: {fileID: 2800000, guid: 8a2d702194738e14a90a0a901c5fc86b, type: 3}
+  attackHotspot: {x: 3, y: 3}
+  talkCursor: {fileID: 2800000, guid: e1754891f4903d743898a7db4d170455, type: 3}
+  talkHotspot: {x: 3, y: 3}
+  pickUpCursor: {fileID: 2800000, guid: 293de78beb5d76c439a0d5b7c0af97d7, type: 3}
+  pickUpHotspot: {x: 12, y: 4}
+  maxRayDistance: 200
 --- !u!114 &6956095987245603093
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -398,19 +400,19 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f764958491f772745b362ed4f1815545, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::DestaqueDeAlvo
-  contorno: {fileID: 2100000, guid: deec79217cb8c1a469e016ca9ee7f276, type: 2}
-  corDoContornoDeItem: {r: 1, g: 0.95, b: 0.75, a: 1}
-  materialDoAnel: {fileID: 2100000, guid: 00be738bd4525bd4fb78dd56f43e258a, type: 2}
-  corDoAnel: {r: 0.9, g: 0.15, b: 0.1, a: 0.9}
-  espessuraDoAnel: 0.06
-  folgaDoRaio: 0.25
-  pulso: 0.06
-  velocidadeDoPulso: 4
-  segmentos: 48
-  mascaraDoChao:
+  outlineMaterial: {fileID: 2100000, guid: deec79217cb8c1a469e016ca9ee7f276, type: 2}
+  itemOutlineColor: {r: 1, g: 0.95, b: 0.75, a: 1}
+  ringMaterial: {fileID: 2100000, guid: 00be738bd4525bd4fb78dd56f43e258a, type: 2}
+  ringColor: {r: 0.9, g: 0.15, b: 0.1, a: 0.9}
+  ringThickness: 0.06
+  radiusPadding: 0.25
+  pulseAmount: 0.06
+  pulseSpeed: 4
+  segments: 48
+  groundMask:
     serializedVersion: 2
     m_Bits: 384
-  alturaAcimaDoChao: 0.03
+  groundOffset: 0.03
 --- !u!114 &7548626110140675603
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -423,11 +425,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 029e6ef4f07b3b648b0e2bf74ea73446, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ImpactoDoGolpe
-  pausaNoAcerto: 0.06
-  pausaNaMorte: 0.1
-  tremorNoAcerto: 0.35
-  tremorNaMorte: 0.55
-  tremorAoApanhar: 0.5
+  hitPause: 0.06
+  killPause: 0.1
+  hitShake: 0.35
+  killShake: 0.55
+  hurtShake: 0.5
 --- !u!114 &2915273612807663881
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -441,12 +443,12 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ParticulaDeImpacto
   material: {fileID: 2100000, guid: a7a5588b56480b8488214d8b9d93de9a, type: 2}
-  corEscura: {r: 0.6, g: 0.03, b: 0.03, a: 1}
-  corClara: {r: 0.95, g: 0.12, b: 0.06, a: 1}
-  particulasNoAcerto: 14
-  particulasNaMorte: 26
-  particulasAoApanhar: 10
-  alturaDoPeito: 1.1
+  darkColor: {r: 0.6, g: 0.03, b: 0.03, a: 1}
+  lightColor: {r: 0.95, g: 0.12, b: 0.06, a: 1}
+  hitCount: 14
+  killCount: 26
+  hurtCount: 10
+  chestHeight: 1.1
 --- !u!114 &3937551716568081162
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -459,18 +461,18 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 66b22329ef5cfe7479ca9396c82f1cbf, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::NumerosDeDano
-  corNormal: {r: 1, g: 0.97, b: 0.9, a: 1}
-  corDaMorte: {r: 1, g: 0.6, b: 0.15, a: 1}
-  tamanho: 5
-  escalaDaMorte: 1.4
-  escalaDoFinal: 1.25
-  corDoCritico: {r: 1, g: 0.85, b: 0.2, a: 1}
-  escalaDoCritico: 1.5
-  duracao: 0.8
-  subida: 0.9
-  folgaAcimaDaCabeca: 0.2
-  espalhamento: 0.35
-  quantosTextos: 12
+  normalColor: {r: 1, g: 0.97, b: 0.9, a: 1}
+  killColor: {r: 1, g: 0.6, b: 0.15, a: 1}
+  fontSize: 5
+  killScale: 1.4
+  finisherScale: 1.25
+  critColor: {r: 1, g: 0.85, b: 0.2, a: 1}
+  critScale: 1.5
+  duration: 0.8
+  riseDistance: 0.9
+  headOffset: 0.2
+  spread: 0.35
+  poolSize: 12
 --- !u!114 &7875504931913089684
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -483,12 +485,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 4e528147070e54c49b76fdaeab3b62d1, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Esquiva
-  distancia: 4
-  inicioDoAvanco: 0.05
-  duracaoDoAvanco: 0.45
-  duracaoDaAnimacao: 0.8
-  devolveOControle: 0.55
-  recarga: 1
+  distance: 4
+  advanceDelay: 0.05
+  advanceDuration: 0.45
+  animationDuration: 0.8
+  cooldown: 1
 --- !u!114 &7469843910050184080
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -501,14 +502,14 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0c11738c230c4844aa48199625324c7f, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::NivelDoPersonagem
-  xpDoPrimeiroNivel: 150
-  nivelMaximo: 10
-  bonusPorNivel: 0.1
-  corDoAviso: {r: 1, g: 0.8, b: 0.25, a: 1}
-  tamanhoDoAviso: 8
-  duracaoDoAviso: 2
-  subidaDoAviso: 1.2
-  alturaDoAviso: 1.4
+  firstLevelXp: 150
+  maxLevel: 10
+  bonusPerLevel: 0.1
+  levelUpColor: {r: 1, g: 0.8, b: 0.25, a: 1}
+  levelUpSize: 8
+  levelUpDuration: 2
+  levelUpRise: 1.2
+  levelUpHeight: 1.4
 --- !u!114 &4118665497087882245
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -521,10 +522,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 17dda58a5bd15d243983811b60cc0bd1, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::EquipamentoDoPersonagem
-  arma: {fileID: 0}
-  armadura: {fileID: 0}
-  anel: {fileID: 0}
-  itemDeTeste: {fileID: 0}
+  weapon: {fileID: 0}
+  armor: {fileID: 0}
+  ring: {fileID: 0}
+  testItem: {fileID: 0}
 --- !u!114 &5894885784309209177
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -537,11 +538,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 036621f9ef1e4684f8156b357247e41b, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::LojaDoHub
-  precoDaPocao: 25
-  vendaComum: 10
-  vendaMagico: 25
-  vendaRaro: 60
-  fracaoDaJoia: 1
+  potionPrice: 25
+  commonSellPrice: 10
+  magicSellPrice: 25
+  rareSellPrice: 60
+  jewelSellFraction: 1
 --- !u!1001 &9095150474061651368
 PrefabInstance:
   m_ObjectHideFlags: 0

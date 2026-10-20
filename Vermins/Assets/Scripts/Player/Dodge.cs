@@ -1,5 +1,6 @@
 using UnityEngine;
 using UnityEngine.AI;
+using UnityEngine.Serialization;
 
 /// <summary>
 /// Rolamento no Espaco, como o evade do Diablo 4: o jogador avanca uns
@@ -30,24 +31,29 @@ public class Dodge : MonoBehaviour
 {
     [Tooltip("Quanto o rolamento anda, em metros, se nada estiver no " +
              "caminho.")]
-    [SerializeField] private float distancia = 4f;
+    [FormerlySerializedAs("distancia")]
+    [SerializeField] private float distance = 4f;
 
     [Tooltip("Espera entre apertar e o corpo comecar a andar. E o " +
              "agachar do clipe antes do mergulho.")]
-    [SerializeField] private float inicioDoAvanco = 0.05f;
+    [FormerlySerializedAs("inicioDoAvanco")]
+    [SerializeField] private float advanceDelay = 0.05f;
 
     [Tooltip("Quanto tempo o corpo leva pra andar a distancia toda. Casa " +
              "com o mergulho e o rolamento do clipe na velocidade da " +
-             "duracaoDaAnimacao.")]
-    [SerializeField] private float duracaoDoAvanco = 0.45f;
+             "animationDuration.")]
+    [FormerlySerializedAs("duracaoDoAvanco")]
+    [SerializeField] private float advanceDuration = 0.45f;
 
     [Tooltip("Quanto a animacao inteira dura na tela. O clipe tem 1,63 s " +
              "e o PlayerAnimator acelera ele pra caber aqui.")]
-    [SerializeField] private float duracaoDaAnimacao = 0.8f;
+    [FormerlySerializedAs("duracaoDaAnimacao")]
+    [SerializeField] private float animationDuration = 0.8f;
 
     [Tooltip("Tempo minimo entre uma esquiva e a proxima, contado do " +
              "aperto.")]
-    [SerializeField] private float recarga = 1f;
+    [FormerlySerializedAs("recarga")]
+    [SerializeField] private float cooldown = 1f;
 
     private NavMeshAgent agent;
     private PlayerMotor motor;
@@ -85,9 +91,9 @@ public class Dodge : MonoBehaviour
     /// Acaba junto com o avanco. Antes voltava 0,05 s depois, e medi o
     /// corpo parado 4 frames esperando o clique segurado valer.
     /// </summary>
-    public bool IsDodging => Time.time < startTime + inicioDoAvanco + duracaoDoAvanco;
+    public bool IsDodging => Time.time < startTime + advanceDelay + advanceDuration;
 
-    public bool IsReady => Time.time >= startTime + recarga;
+    public bool IsReady => Time.time >= startTime + cooldown;
 
     private void Awake()
     {
@@ -130,10 +136,10 @@ public class Dodge : MonoBehaviour
         // na parede e nao escorregar por ela. Meco so no plano: o pivo fica
         // 0,92 m acima do NavMesh, e em 3D essa altura entrava na conta.
         // Parede a 0,5 m: planejava 1,04 m e batia na borda a 3,5 m/s.
-        Vector3 fim = transform.position + direction * distancia;
+        Vector3 fim = transform.position + direction * distance;
         freeDistance = NavMesh.Raycast(transform.position, fim, out NavMeshHit hit, NavMesh.AllAreas)
             ? Vector3.ProjectOnPlane(hit.position - transform.position, Vector3.up).magnitude
-            : distancia;
+            : distance;
 
         // Dodge corta tudo: o golpe no meio, o alvo, a ida ate o NPC e o
         // caminho que o agente estava fazendo.
@@ -154,9 +160,9 @@ public class Dodge : MonoBehaviour
         // Sem parede, ele sai com a mesma velocidade com que entrou, e quem
         // rolou correndo continua correndo. Contra a parede ele ja esta
         // parado nela.
-        exitSpeed = freeDistance < distancia ? 0f : entrySpeed;
+        exitSpeed = freeDistance < distance ? 0f : entrySpeed;
 
-        crouchDistance = Mathf.Min(entrySpeed * inicioDoAvanco, distancia);
+        crouchDistance = Mathf.Min(entrySpeed * advanceDelay, distance);
 
         motor.Stop();
 
@@ -177,7 +183,7 @@ public class Dodge : MonoBehaviour
         // outra fonte, e outra fonte acabando nao corta a do rolamento.
         health.LigarInvulnerabilidade(this);
 
-        OnDodged?.Invoke(duracaoDaAnimacao);
+        OnDodged?.Invoke(animationDuration);
         return true;
     }
 
@@ -201,7 +207,7 @@ public class Dodge : MonoBehaviour
         agent.Move(direction * (alvo - traveled));
         traveled = alvo;
 
-        if (t < inicioDoAvanco + duracaoDoAvanco)
+        if (t < advanceDelay + advanceDuration)
             return;
 
         // Fim do avanco. Entrego o embalo pro agente: se o clique ainda
@@ -231,17 +237,17 @@ public class Dodge : MonoBehaviour
     /// </summary>
     private float DistanceAt(float t)
     {
-        if (t < inicioDoAvanco)
+        if (t < advanceDelay)
             return Mathf.Min(entrySpeed * t, crouchDistance);
 
-        float resto = distancia - crouchDistance;
-        float p = Mathf.Clamp01((t - inicioDoAvanco) / duracaoDoAvanco);
+        float resto = distance - crouchDistance;
+        float p = Mathf.Clamp01((t - advanceDelay) / advanceDuration);
 
         // Velocidades em metros por "curva inteira". A de chegada e a de
         // entrada mesmo contra a parede: a curva e a do chao aberto, e a
         // parede so corta.
         float m0 = 1.5f * resto;
-        float m1 = Mathf.Min(entrySpeed * duracaoDoAvanco, resto);
+        float m1 = Mathf.Min(entrySpeed * advanceDuration, resto);
 
         float p2 = p * p;
         float p3 = p2 * p;
