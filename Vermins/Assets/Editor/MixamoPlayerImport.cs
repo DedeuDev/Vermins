@@ -50,7 +50,7 @@ public static class MixamoPlayerImport
 
     /// <summary>
     /// Em que ponto de cada golpe de espada a lamina bate, como fracao do
-    /// clipe. Vira um Animation Event AcertarGolpe, e e nele que o
+    /// clipe. Vira um Animation Event LandHit, e e nele que o
     /// PlayerCombat tira a vida.
     ///
     /// Nao e chute: medi a ponta da espada quadro a quadro e peguei o
@@ -70,7 +70,7 @@ public static class MixamoPlayerImport
             { "GreatSwordAttack03", 0.51f },   // final do combo, varrendo a frente depois de erguer
         };
 
-    private const string EventoDaPancada = "AcertarGolpe";
+    private const string EventoDaPancada = "LandHit";
 
     /// <summary>
     /// Prepara os FBX que ainda nao foram preparados. Nao encosta em

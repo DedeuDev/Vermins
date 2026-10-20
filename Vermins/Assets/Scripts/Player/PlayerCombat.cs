@@ -23,9 +23,9 @@ using UnityEngine.Serialization;
 ///
 /// Hoje tem dois jeitos de bater, e quem escolhe e o campo projectile:
 ///   - com projetil: magia. Alcance da build, a bola nasce no evento
-///     SoltarMagia. E o PlayerMagia.prefab, guardado.
+///     ReleaseSpell. E o PlayerMagia.prefab, guardado.
 ///   - sem projetil: corpo a corpo. Alcance da arma, o dano sai no evento
-///     AcertarGolpe, no frame da pancada. E o Paladino.
+///     LandHit, no frame da pancada. E o Paladino.
 /// Escolhi o campo e nao uma flag nova porque os dois andam juntos: uma
 /// flag "corpo a corpo" com projetil ligado nao teria sentido nenhum, e
 /// alguem ia acabar deixando os dois brigando.
@@ -122,7 +122,7 @@ public class PlayerCombat : MonoBehaviour
 
     [Header("Magia")]
     [Tooltip("A bola que sai da mao. Vazio = corpo a corpo: o dano sai " +
-             "no evento AcertarGolpe e o alcance passa a ser o da arma.")]
+             "no evento LandHit e o alcance passa a ser o da arma.")]
     [FormerlySerializedAs("projetil")]
     [SerializeField] private Projectile projectile;
 
@@ -491,7 +491,7 @@ public class PlayerCombat : MonoBehaviour
     }
 
     /// <summary>
-    /// O frame da pancada. Quem chama e o Animation Event AcertarGolpe dos
+    /// O frame da pancada. Quem chama e o Animation Event LandHit dos
     /// clipes de espada, que o MixamoPlayerImport grava no ponto medido de
     /// cada golpe (51% e 37%).
     ///
@@ -654,7 +654,7 @@ public class PlayerCombat : MonoBehaviour
             {
                 Debug.LogWarning(
                     $"[{name}] O golpe comecou e o Animation Event nunca chegou. " +
-                    "Falta o evento 'AcertarGolpe' no clipe de espada. Ele e " +
+                    "Falta o evento 'LandHit' no clipe de espada. Ele e " +
                     "gravado pelo Vermins/Player/Configurar FBX do Mixamo, na " +
                     "tabela MomentoDaPancada. Enquanto isso o dano sai " +
                     "atrasado, no fim do cooldown.", this);
@@ -663,7 +663,7 @@ public class PlayerCombat : MonoBehaviour
             {
                 Debug.LogWarning(
                     $"[{name}] O golpe comecou e o Animation Event nunca chegou. " +
-                    "Falta o evento 'SoltarMagia' no clipe de magia: abre o FBX, " +
+                    "Falta o evento 'ReleaseSpell' no clipe de magia: abre o FBX, " +
                     "aba Animation, poe o evento no frame em que a mao solta. " +
                     "Enquanto isso a bola sai atrasada, no fim do cooldown.", this);
             }

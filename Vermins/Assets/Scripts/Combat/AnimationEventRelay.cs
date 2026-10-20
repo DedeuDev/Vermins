@@ -16,7 +16,7 @@ using UnityEngine;
 /// COMO LIGAR: no FBX da magia, aba Animation, com o clipe selecionado,
 /// posiciona a agulha no frame em que a mao termina o gesto e clica no
 /// botao de adicionar evento. No campo Function escreve exatamente
-/// SoltarMagia (sem parenteses). Tem que fazer nos dois clipes de
+/// ReleaseSpell (sem parenteses). Tem que fazer nos dois clipes de
 /// ataque, senao um dos dois golpes sai sem bola.
 /// </summary>
 [DisallowMultipleComponent]
@@ -32,7 +32,7 @@ public class AnimationEventRelay : MonoBehaviour
         {
             Debug.LogWarning(
                 $"[{name}] Nao achei PlayerCombat acima de mim. O evento " +
-                "SoltarMagia nao vai levar a lugar nenhum.", this);
+                "ReleaseSpell nao vai levar a lugar nenhum.", this);
         }
     }
 
@@ -41,7 +41,7 @@ public class AnimationEventRelay : MonoBehaviour
     /// mao solta. E este metodo que faz a bola nascer - se o evento nao
     /// estiver no clipe, o personagem faz o gesto e nao sai nada.
     /// </summary>
-    public void SoltarMagia()
+    public void ReleaseSpell()
     {
         if (combate != null)
             combate.ReleaseProjectile();
@@ -52,7 +52,7 @@ public class AnimationEventRelay : MonoBehaviour
     /// pancada. Este NAO precisa ser posto na mao: o MixamoPlayerImport
     /// grava ele sozinho nos clipes da tabela MomentoDaPancada.
     /// </summary>
-    public void AcertarGolpe()
+    public void LandHit()
     {
         if (combate != null)
             combate.LandHit();
