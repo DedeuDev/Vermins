@@ -127,7 +127,7 @@ public class PlayerInteractor : MonoBehaviour
         // pra continuar valendo com o NPC em cima de um degrau.
         Transform corpo = ((Component)interactable).transform;
 
-        if (!motor.Perseguir(
+        if (!motor.Chase(
                 corpo.position,
                 interactionDistance * 0.5f))
         {

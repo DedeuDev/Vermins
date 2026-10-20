@@ -107,7 +107,7 @@ public class SceneTransitionInteractable :
         // Ian: anoto vida, pocoes, ouro e joias do Player antes de sair.
         // A cena nova tem outro Player, que nasce com os valores
         // iniciais; o CrossSceneState devolve isto nele quando ela abre.
-        CrossSceneState.Guardar();
+        CrossSceneState.Capture();
 
         SceneManager.LoadScene(
             destinationSceneName

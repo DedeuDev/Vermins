@@ -146,13 +146,13 @@ public class HubShop : MonoBehaviour
     }
 
     [ContextMenu("Vender arma")]
-    private void MenuSellWeapon() => LogSale(EquipmentSlot.Arma);
+    private void MenuSellWeapon() => LogSale(EquipmentSlot.Weapon);
 
     [ContextMenu("Vender armadura")]
-    private void MenuSellArmor() => LogSale(EquipmentSlot.Armadura);
+    private void MenuSellArmor() => LogSale(EquipmentSlot.Armor);
 
     [ContextMenu("Vender anel")]
-    private void MenuSellRing() => LogSale(EquipmentSlot.Anel);
+    private void MenuSellRing() => LogSale(EquipmentSlot.Ring);
 
     private void LogSale(EquipmentSlot slot)
     {

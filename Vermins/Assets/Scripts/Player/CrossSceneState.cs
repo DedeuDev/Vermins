@@ -16,7 +16,7 @@ using UnityEngine.SceneManagement;
 /// troca de cena. Com DontDestroyOnLoad eu teria dois Players na cena
 /// nova (o que veio e o que ja mora la) e teria que apagar um.
 ///
-/// So quem chama o Guardar e a passagem entre cenas. Morrer, comecar
+/// So quem chama o Capture e a passagem entre cenas. Morrer, comecar
 /// jogo novo e carregar o save nao passam por aqui de proposito: quem
 /// morre renasce do zero, e o load do save aplica o que esta no arquivo.
 /// A excecao e o XP da morte, que o CharacterLevel cuida sozinho.
@@ -56,7 +56,7 @@ public static class CrossSceneState
     /// Anota como o Player esta agora. Chamar logo antes do LoadScene da
     /// passagem.
     /// </summary>
-    public static void Guardar()
+    public static void Capture()
     {
         hasState = false;
 
@@ -84,9 +84,9 @@ public static class CrossSceneState
         gold = carteira != null ? carteira.Amount : 0;
         jewels = bolsa != null ? bolsa.Count : 0;
         jewelsValue = bolsa != null ? bolsa.TotalValue : 0;
-        weapon = equipamento != null ? equipamento.NoSlot(EquipmentSlot.Arma) : null;
-        armor = equipamento != null ? equipamento.NoSlot(EquipmentSlot.Armadura) : null;
-        ring = equipamento != null ? equipamento.NoSlot(EquipmentSlot.Anel) : null;
+        weapon = equipamento != null ? equipamento.GetItem(EquipmentSlot.Weapon) : null;
+        armor = equipamento != null ? equipamento.GetItem(EquipmentSlot.Armor) : null;
+        ring = equipamento != null ? equipamento.GetItem(EquipmentSlot.Ring) : null;
 
         hasState = true;
     }
@@ -131,7 +131,7 @@ public static class CrossSceneState
         var nivel = player.GetComponent<CharacterLevel>();
 
         if (nivel != null)
-            nivel.Restaurar(xp);
+            nivel.Restore(xp);
 
         // O equipamento tambem volta antes da vida, pelo mesmo motivo: a
         // Vitalidade do item sobe o teto. Com uma armadura de V+3, a vida
@@ -139,7 +139,7 @@ public static class CrossSceneState
         var equipamento = player.GetComponent<CharacterEquipment>();
 
         if (equipamento != null)
-            equipamento.Restaurar(weapon, armor, ring);
+            equipamento.Restore(weapon, armor, ring);
 
         saude.Revive(health);
 

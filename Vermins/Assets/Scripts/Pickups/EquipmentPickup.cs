@@ -39,7 +39,7 @@ public class EquipmentPickup : Pickup
 
         // Nao troco sozinho. Trocar soltaria o item velho aqui mesmo, em
         // cima do jogador, e ele pegaria de volta na hora ao andar.
-        if (equipamento.NoSlot(item.Slot) != null)
+        if (equipamento.GetItem(item.Slot) != null)
             return false;
 
         equipamento.Equip(item);

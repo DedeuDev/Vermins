@@ -332,7 +332,7 @@ public class PlayerMotor : MonoBehaviour
     /// funciona em rampa, escada e volta de quina - coisa que recuar um
     /// vetor em linha reta nunca fez.
     /// </summary>
-    public bool Perseguir(Vector3 pontoDoAlvo, float distanciaDeParada)
+    public bool Chase(Vector3 pontoDoAlvo, float distanciaDeParada)
     {
         if (!IsAgentReady)
             return false;

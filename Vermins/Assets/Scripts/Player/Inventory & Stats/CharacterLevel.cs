@@ -168,7 +168,7 @@ public class CharacterLevel : MonoBehaviour
         else
         {
             // Cena aberta sem morte: jogo novo, passagem ou load do save.
-            // Os dois ultimos chamam o Restaurar logo depois, e e ele que
+            // Os dois ultimos chamam o Restore logo depois, e e ele que
             // anota a entrada de verdade.
             xpOnEntry = 0;
         }
@@ -270,7 +270,7 @@ public class CharacterLevel : MonoBehaviour
     /// o teto depende do nivel: com o nivel 1 ainda valendo, uma vida
     /// salva de 150 voltaria 100.
     /// </summary>
-    public void Restaurar(int xpTotal)
+    public void Restore(int xpTotal)
     {
         xp = Mathf.Clamp(xpTotal, 0, XpForLevel(maxLevel));
         level = LevelForXp(xp);

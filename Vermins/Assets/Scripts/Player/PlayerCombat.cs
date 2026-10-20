@@ -869,7 +869,7 @@ public class PlayerCombat : MonoBehaviour
         // So marco como pedido se o pedido deu certo. Se eu marcasse
         // antes, uma falha do NavMesh travava a perseguicao pra sempre,
         // porque o proximo frame acharia que ja tinha pedido esse ponto.
-        if (motor.Perseguir(ponto, distanciaDeParada))
+        if (motor.Chase(ponto, distanciaDeParada))
         {
             lastChasePoint = ponto;
             lastStoppingDistance = distanciaDeParada;
@@ -924,7 +924,7 @@ public class PlayerCombat : MonoBehaviour
     /// Recuar em linha reta so funciona em chao plano e sem parede - em
     /// desnivel o ponto caia fora do NavMesh e a perseguicao morria
     /// calada. Quem para antes agora e o agente, pela stoppingDistance;
-    /// ver PlayerMotor.Perseguir.
+    /// ver PlayerMotor.Chase.
     /// </summary>
     private Vector3 ChasePoint(Vector3 alvo)
     {

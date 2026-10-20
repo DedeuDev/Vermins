@@ -102,9 +102,9 @@ public class SaveSystem : MonoBehaviour
 
         if (equipamento != null)
         {
-            data.playerArma = EquipmentItem.NomeNoSave(equipamento.NoSlot(EquipmentSlot.Arma));
-            data.playerArmadura = EquipmentItem.NomeNoSave(equipamento.NoSlot(EquipmentSlot.Armadura));
-            data.playerAnel = EquipmentItem.NomeNoSave(equipamento.NoSlot(EquipmentSlot.Anel));
+            data.playerArma = EquipmentItem.SaveName(equipamento.GetItem(EquipmentSlot.Weapon));
+            data.playerArmadura = EquipmentItem.SaveName(equipamento.GetItem(EquipmentSlot.Armor));
+            data.playerAnel = EquipmentItem.SaveName(equipamento.GetItem(EquipmentSlot.Ring));
         }
 
         string json = JsonUtility.ToJson(data, true);
@@ -212,7 +212,7 @@ public class SaveSystem : MonoBehaviour
 
                     if (nivel != null)
                     {
-                        nivel.Restaurar(pendingLoadData.playerXp);
+                        nivel.Restore(pendingLoadData.playerXp);
                     }
 
                     // Ian: o equipamento tambem volta antes da vida: a
@@ -223,10 +223,10 @@ public class SaveSystem : MonoBehaviour
 
                     if (equipamento != null)
                     {
-                        equipamento.Restaurar(
-                            EquipmentItem.PeloNome(pendingLoadData.playerArma),
-                            EquipmentItem.PeloNome(pendingLoadData.playerArmadura),
-                            EquipmentItem.PeloNome(pendingLoadData.playerAnel)
+                        equipamento.Restore(
+                            EquipmentItem.FindByName(pendingLoadData.playerArma),
+                            EquipmentItem.FindByName(pendingLoadData.playerArmadura),
+                            EquipmentItem.FindByName(pendingLoadData.playerAnel)
                         );
                     }
 

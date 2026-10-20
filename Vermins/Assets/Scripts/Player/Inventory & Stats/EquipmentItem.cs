@@ -4,9 +4,9 @@ using UnityEngine.Serialization;
 
 public enum EquipmentSlot
 {
-    Arma,
-    Armadura,
-    Anel
+    Weapon,
+    Armor,
+    Ring
 }
 
 /// <summary>
@@ -140,7 +140,7 @@ public class EquipmentItem : ScriptableObject
     /// devolve null (slot vazio). Monta o dicionario na primeira chamada:
     /// so roda no load, nunca por frame.
     /// </summary>
-    public static EquipmentItem PeloNome(string nomeDoAsset)
+    public static EquipmentItem FindByName(string nomeDoAsset)
     {
         if (string.IsNullOrEmpty(nomeDoAsset))
             return null;
@@ -163,7 +163,7 @@ public class EquipmentItem : ScriptableObject
     }
 
     /// <summary>O que o save grava: o nome do asset, ou vazio sem item.</summary>
-    public static string NomeNoSave(EquipmentItem item)
+    public static string SaveName(EquipmentItem item)
     {
         return item != null ? item.name : string.Empty;
     }

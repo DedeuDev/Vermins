@@ -10,7 +10,7 @@ using UnityEngine.Serialization;
 /// entao quem escreve continua sendo um so.
 ///
 /// Os slots sao tres campos com nome, e nao uma lista, pra que o
-/// Inspector mostre "Arma, Armadura, Anel" e de pra ver na hora o que o
+/// Inspector mostre "Weapon, Armor, Ring" e de pra ver na hora o que o
 /// Player esta usando. Tambem da pra deixar um item arrastado no prefab,
 /// e ai ele nasce equipado.
 ///
@@ -47,12 +47,12 @@ public class CharacterEquipment : MonoBehaviour
     /// </summary>
     public BonusPoints TotalBonus => BonusOf(weapon) + BonusOf(armor) + BonusOf(ring);
 
-    public EquipmentItem NoSlot(EquipmentSlot slot)
+    public EquipmentItem GetItem(EquipmentSlot slot)
     {
         switch (slot)
         {
-            case EquipmentSlot.Arma: return weapon;
-            case EquipmentSlot.Armadura: return armor;
+            case EquipmentSlot.Weapon: return weapon;
+            case EquipmentSlot.Armor: return armor;
             default: return ring;
         }
     }
@@ -68,7 +68,7 @@ public class CharacterEquipment : MonoBehaviour
         if (item == null)
             return null;
 
-        EquipmentItem saiu = NoSlot(item.Slot);
+        EquipmentItem saiu = GetItem(item.Slot);
         if (saiu == item)
             return null;
 
@@ -80,7 +80,7 @@ public class CharacterEquipment : MonoBehaviour
     /// <summary>Tira o item do slot e devolve ele, ou null se estava vazio.</summary>
     public EquipmentItem Unequip(EquipmentSlot slot)
     {
-        EquipmentItem saiu = NoSlot(slot);
+        EquipmentItem saiu = GetItem(slot);
         if (saiu == null)
             return null;
 
@@ -94,7 +94,7 @@ public class CharacterEquipment : MonoBehaviour
     /// e a troca de cena usam. Dispara um evento so, e so se algo mudou,
     /// em vez de tres recalculos seguidos.
     /// </summary>
-    public void Restaurar(EquipmentItem novaArma, EquipmentItem novaArmadura, EquipmentItem novoAnel)
+    public void Restore(EquipmentItem novaArma, EquipmentItem novaArmadura, EquipmentItem novoAnel)
     {
         if (weapon == novaArma && armor == novaArmadura && ring == novoAnel)
             return;
@@ -109,8 +109,8 @@ public class CharacterEquipment : MonoBehaviour
     {
         switch (slot)
         {
-            case EquipmentSlot.Arma: weapon = item; break;
-            case EquipmentSlot.Armadura: armor = item; break;
+            case EquipmentSlot.Weapon: weapon = item; break;
+            case EquipmentSlot.Armor: armor = item; break;
             default: ring = item; break;
         }
     }
@@ -135,8 +135,8 @@ public class CharacterEquipment : MonoBehaviour
     [ContextMenu("Tirar tudo")]
     private void UnequipAll()
     {
-        Unequip(EquipmentSlot.Arma);
-        Unequip(EquipmentSlot.Armadura);
-        Unequip(EquipmentSlot.Anel);
+        Unequip(EquipmentSlot.Weapon);
+        Unequip(EquipmentSlot.Armor);
+        Unequip(EquipmentSlot.Ring);
     }
 }

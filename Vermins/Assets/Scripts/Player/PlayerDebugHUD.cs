@@ -357,9 +357,9 @@ public class PlayerDebugHUD : MonoBehaviour
         // que vira dano e vida.
         int ocupados = 0;
 
-        if (equipment.NoSlot(EquipmentSlot.Arma) != null) ocupados++;
-        if (equipment.NoSlot(EquipmentSlot.Armadura) != null) ocupados++;
-        if (equipment.NoSlot(EquipmentSlot.Anel) != null) ocupados++;
+        if (equipment.GetItem(EquipmentSlot.Weapon) != null) ocupados++;
+        if (equipment.GetItem(EquipmentSlot.Armor) != null) ocupados++;
+        if (equipment.GetItem(EquipmentSlot.Ring) != null) ocupados++;
 
         BonusPoints pontos = equipment.TotalBonus;
 
@@ -375,16 +375,16 @@ public class PlayerDebugHUD : MonoBehaviour
         if (jewelsButton.HasChanged(pouch.Count, shop.JewelsValue))
             jewelsButton.Set($"Vender {pouch.Count} joias   ({shop.JewelsValue})");
 
-        UpdateSlotButton(weaponButton, EquipmentSlot.Arma);
-        UpdateSlotButton(armorButton, EquipmentSlot.Armadura);
-        UpdateSlotButton(ringButton, EquipmentSlot.Anel);
+        UpdateSlotButton(weaponButton, EquipmentSlot.Weapon);
+        UpdateSlotButton(armorButton, EquipmentSlot.Armor);
+        UpdateSlotButton(ringButton, EquipmentSlot.Ring);
     }
 
     private void UpdateSlotButton(CachedText botao, EquipmentSlot slot)
     {
         // O id do item entra na comparacao porque dois itens da mesma
         // raridade tem o mesmo preco e nomes diferentes.
-        EquipmentItem item = equipment.NoSlot(slot);
+        EquipmentItem item = equipment.GetItem(slot);
         int id = item != null ? item.GetInstanceID() : 0;
         int preco = shop.SellPrice(item);
 
@@ -594,9 +594,9 @@ public class PlayerDebugHUD : MonoBehaviour
         if (ShopButton(jewelsButton.Content, x, largura, ref y))
             shop.SellJewels();
 
-        SellButton(weaponButton, EquipmentSlot.Arma, habilitado, x, largura, ref y);
-        SellButton(armorButton, EquipmentSlot.Armadura, habilitado, x, largura, ref y);
-        SellButton(ringButton, EquipmentSlot.Anel, habilitado, x, largura, ref y);
+        SellButton(weaponButton, EquipmentSlot.Weapon, habilitado, x, largura, ref y);
+        SellButton(armorButton, EquipmentSlot.Armor, habilitado, x, largura, ref y);
+        SellButton(ringButton, EquipmentSlot.Ring, habilitado, x, largura, ref y);
 
         GUI.enabled = habilitado;
         if (ShopButton(AddGoldLabel, x, largura, ref y))
@@ -611,7 +611,7 @@ public class PlayerDebugHUD : MonoBehaviour
 
     private void SellButton(CachedText botao, EquipmentSlot slot, bool habilitado, float x, float largura, ref float y)
     {
-        GUI.enabled = habilitado && equipment.NoSlot(slot) != null;
+        GUI.enabled = habilitado && equipment.GetItem(slot) != null;
 
         if (ShopButton(botao.Content, x, largura, ref y))
             shop.SellEquipped(slot);
