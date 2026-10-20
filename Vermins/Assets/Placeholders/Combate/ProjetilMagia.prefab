@@ -234,13 +234,13 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b3cee0e7c48a7fa45867dc4f07415cc4, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Projetil
-  velocidade: 18
-  raio: 0.15
-  alcanceMaximo: 14
-  oQueAcerta:
+  speed: 18
+  radius: 0.15
+  maxRange: 14
+  hitMask:
     serializedVersion: 2
     m_Bits: 4294967291
-  rastro: {fileID: 3740029102528417287}
+  trail: {fileID: 3740029102528417287}
 --- !u!1 &7137547118552963565
 GameObject:
   m_ObjectHideFlags: 0

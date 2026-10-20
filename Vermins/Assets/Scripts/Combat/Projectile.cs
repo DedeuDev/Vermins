@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.Serialization;
 
 /// <summary>
 /// Bola de magia que sai da mao, voa reto e machuca no que encostar.
@@ -26,17 +27,20 @@ public class Projectile : MonoBehaviour
              "ainda assim nao parecer que o golpe emperrou. Bem mais " +
              "lento que isso e o inimigo consegue simplesmente andar pra " +
              "fora do caminho toda vez.")]
-    [SerializeField] private float velocidade = 18f;
+    [FormerlySerializedAs("velocidade")]
+    [SerializeField] private float speed = 18f;
 
     [Tooltip("Raio da bola pro teste de colisao. Nao precisa bater com o " +
              "tamanho do desenho - este numero e o que decide se acertou, " +
              "e um pouco mais gordo que a arte perdoa a mira.")]
-    [SerializeField] private float raio = 0.15f;
+    [FormerlySerializedAs("raio")]
+    [SerializeField] private float radius = 0.15f;
 
     [Tooltip("Depois de voar isto tudo sem bater em nada, some sozinho. " +
              "Deixei maior que o alcance do ataque pra bola nao evaporar " +
              "no ar bem na frente de um inimigo que recuou.")]
-    [SerializeField] private float alcanceMaximo = 14f;
+    [FormerlySerializedAs("alcanceMaximo")]
+    [SerializeField] private float maxRange = 14f;
 
     [Tooltip("Contra o que testar colisao. Deixei tudo menos a Ignore " +
              "Raycast, porque hoje os personagens e metade do blockout " +
@@ -44,13 +48,15 @@ public class Projectile : MonoBehaviour
              "nada. Quem distingue inimigo de parede aqui e a presenca de " +
              "um Health, nao a layer. No dia em que o projeto tiver layer " +
              "de personagem, e so apertar esta mascara.")]
-    [SerializeField] private LayerMask oQueAcerta = ~(1 << 2);
+    [FormerlySerializedAs("oQueAcerta")]
+    [SerializeField] private LayerMask hitMask = ~(1 << 2);
 
     [Header("Sumico")]
     [Tooltip("Solto o rastro em vez de destruir junto, pra ele apagar " +
              "sozinho no ar. Sem isso o trail some de estalo e a bola " +
              "parece ter sido deletada em vez de ter batido.")]
-    [SerializeField] private TrailRenderer rastro;
+    [FormerlySerializedAs("rastro")]
+    [SerializeField] private TrailRenderer trail;
 
     private float damage;
     private GameObject owner;
@@ -102,7 +108,7 @@ public class Projectile : MonoBehaviour
         if (!launched)
             return;
 
-        float passo = velocidade * Time.deltaTime;
+        float passo = speed * Time.deltaTime;
 
         if (CastHit(passo, out RaycastHit hit))
         {
@@ -113,7 +119,7 @@ public class Projectile : MonoBehaviour
         transform.position += direction * passo;
         traveled += passo;
 
-        if (traveled >= alcanceMaximo)
+        if (traveled >= maxRange)
             Despawn();
     }
 
@@ -132,8 +138,8 @@ public class Projectile : MonoBehaviour
         hit = default;
 
         RaycastHit[] tudo = Physics.SphereCastAll(
-            transform.position, raio, direction, passo,
-            oQueAcerta, QueryTriggerInteraction.Ignore);
+            transform.position, radius, direction, passo,
+            hitMask, QueryTriggerInteraction.Ignore);
 
         float maisPerto = float.MaxValue;
         bool achou = false;
@@ -172,11 +178,11 @@ public class Projectile : MonoBehaviour
 
     private void Despawn()
     {
-        if (rastro != null)
+        if (trail != null)
         {
-            rastro.transform.SetParent(null, true);
-            rastro.autodestruct = true;
-            rastro.emitting = false;
+            trail.transform.SetParent(null, true);
+            trail.autodestruct = true;
+            trail.emitting = false;
         }
 
         Destroy(gameObject);

@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.Serialization;
 
 /// <summary>
 /// Pisca o corpo de vermelho toda vez que leva dano.
@@ -19,19 +20,22 @@ using UnityEngine;
 [DisallowMultipleComponent]
 public class DamageFlash : MonoBehaviour
 {
-    [SerializeField] private Color cor = Color.red;
+    [FormerlySerializedAs("cor")]
+    [SerializeField] private Color color = Color.red;
 
     [Tooltip("Quanto tempo o flash leva pra apagar. Curto de proposito: " +
              "o inimigo bate a cada 1,5 s e o jogador a cada 1,2 s, entao " +
              "qualquer coisa acima de uns 0,3 s faria um golpe emendar no " +
              "outro e viraria uma luz acesa em vez de um pisca por golpe.")]
-    [SerializeField] private float duracao = 0.15f;
+    [FormerlySerializedAs("duracao")]
+    [SerializeField] private float duration = 0.15f;
 
     [Tooltip("Quanto da cor entra no auge do flash. 1 apaga a textura " +
              "inteira e o personagem vira uma silhueta vermelha; deixei " +
              "menos pra ainda dar pra ver quem e que levou.")]
     [Range(0f, 1f)]
-    [SerializeField] private float forca = 0.8f;
+    [FormerlySerializedAs("forca")]
+    [SerializeField] private float strength = 0.8f;
 
     // O _BaseColor e o nome no URP/Lit. O _Color e o nome antigo, que
     // alguns shaders ainda usam - procuro os dois pra isto nao morrer
@@ -88,7 +92,7 @@ public class DamageFlash : MonoBehaviour
     {
         // Reinicio em vez de somar. Dois golpes juntos tem que dar dois
         // piscas curtos, nao um vermelho que vai ficando.
-        remaining = duracao;
+        remaining = duration;
     }
 
     private void Update()
@@ -98,7 +102,7 @@ public class DamageFlash : MonoBehaviour
 
         remaining -= Time.deltaTime;
 
-        ApplyTint(remaining > 0f ? remaining / duracao : 0f);
+        ApplyTint(remaining > 0f ? remaining / duration : 0f);
     }
 
     /// <summary>
@@ -117,7 +121,7 @@ public class DamageFlash : MonoBehaviour
 
             renderers[i].GetPropertyBlock(propertyBlock);
             propertyBlock.SetColor(colorPropertyIds[i],
-                Color.Lerp(originalColors[i], cor, intensidade * forca));
+                Color.Lerp(originalColors[i], color, intensidade * strength));
             renderers[i].SetPropertyBlock(propertyBlock);
         }
     }

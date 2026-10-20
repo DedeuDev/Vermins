@@ -1,5 +1,6 @@
 using UnityEngine;
 using UnityEngine.AI;
+using UnityEngine.Serialization;
 
 /// <summary>
 /// Solta itens no chao quando o dono morre.
@@ -37,24 +38,30 @@ public class DropOnDeath : MonoBehaviour
     [Header("Equipamento")]
     [Tooltip("Chance de cair um equipamento a cada morte, de 0 a 1.")]
     [Range(0f, 1f)]
-    [SerializeField] private float chanceDeEquipamento = 0.15f;
+    [FormerlySerializedAs("chanceDeEquipamento")]
+    [SerializeField] private float equipmentChance = 0.15f;
 
     [Tooltip("O prefab do item no chao. O item sorteado e passado pra ele.")]
-    [SerializeField] private EquipmentPickup prefabDeEquipamento;
+    [FormerlySerializedAs("prefabDeEquipamento")]
+    [SerializeField] private EquipmentPickup equipmentPrefab;
 
     [Tooltip("Os itens que podem cair. A raridade de cada um vem do asset.")]
-    [SerializeField] private EquipmentItem[] equipamentos;
+    [FormerlySerializedAs("equipamentos")]
+    [SerializeField] private EquipmentItem[] equipmentPool;
 
     // Pesos, e nao porcentagens, pra ninguem precisar fechar 100 ao mexer
     // num so. Com 70, 25 e 5 a soma e 100 e o peso ja e a porcentagem.
     [Tooltip("Peso do comum no sorteio da raridade.")]
-    [SerializeField, Min(0)] private int pesoComum = 70;
+    [FormerlySerializedAs("pesoComum")]
+    [SerializeField, Min(0)] private int commonWeight = 70;
 
     [Tooltip("Peso do magico no sorteio da raridade.")]
-    [SerializeField, Min(0)] private int pesoMagico = 25;
+    [FormerlySerializedAs("pesoMagico")]
+    [SerializeField, Min(0)] private int magicWeight = 25;
 
     [Tooltip("Peso do raro no sorteio da raridade.")]
-    [SerializeField, Min(0)] private int pesoRaro = 5;
+    [FormerlySerializedAs("pesoRaro")]
+    [SerializeField, Min(0)] private int rareWeight = 5;
 
     private Health health;
 
@@ -103,10 +110,10 @@ public class DropOnDeath : MonoBehaviour
 
     private void DropEquipment(Vector3 pe)
     {
-        if (prefabDeEquipamento == null || equipamentos == null || equipamentos.Length == 0)
+        if (equipmentPrefab == null || equipmentPool == null || equipmentPool.Length == 0)
             return;
 
-        if (chanceDeEquipamento <= 0f || Random.value > chanceDeEquipamento)
+        if (equipmentChance <= 0f || Random.value > equipmentChance)
             return;
 
         EquipmentItem item = RollItem(RollRarity());
@@ -116,13 +123,13 @@ public class DropOnDeath : MonoBehaviour
 
         // O SetItem vem antes do Start do Pickup, que so roda no frame
         // seguinte, entao o rotulo ja nasce com o nome e a cor do item.
-        EquipmentPickup noChao = Instantiate(prefabDeEquipamento, ponto, Quaternion.identity);
+        EquipmentPickup noChao = Instantiate(equipmentPrefab, ponto, Quaternion.identity);
         noChao.SetItem(item);
     }
 
     private Rarity RollRarity()
     {
-        int total = pesoComum + pesoMagico + pesoRaro;
+        int total = commonWeight + magicWeight + rareWeight;
 
         if (total <= 0)
             return Rarity.Common;
@@ -130,10 +137,10 @@ public class DropOnDeath : MonoBehaviour
         // O Range de int nao inclui o maximo: sai de 0 a total - 1.
         int sorteio = Random.Range(0, total);
 
-        if (sorteio < pesoComum)
+        if (sorteio < commonWeight)
             return Rarity.Common;
 
-        if (sorteio < pesoComum + pesoMagico)
+        if (sorteio < commonWeight + magicWeight)
             return Rarity.Magic;
 
         return Rarity.Rare;
@@ -151,7 +158,7 @@ public class DropOnDeath : MonoBehaviour
             // Duas voltas na lista, contando e depois escolhendo, pra nao
             // montar lista nova a cada morte.
             int quantos = 0;
-            foreach (EquipmentItem item in equipamentos)
+            foreach (EquipmentItem item in equipmentPool)
             {
                 if (item != null && (int)item.Rarity == r)
                     quantos++;
@@ -161,7 +168,7 @@ public class DropOnDeath : MonoBehaviour
                 continue;
 
             int escolhido = Random.Range(0, quantos);
-            foreach (EquipmentItem item in equipamentos)
+            foreach (EquipmentItem item in equipmentPool)
             {
                 if (item == null || (int)item.Rarity != r)
                     continue;
@@ -173,7 +180,7 @@ public class DropOnDeath : MonoBehaviour
             }
         }
 
-        return equipamentos[Random.Range(0, equipamentos.Length)];
+        return equipmentPool[Random.Range(0, equipmentPool.Length)];
     }
 
     private bool FindGround(Vector3 pe, out Vector3 ponto)
