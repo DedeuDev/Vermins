@@ -52,19 +52,19 @@ public class Projectile : MonoBehaviour
              "parece ter sido deletada em vez de ter batido.")]
     [SerializeField] private TrailRenderer rastro;
 
-    private float dano;
-    private GameObject dono;
-    private Transform raizDoDono;
-    private Vector3 direcao;
-    private float percorrido;
-    private bool lancado;
+    private float damage;
+    private GameObject owner;
+    private Transform ownerRoot;
+    private Vector3 direction;
+    private float traveled;
+    private bool launched;
 
     /// <summary>
     /// Poe a bola pra voar. Chame logo depois de instanciar - antes
     /// disso ela fica parada de proposito, pra nao sair andando na
     /// direcao errada por um frame.
     /// </summary>
-    public void Lancar(Vector3 direcao, float dano, GameObject dono)
+    public void Launch(Vector3 direction, float damage, GameObject owner)
     {
         // Aqui eu achatava o Y, e isso so nao doia porque o blockout era
         // plano. Com o alvo em cima de uma plataforma de 2,5 m a bola
@@ -81,40 +81,40 @@ public class Projectile : MonoBehaviour
         // Direcao zerada acontece quando o alvo esta exatamente em cima
         // de quem lancou. Sem esta linha o normalized devolve zero e a
         // bola fica parada no ar pra sempre.
-        this.direcao = direcao.sqrMagnitude < 0.0001f
+        this.direction = direction.sqrMagnitude < 0.0001f
             ? transform.forward
-            : direcao.normalized;
+            : direction.normalized;
 
-        this.dano = dano;
-        this.dono = dono;
+        this.damage = damage;
+        this.owner = owner;
 
         // Guardo a raiz e nao o GameObject porque o collider de quem
         // lancou costuma estar na raiz e a bola nasce dentro dele. Sem
         // ignorar isto, o primeiro frame ja acerta o proprio dono.
-        raizDoDono = dono != null ? dono.transform.root : null;
+        ownerRoot = owner != null ? owner.transform.root : null;
 
-        transform.forward = this.direcao;
-        lancado = true;
+        transform.forward = this.direction;
+        launched = true;
     }
 
     private void Update()
     {
-        if (!lancado)
+        if (!launched)
             return;
 
         float passo = velocidade * Time.deltaTime;
 
-        if (Acertou(passo, out RaycastHit hit))
+        if (CastHit(passo, out RaycastHit hit))
         {
-            Bater(hit);
+            HandleImpact(hit);
             return;
         }
 
-        transform.position += direcao * passo;
-        percorrido += passo;
+        transform.position += direction * passo;
+        traveled += passo;
 
-        if (percorrido >= alcanceMaximo)
-            Sumir();
+        if (traveled >= alcanceMaximo)
+            Despawn();
     }
 
     /// <summary>
@@ -127,12 +127,12 @@ public class Projectile : MonoBehaviour
     /// quando, e seria daqueles bugs que so aparecem quando o frame cai.
     /// Varrendo o trecho inteiro isso nao tem como acontecer.
     /// </summary>
-    private bool Acertou(float passo, out RaycastHit hit)
+    private bool CastHit(float passo, out RaycastHit hit)
     {
         hit = default;
 
         RaycastHit[] tudo = Physics.SphereCastAll(
-            transform.position, raio, direcao, passo,
+            transform.position, raio, direction, passo,
             oQueAcerta, QueryTriggerInteraction.Ignore);
 
         float maisPerto = float.MaxValue;
@@ -141,7 +141,7 @@ public class Projectile : MonoBehaviour
         foreach (RaycastHit h in tudo)
         {
             // A propria bola e quem lancou nao contam.
-            if (raizDoDono != null && h.collider.transform.IsChildOf(raizDoDono))
+            if (ownerRoot != null && h.collider.transform.IsChildOf(ownerRoot))
                 continue;
 
             if (h.distance < maisPerto)
@@ -155,7 +155,7 @@ public class Projectile : MonoBehaviour
         return achou;
     }
 
-    private void Bater(RaycastHit hit)
+    private void HandleImpact(RaycastHit hit)
     {
         transform.position = hit.point;
 
@@ -165,12 +165,12 @@ public class Projectile : MonoBehaviour
         Health vida = hit.collider.GetComponentInParent<Health>();
 
         if (vida != null && !vida.IsDead)
-            vida.TakeDamage(dano, dono);
+            vida.TakeDamage(damage, owner);
 
-        Sumir();
+        Despawn();
     }
 
-    private void Sumir()
+    private void Despawn()
     {
         if (rastro != null)
         {

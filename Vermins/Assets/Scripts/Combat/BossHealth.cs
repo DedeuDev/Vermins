@@ -30,7 +30,7 @@ public class BossHealth : MonoBehaviour
         // o Health morreria no decimo golpe e o boss seguiria vivo, mas
         // sem poder ser mirado.
         if (stats.dadosBoss != null)
-            health.DefinirVidaMaxima(stats.dadosBoss.vidaMaxima, true);
+            health.SetMaxHealth(stats.dadosBoss.vidaMaxima, true);
     }
 
     private void OnEnable()

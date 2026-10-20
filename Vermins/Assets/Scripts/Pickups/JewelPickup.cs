@@ -15,7 +15,7 @@ public class JewelPickup : Pickup
     [Tooltip("Maior valor de venda, incluido no sorteio.")]
     [SerializeField, Min(1)] private int maxValue = 60;
 
-    private int valor;
+    private int value;
 
     // So o nome. O valor e de venda, e quem mostra e a loja.
     protected override string LabelText => "Joia";
@@ -26,7 +26,7 @@ public class JewelPickup : Pickup
     {
         // Sorteio ao nascer, igual o ouro, e com o mesmo +1 porque o Range
         // de int nao inclui o maximo.
-        valor = Random.Range(minValue, Mathf.Max(minValue, maxValue) + 1);
+        value = Random.Range(minValue, Mathf.Max(minValue, maxValue) + 1);
     }
 
     protected override bool Deliver(Collider quemEncostou)
@@ -36,7 +36,7 @@ public class JewelPickup : Pickup
         if (bolsa == null)
             return false;
 
-        bolsa.Add(valor);
+        bolsa.Add(value);
         return true;
     }
 }

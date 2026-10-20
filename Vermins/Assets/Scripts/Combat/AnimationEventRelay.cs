@@ -22,13 +22,13 @@ using UnityEngine;
 [DisallowMultipleComponent]
 public class AnimationEventRelay : MonoBehaviour
 {
-    private PlayerCombat combate;
+    private PlayerCombat combat;
 
     private void Awake()
     {
-        combate = GetComponentInParent<PlayerCombat>();
+        combat = GetComponentInParent<PlayerCombat>();
 
-        if (combate == null)
+        if (combat == null)
         {
             Debug.LogWarning(
                 $"[{name}] Nao achei PlayerCombat acima de mim. O evento " +
@@ -43,8 +43,8 @@ public class AnimationEventRelay : MonoBehaviour
     /// </summary>
     public void ReleaseSpell()
     {
-        if (combate != null)
-            combate.ReleaseProjectile();
+        if (combat != null)
+            combat.ReleaseProjectile();
     }
 
     /// <summary>
@@ -54,7 +54,7 @@ public class AnimationEventRelay : MonoBehaviour
     /// </summary>
     public void LandHit()
     {
-        if (combate != null)
-            combate.LandHit();
+        if (combat != null)
+            combat.LandHit();
     }
 }

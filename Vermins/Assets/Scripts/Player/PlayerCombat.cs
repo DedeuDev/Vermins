@@ -487,7 +487,7 @@ public class PlayerCombat : MonoBehaviour
             : origem + transform.forward;
 
         Projectile bola = Instantiate(projectile, origem, Quaternion.identity);
-        bola.Lancar(mira - origem, weapon.Damage, gameObject);
+        bola.Launch(mira - origem, weapon.Damage, gameObject);
     }
 
     /// <summary>

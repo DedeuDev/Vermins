@@ -39,7 +39,7 @@ public class Health : MonoBehaviour
     /// em quem bate porque tem mais de um jeito de tomar dano (espada,
     /// flecha, poca de veneno) e todos passam pelo TakeDamage.
     ///
-    /// Nao tem set: quem quer ligar chama LigarInvulnerabilidade com ele
+    /// Nao tem set: quem quer ligar chama AddInvulnerability com ele
     /// mesmo de dono, e fica ligado enquanto sobrar algum dono. Antes era
     /// um bool que todo mundo escrevia, e com duas fontes uma apagava a
     /// outra. Medi com uma fonte de fora agindo 0,2 s depois do Player
@@ -47,17 +47,17 @@ public class Health : MonoBehaviour
     /// efeito dela sumia; se ela desligava, o rolamento perdia a protecao
     /// e um golpe de 10 tirou 10.
     /// </summary>
-    public bool Invulneravel => donosDaInvulnerabilidade.Count > 0;
+    public bool IsInvulnerable => invulnerabilityOwners.Count > 0;
 
-    private readonly HashSet<object> donosDaInvulnerabilidade = new HashSet<object>();
+    private readonly HashSet<object> invulnerabilityOwners = new HashSet<object>();
 
     /// <summary>
     /// Liga a invulnerabilidade em nome do dono. Ligar duas vezes com o
     /// mesmo dono conta uma so.
     /// </summary>
-    public void LigarInvulnerabilidade(object dono)
+    public void AddInvulnerability(object dono)
     {
-        donosDaInvulnerabilidade.Add(dono);
+        invulnerabilityOwners.Add(dono);
     }
 
     /// <summary>
@@ -65,9 +65,9 @@ public class Health : MonoBehaviour
     /// invulneravel. Quem liga tem que desligar tambem no OnDisable, senao
     /// o personagem fica imortal pra sempre.
     /// </summary>
-    public void DesligarInvulnerabilidade(object dono)
+    public void RemoveInvulnerability(object dono)
     {
-        donosDaInvulnerabilidade.Remove(dono);
+        invulnerabilityOwners.Remove(dono);
     }
 
     /// <summary>
@@ -100,7 +100,7 @@ public class Health : MonoBehaviour
         if (IsDead || amount <= 0f)
             return;
 
-        if (Invulneravel)
+        if (IsInvulnerable)
             return;
 
         Current = Mathf.Max(0f, Current - amount);
@@ -131,7 +131,7 @@ public class Health : MonoBehaviour
     /// item no meio da dungeon, o teto sobe mas a barra nao deveria
     /// encher de graca - senao equipar e desequipar vira cura infinita.
     /// </summary>
-    public void DefinirVidaMaxima(float nova, bool encherAVida)
+    public void SetMaxHealth(float nova, bool encherAVida)
     {
         // Teto zero deixaria o personagem morto no instante em que
         // nasce, e sem jeito de reviver.

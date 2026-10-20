@@ -39,66 +39,66 @@ public class DamageFlash : MonoBehaviour
     private static readonly int BaseColorId = Shader.PropertyToID("_BaseColor");
     private static readonly int ColorId = Shader.PropertyToID("_Color");
 
-    private Health vida;
-    private Renderer[] corpos;
-    private Color[] originais;
-    private int[] propriedades;
-    private MaterialPropertyBlock bloco;
+    private Health health;
+    private Renderer[] renderers;
+    private Color[] originalColors;
+    private int[] colorPropertyIds;
+    private MaterialPropertyBlock propertyBlock;
 
-    private float restante;
+    private float remaining;
 
     private void Awake()
     {
-        vida = GetComponent<Health>();
-        corpos = GetComponentsInChildren<Renderer>(true);
+        health = GetComponent<Health>();
+        renderers = GetComponentsInChildren<Renderer>(true);
 
-        originais = new Color[corpos.Length];
-        propriedades = new int[corpos.Length];
+        originalColors = new Color[renderers.Length];
+        colorPropertyIds = new int[renderers.Length];
 
-        for (int i = 0; i < corpos.Length; i++)
+        for (int i = 0; i < renderers.Length; i++)
         {
-            Material m = corpos[i].sharedMaterial;
+            Material m = renderers[i].sharedMaterial;
 
-            propriedades[i] =
+            colorPropertyIds[i] =
                 m != null && m.HasProperty(BaseColorId) ? BaseColorId :
                 m != null && m.HasProperty(ColorId) ? ColorId : 0;
 
-            originais[i] = propriedades[i] != 0 ? m.GetColor(propriedades[i]) : Color.white;
+            originalColors[i] = colorPropertyIds[i] != 0 ? m.GetColor(colorPropertyIds[i]) : Color.white;
         }
 
-        bloco = new MaterialPropertyBlock();
+        propertyBlock = new MaterialPropertyBlock();
     }
 
     private void OnEnable()
     {
-        vida.OnDamaged += Piscar;
+        health.OnDamaged += HandleDamaged;
     }
 
     private void OnDisable()
     {
-        vida.OnDamaged -= Piscar;
+        health.OnDamaged -= HandleDamaged;
 
         // Se o componente for desligado no meio de um flash, o corpo
         // ficaria vermelho pra sempre.
-        restante = 0f;
-        Pintar(0f);
+        remaining = 0f;
+        ApplyTint(0f);
     }
 
-    private void Piscar(float dano, GameObject quemBateu)
+    private void HandleDamaged(float dano, GameObject quemBateu)
     {
         // Reinicio em vez de somar. Dois golpes juntos tem que dar dois
         // piscas curtos, nao um vermelho que vai ficando.
-        restante = duracao;
+        remaining = duracao;
     }
 
     private void Update()
     {
-        if (restante <= 0f)
+        if (remaining <= 0f)
             return;
 
-        restante -= Time.deltaTime;
+        remaining -= Time.deltaTime;
 
-        Pintar(restante > 0f ? restante / duracao : 0f);
+        ApplyTint(remaining > 0f ? remaining / duracao : 0f);
     }
 
     /// <summary>
@@ -108,17 +108,17 @@ public class DamageFlash : MonoBehaviour
     /// piscarem juntos - e ler renderer.material criaria uma copia por
     /// inimigo, que vaza toda vez que a cena roda.
     /// </summary>
-    private void Pintar(float intensidade)
+    private void ApplyTint(float intensidade)
     {
-        for (int i = 0; i < corpos.Length; i++)
+        for (int i = 0; i < renderers.Length; i++)
         {
-            if (corpos[i] == null || propriedades[i] == 0)
+            if (renderers[i] == null || colorPropertyIds[i] == 0)
                 continue;
 
-            corpos[i].GetPropertyBlock(bloco);
-            bloco.SetColor(propriedades[i],
-                Color.Lerp(originais[i], cor, intensidade * forca));
-            corpos[i].SetPropertyBlock(bloco);
+            renderers[i].GetPropertyBlock(propertyBlock);
+            propertyBlock.SetColor(colorPropertyIds[i],
+                Color.Lerp(originalColors[i], cor, intensidade * forca));
+            renderers[i].SetPropertyBlock(propertyBlock);
         }
     }
 }

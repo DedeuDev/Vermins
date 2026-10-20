@@ -108,7 +108,7 @@ public class Dodge : MonoBehaviour
     {
         // Desligado no meio do rolamento, o jogador ficaria imortal pra
         // sempre.
-        health.DesligarInvulnerabilidade(this);
+        health.RemoveInvulnerability(this);
 
         startTime = -100f;
         advancing = false;
@@ -181,7 +181,7 @@ public class Dodge : MonoBehaviour
         // Ligo em meu nome. O Health so desliga quando nenhum dono quiser
         // mais, entao o fim do rolamento nao apaga a invulnerabilidade de
         // outra fonte, e outra fonte acabando nao corta a do rolamento.
-        health.LigarInvulnerabilidade(this);
+        health.AddInvulnerability(this);
 
         OnDodged?.Invoke(animationDuration);
         return true;
@@ -195,7 +195,7 @@ public class Dodge : MonoBehaviour
         if (!agent.isOnNavMesh)
         {
             advancing = false;
-            health.DesligarInvulnerabilidade(this);
+            health.RemoveInvulnerability(this);
             return;
         }
 
@@ -218,7 +218,7 @@ public class Dodge : MonoBehaviour
 
         // Invulneravel so enquanto anda. Levantando ele ja pode levar
         // golpe: senao dava pra ficar rolando e nunca apanhar.
-        health.DesligarInvulnerabilidade(this);
+        health.RemoveInvulnerability(this);
     }
 
     /// <summary>

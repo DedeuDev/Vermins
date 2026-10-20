@@ -65,15 +65,15 @@ public class DropOnDeath : MonoBehaviour
 
     private void OnEnable()
     {
-        health.OnDied += Soltar;
+        health.OnDied += HandleDied;
     }
 
     private void OnDisable()
     {
-        health.OnDied -= Soltar;
+        health.OnDied -= HandleDied;
     }
 
-    private void Soltar(Health _)
+    private void HandleDied(Health _)
     {
         // O Transform do inimigo fica no meio do corpo, 1 m acima do pe
         // (o baseOffset do agent). Procuro o chao a partir do pe: do meio
@@ -90,7 +90,7 @@ public class DropOnDeath : MonoBehaviour
             if (drop.prefab == null || drop.chance <= 0f || Random.value > drop.chance)
                 continue;
 
-            if (!AcharChao(pe, out Vector3 ponto))
+            if (!FindGround(pe, out Vector3 ponto))
                 continue;
 
             // Sem pai de proposito: o inimigo some 2 s depois de morrer (o
@@ -98,10 +98,10 @@ public class DropOnDeath : MonoBehaviour
             Instantiate(drop.prefab, ponto, Quaternion.identity);
         }
 
-        SoltarEquipamento(pe);
+        DropEquipment(pe);
     }
 
-    private void SoltarEquipamento(Vector3 pe)
+    private void DropEquipment(Vector3 pe)
     {
         if (prefabDeEquipamento == null || equipamentos == null || equipamentos.Length == 0)
             return;
@@ -109,9 +109,9 @@ public class DropOnDeath : MonoBehaviour
         if (chanceDeEquipamento <= 0f || Random.value > chanceDeEquipamento)
             return;
 
-        EquipmentItem item = SortearItem(SortearRaridade());
+        EquipmentItem item = RollItem(RollRarity());
 
-        if (item == null || !AcharChao(pe, out Vector3 ponto))
+        if (item == null || !FindGround(pe, out Vector3 ponto))
             return;
 
         // O SetItem vem antes do Start do Pickup, que so roda no frame
@@ -120,7 +120,7 @@ public class DropOnDeath : MonoBehaviour
         noChao.SetItem(item);
     }
 
-    private Rarity SortearRaridade()
+    private Rarity RollRarity()
     {
         int total = pesoComum + pesoMagico + pesoRaro;
 
@@ -144,7 +144,7 @@ public class DropOnDeath : MonoBehaviour
     /// baixo: um raro que nao existe vira magico, e nao "nada". Se nem o
     /// comum existir, sorteia qualquer um da lista.
     /// </summary>
-    private EquipmentItem SortearItem(Rarity raridade)
+    private EquipmentItem RollItem(Rarity raridade)
     {
         for (int r = (int)raridade; r >= 0; r--)
         {
@@ -176,7 +176,7 @@ public class DropOnDeath : MonoBehaviour
         return equipamentos[Random.Range(0, equipamentos.Length)];
     }
 
-    private bool AcharChao(Vector3 pe, out Vector3 ponto)
+    private bool FindGround(Vector3 pe, out Vector3 ponto)
     {
         Vector2 desvio = Random.insideUnitCircle * scatterRadius;
         Vector3 alvo = pe + new Vector3(desvio.x, 0f, desvio.y);

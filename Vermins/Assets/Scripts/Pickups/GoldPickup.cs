@@ -16,9 +16,9 @@ public class GoldPickup : Pickup
     [Tooltip("Maior quantia que este monte pode valer, incluida no sorteio.")]
     [SerializeField, Min(1)] private int maxAmount = 15;
 
-    private int quantia;
+    private int amount;
 
-    protected override string LabelText => $"Ouro {quantia}";
+    protected override string LabelText => $"Ouro {amount}";
 
     protected override Color LabelColor => new Color(1f, 0.85f, 0.3f);
 
@@ -28,7 +28,7 @@ public class GoldPickup : Pickup
         // quando alguem quiser mostrar ela (numero em cima do monte, monte
         // maior pra quantia maior). O +1 e porque o Range de int nao inclui
         // o maximo.
-        quantia = Random.Range(minAmount, Mathf.Max(minAmount, maxAmount) + 1);
+        amount = Random.Range(minAmount, Mathf.Max(minAmount, maxAmount) + 1);
     }
 
     protected override bool Deliver(Collider quemEncostou)
@@ -38,7 +38,7 @@ public class GoldPickup : Pickup
         if (carteira == null)
             return false;
 
-        carteira.Add(quantia);
+        carteira.Add(amount);
         return true;
     }
 }

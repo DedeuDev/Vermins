@@ -144,7 +144,7 @@ public class CharacterAttributes : MonoBehaviour
         BonusPoints extra = equipment != null ? equipment.TotalBonus : default;
 
         if (vida != null)
-            vida.DefinirVidaMaxima(build.MaxHealthWith(extra.Vitality) * bonus, encherAVida);
+            vida.SetMaxHealth(build.MaxHealthWith(extra.Vitality) * bonus, encherAVida);
 
         if (arma != null)
             arma.Damage = build.DamageWith(extra.Power) * bonus;
