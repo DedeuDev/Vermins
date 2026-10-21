@@ -123,6 +123,8 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 8475650373607586276}
+  - component: {fileID: 2717590656779967852}
+  - component: {fileID: 7323676446091377546}
   m_Layer: 0
   m_Name: BossPlaceholder
   m_TagString: Untagged
@@ -146,3 +148,36 @@ Transform:
   - {fileID: 179972895448869783}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &2717590656779967852
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2439943171675175868}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 98d7f3f88e1b017449cc6b5bf974b40e, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::QuestObjectiveTrigger
+  questId: 0
+  objectiveId: 1
+  triggerOnlyOnce: 1
+  logResult: 1
+--- !u!114 &7323676446091377546
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2439943171675175868}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2d5888ebe04614899b495f81cc159f2b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::BossStats
+  dadosBoss: {fileID: 0}
+  destruirAoSerDerrotado: 1
+  onBossDerrotado:
+    m_PersistentCalls:
+      m_Calls: []
