@@ -26,7 +26,7 @@ public enum QuestId
 }
 
 // ======================================================
-// IDS DE TODOS OS OBJETIVOS
+// IDS DOS OBJETIVOS
 // ======================================================
 
 public enum QuestObjectiveId
@@ -44,10 +44,7 @@ public enum QuestObjectiveId
 }
 
 // ======================================================
-// ENUM ANTIGO
-//
-// Mantido temporariamente para que os scripts
-// existentes da Quest 1 continuem funcionando.
+// COMPATIBILIDADE COM A QUEST 1 ANTIGA
 // ======================================================
 
 public enum SewerQuestObjective
@@ -81,10 +78,6 @@ public class QuestObjectiveProgress
     public bool Completed =>
         completed;
 
-    // ==================================================
-    // CONSTRUCTOR
-    // ==================================================
-
     public QuestObjectiveProgress(
         QuestObjectiveId objectiveId,
         string description
@@ -96,35 +89,26 @@ public class QuestObjectiveProgress
         this.description =
             description;
 
-        completed = false;
+        completed =
+            false;
     }
-
-    // ==================================================
-    // COMPLETE
-    // ==================================================
 
     public bool Complete()
     {
         if (completed)
             return false;
 
-        completed = true;
+        completed =
+            true;
 
         return true;
     }
 
-    // ==================================================
-    // RESET
-    // ==================================================
-
     public void ResetObjective()
     {
-        completed = false;
+        completed =
+            false;
     }
-
-    // ==================================================
-    // DESCRIPTION
-    // ==================================================
 
     public void SetDescription(
         string newDescription
@@ -168,10 +152,6 @@ public class QuestProgress
     public IReadOnlyList<QuestObjectiveProgress> Objectives =>
         objectives;
 
-    // ==================================================
-    // CONSTRUCTOR
-    // ==================================================
-
     public QuestProgress(
         QuestId questId,
         string title
@@ -190,10 +170,6 @@ public class QuestProgress
             new List<QuestObjectiveProgress>();
     }
 
-    // ==================================================
-    // TITLE
-    // ==================================================
-
     public void SetTitle(
         string newTitle
     )
@@ -201,10 +177,6 @@ public class QuestProgress
         title =
             newTitle;
     }
-
-    // ==================================================
-    // GARANTE OBJETIVO
-    // ==================================================
 
     public void EnsureObjective(
         QuestObjectiveId objectiveId,
@@ -233,10 +205,6 @@ public class QuestProgress
         );
     }
 
-    // ==================================================
-    // PROCURA OBJETIVO
-    // ==================================================
-
     public QuestObjectiveProgress FindObjective(
         QuestObjectiveId objectiveId
     )
@@ -261,10 +229,6 @@ public class QuestProgress
         return null;
     }
 
-    // ==================================================
-    // START
-    // ==================================================
-
     public bool StartQuest()
     {
         if (
@@ -288,10 +252,6 @@ public class QuestProgress
 
         return true;
     }
-
-    // ==================================================
-    // COMPLETE OBJECTIVE
-    // ==================================================
 
     public bool CompleteObjective(
         QuestObjectiveId objectiveId
@@ -328,10 +288,6 @@ public class QuestProgress
         return true;
     }
 
-    // ==================================================
-    // TODOS CONCLUÍDOS?
-    // ==================================================
-
     public bool AreAllObjectivesComplete()
     {
         if (
@@ -357,10 +313,6 @@ public class QuestProgress
         return true;
     }
 
-    // ==================================================
-    // TURN IN
-    // ==================================================
-
     public bool TurnInQuest()
     {
         if (
@@ -376,10 +328,6 @@ public class QuestProgress
 
         return true;
     }
-
-    // ==================================================
-    // RESET
-    // ==================================================
 
     public void ResetQuest()
     {
@@ -416,7 +364,7 @@ public class QuestManager : MonoBehaviour
     public event Action OnQuestUpdated;
 
     // ==================================================
-    // COMPATIBILIDADE COM A QUEST 1 ANTIGA
+    // COMPATIBILIDADE QUEST 1
     // ==================================================
 
     public QuestState SewerQuestState =>
@@ -454,7 +402,8 @@ public class QuestManager : MonoBehaviour
             return;
         }
 
-        Instance = this;
+        Instance =
+            this;
 
         DontDestroyOnLoad(
             gameObject
@@ -473,7 +422,7 @@ public class QuestManager : MonoBehaviour
     }
 
     // ==================================================
-    // DEFINIÇÕES DAS QUESTS
+    // DEFINIÇÕES
     // ==================================================
 
     private void EnsureQuestDefinitions()
@@ -577,7 +526,7 @@ public class QuestManager : MonoBehaviour
     }
 
     // ==================================================
-    // PROCURA QUEST
+    // FIND
     // ==================================================
 
     public QuestProgress FindQuest(
@@ -608,7 +557,7 @@ public class QuestManager : MonoBehaviour
     }
 
     // ==================================================
-    // GET STATE
+    // STATE
     // ==================================================
 
     public QuestState GetQuestState(
@@ -622,15 +571,14 @@ public class QuestManager : MonoBehaviour
 
         if (quest == null)
         {
-            return
-                QuestState.NotStarted;
+            return QuestState.NotStarted;
         }
 
         return quest.State;
     }
 
     // ==================================================
-    // GET TITLE
+    // TITLE
     // ==================================================
 
     public string GetQuestTitle(
@@ -649,7 +597,7 @@ public class QuestManager : MonoBehaviour
     }
 
     // ==================================================
-    // GET OBJECTIVES
+    // OBJECTIVES
     // ==================================================
 
     public IReadOnlyList<QuestObjectiveProgress>
@@ -712,8 +660,7 @@ public class QuestManager : MonoBehaviour
         if (quest == null)
         {
             Debug.LogError(
-                $"QuestManager: Quest '{questId}' " +
-                "não encontrada.",
+                $"QuestManager: Quest '{questId}' não encontrada.",
                 this
             );
 
@@ -748,7 +695,7 @@ public class QuestManager : MonoBehaviour
     }
 
     // ==================================================
-    // PODE COMEÇAR?
+    // CAN START
     // ==================================================
 
     public bool CanStartQuest(
@@ -798,8 +745,7 @@ public class QuestManager : MonoBehaviour
         if (quest == null)
         {
             Debug.LogError(
-                $"QuestManager: Quest '{questId}' " +
-                "não encontrada.",
+                $"QuestManager: Quest '{questId}' não encontrada.",
                 this
             );
 
@@ -842,8 +788,8 @@ public class QuestManager : MonoBehaviour
         )
         {
             Debug.Log(
-                $"QUEST PRONTA PARA ENTREGA: " +
-                $"{quest.Title}",
+                "QUEST PRONTA PARA ENTREGA: " +
+                quest.Title,
                 this
             );
         }
@@ -854,7 +800,7 @@ public class QuestManager : MonoBehaviour
     }
 
     // ==================================================
-    // TURN IN QUEST
+    // TURN IN
     // ==================================================
 
     public bool TurnInQuest(
@@ -886,8 +832,7 @@ public class QuestManager : MonoBehaviour
     }
 
     // ==================================================
-    // COMPATIBILIDADE:
-    // START QUEST 1
+    // COMPATIBILIDADE QUEST 1
     // ==================================================
 
     public void StartSewerQuest()
@@ -896,11 +841,6 @@ public class QuestManager : MonoBehaviour
             QuestId.SewerInvestigation
         );
     }
-
-    // ==================================================
-    // COMPATIBILIDADE:
-    // COMPLETE OBJECTIVE QUEST 1
-    // ==================================================
 
     public void CompleteObjective(
         SewerQuestObjective objective
@@ -928,11 +868,6 @@ public class QuestManager : MonoBehaviour
         }
     }
 
-    // ==================================================
-    // COMPATIBILIDADE:
-    // TURN IN QUEST 1
-    // ==================================================
-
     public bool TurnInSewerQuest()
     {
         return TurnInQuest(
@@ -953,16 +888,16 @@ public class QuestManager : MonoBehaviour
     // DEBUG - QUEST 1
     // ==================================================
 
-    [ContextMenu("DEBUG - Start Quest")]
-    private void DebugStartQuest1()
+    [ContextMenu("DEBUG/Q1 - Start")]
+    private void DebugQuest1Start()
     {
         StartQuest(
             QuestId.SewerInvestigation
         );
     }
 
-    [ContextMenu("DEBUG - Find Dead Guard")]
-    private void DebugFindDeadGuard()
+    [ContextMenu("DEBUG/Q1 - Find Dead Guard")]
+    private void DebugQuest1Guard()
     {
         CompleteObjective(
             QuestId.SewerInvestigation,
@@ -970,8 +905,8 @@ public class QuestManager : MonoBehaviour
         );
     }
 
-    [ContextMenu("DEBUG - Defeat Boss")]
-    private void DebugDefeatBoss1()
+    [ContextMenu("DEBUG/Q1 - Defeat Boss")]
+    private void DebugQuest1Boss()
     {
         CompleteObjective(
             QuestId.SewerInvestigation,
@@ -979,8 +914,8 @@ public class QuestManager : MonoBehaviour
         );
     }
 
-    [ContextMenu("DEBUG - Turn In Quest")]
-    private void DebugTurnInQuest1()
+    [ContextMenu("DEBUG/Q1 - Turn In")]
+    private void DebugQuest1TurnIn()
     {
         TurnInQuest(
             QuestId.SewerInvestigation
@@ -988,10 +923,77 @@ public class QuestManager : MonoBehaviour
     }
 
     // ==================================================
+    // DEBUG - QUEST 2
+    // ==================================================
+
+    [ContextMenu("DEBUG/Q2 - Start")]
+    private void DebugQuest2Start()
+    {
+        StartQuest(
+            QuestId.DeeperIntoSewers
+        );
+    }
+
+    [ContextMenu("DEBUG/Q2 - Defeat Boss")]
+    private void DebugQuest2Boss()
+    {
+        CompleteObjective(
+            QuestId.DeeperIntoSewers,
+            QuestObjectiveId.DefeatBoss2
+        );
+    }
+
+    [ContextMenu("DEBUG/Q2 - Interrogate Boss")]
+    private void DebugQuest2Interrogate()
+    {
+        CompleteObjective(
+            QuestId.DeeperIntoSewers,
+            QuestObjectiveId.InterrogateBoss2
+        );
+    }
+
+    [ContextMenu("DEBUG/Q2 - Turn In")]
+    private void DebugQuest2TurnIn()
+    {
+        TurnInQuest(
+            QuestId.DeeperIntoSewers
+        );
+    }
+
+    // ==================================================
+    // DEBUG - QUEST 3
+    // ==================================================
+
+    [ContextMenu("DEBUG/Q3 - Start")]
+    private void DebugQuest3Start()
+    {
+        StartQuest(
+            QuestId.RatPriest
+        );
+    }
+
+    [ContextMenu("DEBUG/Q3 - Defeat Rat Priest")]
+    private void DebugQuest3Boss()
+    {
+        CompleteObjective(
+            QuestId.RatPriest,
+            QuestObjectiveId.DefeatRatPriest
+        );
+    }
+
+    [ContextMenu("DEBUG/Q3 - Turn In")]
+    private void DebugQuest3TurnIn()
+    {
+        TurnInQuest(
+            QuestId.RatPriest
+        );
+    }
+
+    // ==================================================
     // DEBUG - RESET
     // ==================================================
 
-    [ContextMenu("DEBUG - Reset All Quests")]
+    [ContextMenu("DEBUG/Reset All Quests")]
     private void DebugResetAllQuests()
     {
         foreach (

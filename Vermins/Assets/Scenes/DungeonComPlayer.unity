@@ -3669,6 +3669,22 @@ PrefabInstance:
       propertyPath: m_Name
       value: DungeonGenerator
       objectReference: {fileID: 0}
+    - target: {fileID: 6213920998551177747, guid: b3832b5cb55dc84418370776c96ba770, type: 3}
+      propertyPath: m_Enabled
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 6314151536356280054, guid: b3832b5cb55dc84418370776c96ba770, type: 3}
+      propertyPath: targetRoomCount
+      value: 15
+      objectReference: {fileID: 0}
+    - target: {fileID: 6314151536356280054, guid: b3832b5cb55dc84418370776c96ba770, type: 3}
+      propertyPath: mainPathRoomCount
+      value: 8
+      objectReference: {fileID: 0}
+    - target: {fileID: 6314151536356280054, guid: b3832b5cb55dc84418370776c96ba770, type: 3}
+      propertyPath: maxActiveBranches
+      value: 3
+      objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []

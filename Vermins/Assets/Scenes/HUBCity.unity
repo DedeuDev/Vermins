@@ -6153,7 +6153,7 @@ MonoBehaviour:
   dungeon1DisplayName: Esgotos Superiores
   dungeon2Button: {fileID: 155021981}
   dungeon2ButtonText: {fileID: 660530844}
-  dungeon2SceneName: Dungeon2
+  dungeon2SceneName: DungeonComPlayer2
   dungeon2DisplayName: Profundezas dos Esgotos
   dungeon3Button: {fileID: 1832134802}
   dungeon3ButtonText: {fileID: 675100534}
