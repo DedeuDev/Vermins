@@ -262,6 +262,7 @@ GameObject:
   - component: {fileID: 212660801}
   - component: {fileID: 212660800}
   - component: {fileID: 212660799}
+  - component: {fileID: 212660807}
   m_Layer: 0
   m_Name: Boss_Monge
   m_TagString: Untagged
@@ -298,6 +299,10 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::BossStats
   dadosBoss: {fileID: 11400000, guid: b05340b42bb214e0ba2ae123b7dcad69, type: 2}
+  destruirAoSerDerrotado: 0
+  onBossDerrotado:
+    m_PersistentCalls:
+      m_Calls: []
 --- !u!114 &212660801
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -430,6 +435,22 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &212660807
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 212660798}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 98d7f3f88e1b017449cc6b5bf974b40e, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::QuestObjectiveTrigger
+  questId: 1
+  objectiveId: 2
+  triggerOnlyOnce: 1
+  logResult: 1
 --- !u!1 &407971528
 GameObject:
   m_ObjectHideFlags: 0
@@ -1146,6 +1167,7 @@ GameObject:
   - component: {fileID: 1383743865}
   - component: {fileID: 1383743874}
   - component: {fileID: 1383743872}
+  - component: {fileID: 1383743875}
   m_Layer: 0
   m_Name: Boss_Ladino
   m_TagString: Boss
@@ -1199,6 +1221,10 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::BossStats
   dadosBoss: {fileID: 11400000, guid: 2504019cd9b9a44fbbd2211d5d768c67, type: 2}
+  destruirAoSerDerrotado: 1
+  onBossDerrotado:
+    m_PersistentCalls:
+      m_Calls: []
 --- !u!195 &1383743868
 NavMeshAgent:
   m_ObjectHideFlags: 0
@@ -1322,9 +1348,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: bac3ac55a5aea1f4d9ca9976e1fe2501, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::FlashDeDano
-  cor: {r: 1, g: 0, b: 0, a: 1}
-  duracao: 0.15
-  forca: 0.8
+  color: {r: 1, g: 0, b: 0, a: 1}
+  duration: 0.15
+  strength: 0.8
 --- !u!114 &1383743874
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1340,6 +1366,22 @@ MonoBehaviour:
   maxHealth: 100
   destroyOnDeath: 0
   destroyDelay: 2
+--- !u!114 &1383743875
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1383743864}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 98d7f3f88e1b017449cc6b5bf974b40e, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::QuestObjectiveTrigger
+  questId: 0
+  objectiveId: 1
+  triggerOnlyOnce: 1
+  logResult: 1
 --- !u!1 &1537273746
 GameObject:
   m_ObjectHideFlags: 0
