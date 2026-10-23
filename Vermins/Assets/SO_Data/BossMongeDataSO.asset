@@ -26,4 +26,4 @@ MonoBehaviour:
   prefabEfeitoTerremoto: {fileID: 4295925842507259469, guid: 4a63896e9865a4a5db1e666480754f44, type: 3}
   duracaoEscudoKi: 4
   cooldownEscudoKi: 12
-  prefabEscudoKi: {fileID: 0}
+  prefabEscudoKi: {fileID: 6692258491814779031, guid: 549d1fae2f7454d02ba9441e304803b4, type: 3}

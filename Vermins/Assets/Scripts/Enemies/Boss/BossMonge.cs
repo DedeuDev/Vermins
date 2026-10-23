@@ -23,6 +23,9 @@ public class BossMonge : MonoBehaviour
     private bool escudoAtivo = false;
     private GameObject instanciaEscudo;
 
+    // Propriedade pública para consulta em outros scripts
+    public bool EscudoAtivo => escudoAtivo;
+
     void Start()
     {
         agent = GetComponent<NavMeshAgent>();
@@ -179,8 +182,7 @@ public class BossMonge : MonoBehaviour
             Instantiate(dados.prefabEfeitoTerremoto, posicaoImpacto, Quaternion.identity);
         }
 
-        // Verifica dano e knockback
-        // Ian: medi a distancia so no chao; com a altura do Player (0,95 m) a borda do circulo nao dava dano
+        // Verifica dano no chão
         Vector3 posicaoNoChao = player.position;
         posicaoNoChao.y = posicaoImpacto.y;
         if (Vector3.Distance(posicaoImpacto, posicaoNoChao) <= dados.raioImpactoTerremoto)
@@ -204,17 +206,58 @@ public class BossMonge : MonoBehaviour
 
         Debug.Log("<color=green>[MONGE] Ativou Escudo de Ki!</color>");
 
-        if (dados.prefabEscudoKi != null)
+        // 1. Ativa invulnerabilidade no componente Health usando a própria API
+        Health minhaVida = GetComponent<Health>();
+        if (minhaVida != null)
         {
-            Transform pontoPai = pontoEscudoKi != null ? pontoEscudoKi : transform;
-            instanciaEscudo = Instantiate(dados.prefabEscudoKi, pontoPai.position, Quaternion.identity, pontoPai);
+            minhaVida.AddInvulnerability(this);
         }
 
-        yield return new WaitForSeconds(dados.duracaoEscudoKi);
+        Transform pontoPai = pontoEscudoKi != null ? pontoEscudoKi : transform;
 
+        if (dados.prefabEscudoKi != null)
+        {
+            instanciaEscudo = Instantiate(dados.prefabEscudoKi, pontoPai.position, Quaternion.identity, pontoPai);
+        }
+        else
+        {
+            instanciaEscudo = GameObject.CreatePrimitive(PrimitiveType.Sphere);
+            Destroy(instanciaEscudo.GetComponent<Collider>());
+            instanciaEscudo.transform.SetParent(pontoPai);
+            instanciaEscudo.transform.localPosition = Vector3.zero;
+            instanciaEscudo.transform.localScale = new Vector3(2.5f, 2.5f, 2.5f);
+
+            Renderer ren = instanciaEscudo.GetComponent<Renderer>();
+            if (ren != null)
+            {
+                ren.material.color = new Color(0f, 0.8f, 1f, 0.4f);
+            }
+        }
+
+        // Pulso visual durante o tempo ativo
+        float tempoAtivo = 0f;
+        Vector3 escalaBase = instanciaEscudo.transform.localScale;
+
+        while (tempoAtivo < dados.duracaoEscudoKi)
+        {
+            tempoAtivo += Time.deltaTime;
+            if (instanciaEscudo != null)
+            {
+                float pulso = 1f + Mathf.Sin(Time.time * 8f) * 0.08f;
+                instanciaEscudo.transform.localScale = escalaBase * pulso;
+            }
+            yield return null;
+        }
+
+        // 2. Remove o efeito e limpa a invulnerabilidade
         if (instanciaEscudo != null)
         {
             Destroy(instanciaEscudo);
+        }
+
+        if (minhaVida != null)
+        {
+            minhaVida.RemoveInvulnerability(this);
         }
 
         escudoAtivo = false;
@@ -237,6 +280,15 @@ public class BossMonge : MonoBehaviour
         if (direction != Vector3.zero)
         {
             transform.rotation = Quaternion.LookRotation(direction);
+        }
+    }
+
+    private void OnDisable()
+    {
+        Health minhaVida = GetComponent<Health>();
+        if (minhaVida != null)
+        {
+            minhaVida.RemoveInvulnerability(this);
         }
     }
 
