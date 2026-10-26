@@ -1,6 +1,5 @@
 using UnityEngine;
 using UnityEngine.AI;
-using UnityEngine.Serialization;
 
 /// <summary>
 /// Solta itens no chao quando o dono morre.
@@ -38,29 +37,23 @@ public class DropOnDeath : MonoBehaviour
     [Header("Equipamento")]
     [Tooltip("Chance de cair um equipamento a cada morte, de 0 a 1.")]
     [Range(0f, 1f)]
-    [FormerlySerializedAs("chanceDeEquipamento")]
     [SerializeField] private float equipmentChance = 0.15f;
 
     [Tooltip("O prefab do item no chao. O item sorteado e passado pra ele.")]
-    [FormerlySerializedAs("prefabDeEquipamento")]
     [SerializeField] private EquipmentPickup equipmentPrefab;
 
     [Tooltip("Os itens que podem cair. A raridade de cada um vem do asset.")]
-    [FormerlySerializedAs("equipamentos")]
     [SerializeField] private EquipmentItem[] equipmentPool;
 
     // Pesos, e nao porcentagens, pra ninguem precisar fechar 100 ao mexer
     // num so. Com 70, 25 e 5 a soma e 100 e o peso ja e a porcentagem.
     [Tooltip("Peso do comum no sorteio da raridade.")]
-    [FormerlySerializedAs("pesoComum")]
     [SerializeField, Min(0)] private int commonWeight = 70;
 
     [Tooltip("Peso do magico no sorteio da raridade.")]
-    [FormerlySerializedAs("pesoMagico")]
     [SerializeField, Min(0)] private int magicWeight = 25;
 
     [Tooltip("Peso do raro no sorteio da raridade.")]
-    [FormerlySerializedAs("pesoRaro")]
     [SerializeField, Min(0)] private int rareWeight = 5;
 
     private Health health;

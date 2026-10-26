@@ -1,6 +1,5 @@
 using UnityEngine;
 using UnityEngine.AI;
-using UnityEngine.Serialization;
 
 /// <summary>
 /// Rolamento no Espaco, como o evade do Diablo 4: o jogador avanca uns
@@ -31,28 +30,23 @@ public class Dodge : MonoBehaviour
 {
     [Tooltip("Quanto o rolamento anda, em metros, se nada estiver no " +
              "caminho.")]
-    [FormerlySerializedAs("distancia")]
     [SerializeField] private float distance = 4f;
 
     [Tooltip("Espera entre apertar e o corpo comecar a andar. E o " +
              "agachar do clipe antes do mergulho.")]
-    [FormerlySerializedAs("inicioDoAvanco")]
     [SerializeField] private float advanceDelay = 0.05f;
 
     [Tooltip("Quanto tempo o corpo leva pra andar a distancia toda. Casa " +
              "com o mergulho e o rolamento do clipe na velocidade da " +
              "animationDuration.")]
-    [FormerlySerializedAs("duracaoDoAvanco")]
     [SerializeField] private float advanceDuration = 0.45f;
 
     [Tooltip("Quanto a animacao inteira dura na tela. O clipe tem 1,63 s " +
              "e o PlayerAnimator acelera ele pra caber aqui.")]
-    [FormerlySerializedAs("duracaoDaAnimacao")]
     [SerializeField] private float animationDuration = 0.8f;
 
     [Tooltip("Tempo minimo entre uma esquiva e a proxima, contado do " +
              "aperto.")]
-    [FormerlySerializedAs("recarga")]
     [SerializeField] private float cooldown = 1f;
 
     private NavMeshAgent agent;

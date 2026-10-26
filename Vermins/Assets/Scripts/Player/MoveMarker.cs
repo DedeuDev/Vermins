@@ -1,5 +1,4 @@
 using UnityEngine;
-using UnityEngine.Serialization;
 
 /// <summary>
 /// Mostra no chao onde o jogador mandou andar: um anel que fecha e some
@@ -20,28 +19,21 @@ public class MoveMarker : MonoBehaviour
              "Particles/Unlit). E a cor do LineRenderer que da o fade.")]
     [SerializeField] private Material material;
 
-    [FormerlySerializedAs("cor")]
     [SerializeField] private Color color = new Color(1f, 0.85f, 0.55f, 0.9f);
 
     [Tooltip("Raio do anel no clique. Ele fecha ate o endRadius.")]
-    [FormerlySerializedAs("raioInicial")]
     [SerializeField] private float startRadius = 0.55f;
 
-    [FormerlySerializedAs("raioFinal")]
     [SerializeField] private float endRadius = 0.2f;
 
     [Tooltip("Quanto tempo o anel fica na tela.")]
-    [FormerlySerializedAs("duracao")]
     [SerializeField] private float duration = 0.4f;
 
-    [FormerlySerializedAs("espessura")]
     [SerializeField] private float thickness = 0.05f;
 
-    [FormerlySerializedAs("segmentos")]
     [SerializeField] private int segments = 40;
 
     [Tooltip("Folga acima do chao pra o anel nao piscar dentro dele.")]
-    [FormerlySerializedAs("alturaAcimaDoChao")]
     [SerializeField] private float groundOffset = 0.03f;
 
     private LineRenderer ring;

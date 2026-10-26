@@ -2,7 +2,6 @@ using System.Collections;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
-using UnityEngine.Serialization;
 
 /// <summary>
 /// O que acontece quando o jogador morre: a tela escurece, aparece
@@ -22,27 +21,21 @@ public class PlayerDeath : MonoBehaviour
     [Header("Tempo")]
     [Tooltip("Segundos entre morrer e a tela comecar a escurecer. O " +
              "clipe de morte tem 3.63 s, mas nao precisa ver ate o fim.")]
-    [FormerlySerializedAs("esperaAntesDeEscurecer")]
     [SerializeField] private float fadeDelay = 1.2f;
 
-    [FormerlySerializedAs("duracaoDoEscurecer")]
     [SerializeField] private float fadeDuration = 1f;
 
     [Tooltip("Segundos com a tela escura antes de recarregar, pro " +
              "jogador conseguir ler.")]
-    [FormerlySerializedAs("esperaNaTelaEscura")]
     [SerializeField] private float holdDuration = 1.8f;
 
     [Header("Tela")]
-    [FormerlySerializedAs("mensagem")]
     [SerializeField] private string message = "Você morreu";
-    [FormerlySerializedAs("corDoTexto")]
     [SerializeField] private Color textColor = new Color(0.62f, 0.1f, 0.08f);
 
     [Tooltip("Nao vai ate 1 de proposito: o corpo caido continua " +
              "aparecendo por baixo.")]
     [Range(0f, 1f)]
-    [FormerlySerializedAs("escuroMaximo")]
     [SerializeField] private float maxDarkness = 0.8f;
 
     private Health health;

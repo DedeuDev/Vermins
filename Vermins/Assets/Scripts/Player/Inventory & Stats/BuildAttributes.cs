@@ -1,5 +1,4 @@
 using UnityEngine;
-using UnityEngine.Serialization;
 
 /// <summary>
 /// Uma build do personagem: quatro atributos e as contas que transformam
@@ -29,32 +28,27 @@ public class BuildAttributes : ScriptableObject
     public const int MaxPerAttribute = 10;
 
     [Header("Identidade")]
-    [FormerlySerializedAs("nomeDaBuild")]
     [SerializeField] private string buildName = "Sem nome";
 
     [Tooltip("Como esta build joga, em uma frase. Aparece so aqui, mas " +
              "e o que impede a gente de criar duas builds que na pratica " +
              "sao a mesma coisa com numeros diferentes.")]
     [TextArea(2, 4)]
-    [FormerlySerializedAs("comoElaJoga")]
     [SerializeField] private string playstyle;
 
     [Header("Atributos (somam 20)")]
     [Tooltip("Forca da magia. Vira dano por golpe.")]
     [Range(MinPerAttribute, MaxPerAttribute)]
-    [FormerlySerializedAs("poder")]
     [SerializeField] private int power = 5;
 
     [Tooltip("Rapidez do conjurador. Diminui o tempo entre um golpe e o " +
              "proximo. A animacao acompanha sozinha - o Animator le a " +
              "velocidade por parametro e nao gravada.")]
     [Range(MinPerAttribute, MaxPerAttribute)]
-    [FormerlySerializedAs("celeridade")]
     [SerializeField] private int haste = 5;
 
     [Tooltip("Quanto o corpo aguenta. Vira vida maxima.")]
     [Range(MinPerAttribute, MaxPerAttribute)]
-    [FormerlySerializedAs("vitalidade")]
     [SerializeField] private int vitality = 5;
 
     [Tooltip("De quao longe a magia sai. E o atributo mais perigoso dos " +
@@ -62,7 +56,6 @@ public class BuildAttributes : ScriptableObject
              "levar dano nenhum. So nao desbalanceia porque subir ele " +
              "custa dano ou vida, que e pra isso que o orcamento existe.")]
     [Range(MinPerAttribute, MaxPerAttribute)]
-    [FormerlySerializedAs("alcance")]
     [SerializeField] private int range = 5;
 
     // As bases foram escolhidas pra que uma build 5/5/5/5 devolva

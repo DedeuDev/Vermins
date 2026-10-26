@@ -1,5 +1,4 @@
 using UnityEngine;
-using UnityEngine.Serialization;
 
 /// <summary>
 /// Troca o cursor do mouse conforme o que esta embaixo dele: espada em
@@ -18,22 +17,15 @@ public class ContextualCursor : MonoBehaviour
 {
     private enum CursorKind { Normal, Attack, Talk, PickUp }
 
-    [FormerlySerializedAs("cursorDeAtaque")]
     [SerializeField] private Texture2D attackCursor;
-    [FormerlySerializedAs("pontaDoAtaque")]
     [SerializeField] private Vector2 attackHotspot = new Vector2(3f, 3f);
 
-    [FormerlySerializedAs("cursorDeConversa")]
     [SerializeField] private Texture2D talkCursor;
-    [FormerlySerializedAs("pontaDaConversa")]
     [SerializeField] private Vector2 talkHotspot = new Vector2(3f, 3f);
 
-    [FormerlySerializedAs("cursorDePegar")]
     [SerializeField] private Texture2D pickUpCursor;
-    [FormerlySerializedAs("pontaDoPegar")]
     [SerializeField] private Vector2 pickUpHotspot = new Vector2(12f, 4f);
 
-    [FormerlySerializedAs("alcanceDoRaio")]
     [SerializeField] private float maxRayDistance = 200f;
 
     /// <summary>

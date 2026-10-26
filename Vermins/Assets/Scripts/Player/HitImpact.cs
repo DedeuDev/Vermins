@@ -1,6 +1,5 @@
 using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.Serialization;
 
 /// <summary>
 /// Da peso pro golpe: quando a espada acerta, o jogador e o alvo congelam
@@ -18,23 +17,18 @@ public class HitImpact : MonoBehaviour
     [Header("Pausa no impacto")]
     [Tooltip("Quanto tempo o jogador e o alvo ficam congelados no acerto. " +
              "Acima de uns 0,1 s ja parece travada, e nao pancada.")]
-    [FormerlySerializedAs("pausaNoAcerto")]
     [SerializeField] private float hitPause = 0.06f;
 
     [Tooltip("Pausa do golpe que mata. Um pouco maior, pra o ultimo golpe " +
              "pesar mais que os outros.")]
-    [FormerlySerializedAs("pausaNaMorte")]
     [SerializeField] private float killPause = 0.1f;
 
     [Header("Tremor de camera (trauma de 0 a 1)")]
-    [FormerlySerializedAs("tremorNoAcerto")]
     [SerializeField] private float hitShake = 0.35f;
 
-    [FormerlySerializedAs("tremorNaMorte")]
     [SerializeField] private float killShake = 0.55f;
 
     [Tooltip("Apanhar treme mais que bater: e o aviso de que a vida caiu.")]
-    [FormerlySerializedAs("tremorAoApanhar")]
     [SerializeField] private float hurtShake = 0.5f;
 
     private PlayerCombat combat;

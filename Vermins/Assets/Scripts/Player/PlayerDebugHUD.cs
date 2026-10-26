@@ -1,7 +1,6 @@
 using UnityEngine;
 using UnityEngine.AI;
 using UnityEngine.InputSystem;
-using UnityEngine.Serialization;
 
 /// <summary>
 /// HUD de debug do jogador: vida, nivel, pocoes, ouro, joias, equipamento, alvo, velocidade e fps num canto da tela.
@@ -34,26 +33,20 @@ using UnityEngine.Serialization;
 [RequireComponent(typeof(Health))]
 public class PlayerDebugHUD : MonoBehaviour
 {
-    [FormerlySerializedAs("visivel")]
     [SerializeField] private bool visible = true;
 
     [Tooltip("Liga e desliga o HUD, pra ele nao aparecer em print e video.")]
-    [FormerlySerializedAs("teclaParaEsconder")]
     [SerializeField] private Key toggleKey = Key.F1;
 
     [Tooltip("Abre e fecha a loja de debug. Funciona em qualquer cena, " +
              "nao so no hub: e pra testar a conta, nao o lugar.")]
-    [FormerlySerializedAs("teclaDaLoja")]
     [SerializeField] private Key shopKey = Key.F2;
 
     [Header("Icones das linhas")]
     [Tooltip("Os mesmos de Placeholders/Icones. Vazio, a linha ganha um " +
              "quadradinho na cor do rotulo do item no chao.")]
-    [FormerlySerializedAs("iconeDaPocao")]
     [SerializeField] private Texture2D potionIcon;
-    [FormerlySerializedAs("iconeDoOuro")]
     [SerializeField] private Texture2D goldIcon;
-    [FormerlySerializedAs("iconeDaJoia")]
     [SerializeField] private Texture2D jewelIcon;
 
     /// <summary>

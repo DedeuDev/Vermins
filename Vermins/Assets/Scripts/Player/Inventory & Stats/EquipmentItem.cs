@@ -1,6 +1,5 @@
 using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.Serialization;
 
 public enum EquipmentSlot
 {
@@ -80,27 +79,22 @@ public class EquipmentItem : ScriptableObject
     public Sprite icon;
 
     [Header("Identidade")]
-    [FormerlySerializedAs("nomeDoItem")]
     [SerializeField] private string itemName = "Sem nome";
     [SerializeField] private EquipmentSlot slot;
-    [FormerlySerializedAs("raridade")]
     [SerializeField] private Rarity rarity;
 
     [Header("Pontos (somam ate o teto da raridade)")]
     [Tooltip("Vira dano por golpe, igual ao Poder da build.")]
     [Range(0, MaxPerAttribute)]
-    [FormerlySerializedAs("poder")]
     [SerializeField] private int power;
 
     [Tooltip("Diminui o tempo entre golpes, igual a Celeridade da build.")]
     [Range(0, MaxPerAttribute)]
-    [FormerlySerializedAs("celeridade")]
     [SerializeField] private int haste;
 
     [Tooltip("Vira vida maxima, igual a Vitalidade da build. Equipar nao " +
              "enche a vida: o teto sobe e a vida atual fica onde estava.")]
     [Range(0, MaxPerAttribute)]
-    [FormerlySerializedAs("vitalidade")]
     [SerializeField] private int vitality;
 
     public string ItemName => string.IsNullOrWhiteSpace(itemName) ? name : itemName;

@@ -1,6 +1,5 @@
 using UnityEngine;
 using UnityEngine.AI;
-using UnityEngine.Serialization;
 
 /// <summary>
 /// Cuida so de mover o jogador pelo NavMesh. Nao le input e nao
@@ -55,7 +54,6 @@ public class PlayerMotor : MonoBehaviour
              "90. Subir muito daqui pra cima comeca a parecer que ele anda " +
              "de lado - medi 0,18 e ja da 19,4% do tempo mais de 10 graus " +
              "torto.")]
-    [FormerlySerializedAs("tempoDeGiro")]
     [SerializeField] private float turnTime = 0.08f;
 
     [Header("NavMesh")]
@@ -78,32 +76,27 @@ public class PlayerMotor : MonoBehaviour
              "proprio personagem: ele ja esta pisando em NavMesh, entao o " +
              "ponto mais perto e o chao dele mesmo. Nao confundir com o " +
              "sampleDistance ai de cima, que procura embaixo do mouse.")]
-    [FormerlySerializedAs("raioDeBuscaDoAlvo")]
     [SerializeField] private float targetSampleRadius = 2f;
 
     [Header("Pes no chao")]
     [Tooltip("O filho com o modelo e o Animator. So ele sobe e desce " +
              "pra encostar no chao - o agente e o collider ficam onde " +
              "estao.")]
-    [FormerlySerializedAs("modelo")]
     [SerializeField] private Transform model;
 
     [Tooltip("Layers do chao visivel. Mesma do clique no PlayerController.")]
-    [FormerlySerializedAs("mascaraDoChao")]
     [SerializeField] private LayerMask groundMask = (1 << 7) | (1 << 8);
 
     [Tooltip("Quanto o modelo pode sair da altura original, pra cima ou " +
              "pra baixo. A maior correcao que eu medi foi 6,5 cm. O teto e " +
              "pra um degrau ou uma quina nao puxarem o modelo pra longe do " +
              "agente.")]
-    [FormerlySerializedAs("correcaoMaxima")]
     [SerializeField] private float maxCorrection = 0.25f;
 
     [Tooltip("Tempo pro modelo chegar na altura nova do chao. Sem isso, " +
              "na escada da HUBCity (degrau de 36 cm) o modelo ficava " +
              "parado e pulava 26 a 40 cm num frame so a cada degrau. No " +
              "chao plano nao muda nada, porque o alvo nao se mexe.")]
-    [FormerlySerializedAs("tempoDeAssentar")]
     [SerializeField] private float settleTime = 0.1f;
 
     private NavMeshAgent agent;

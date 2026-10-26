@@ -1,5 +1,4 @@
 using UnityEngine;
-using UnityEngine.Serialization;
 
 /// <summary>
 /// O que o Player esta vestindo: um item por slot.
@@ -22,17 +21,13 @@ using UnityEngine.Serialization;
 public class CharacterEquipment : MonoBehaviour
 {
     [Header("Vestindo agora")]
-    [FormerlySerializedAs("arma")]
     [SerializeField] private EquipmentItem weapon;
-    [FormerlySerializedAs("armadura")]
     [SerializeField] private EquipmentItem armor;
-    [FormerlySerializedAs("anel")]
     [SerializeField] private EquipmentItem ring;
 
     [Header("Teste")]
     [Tooltip("Item que o menu 'Equipar item de teste' veste, pra testar " +
              "sem ir atras de drop.")]
-    [FormerlySerializedAs("itemDeTeste")]
     [SerializeField] private EquipmentItem testItem;
 
     /// <summary>

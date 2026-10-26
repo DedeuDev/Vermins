@@ -1,6 +1,5 @@
 using UnityEngine;
 using UnityEngine.AI;
-using UnityEngine.Serialization;
 
 /// <summary>
 /// Persegue o alvo, chega no alcance, vira de frente e bate no ritmo
@@ -74,56 +73,47 @@ public class PlayerCombat : MonoBehaviour
              "Com 2,2 aqui e o inimigo com raio de ~0,5, a lamina sempre " +
              "atravessa o corpo dele. Um atributo que empurrasse isto pra " +
              "3 m faria o dano sair no ar, longe da lamina.")]
-    [FormerlySerializedAs("alcanceDaArma")]
     [SerializeField] private float weaponRange = 2.2f;
 
     [Tooltip("Quanto o alvo pode se afastar entre o comeco do golpe e a " +
              "pancada (0,4 a 0,5 s) e ainda levar o dano. E mais ou menos o " +
              "raio do inimigo: generoso de proposito, porque errar um golpe " +
              "que visivelmente passou no bicho parece injusto.")]
-    [FormerlySerializedAs("folgaDaPancada")]
     [SerializeField] private float hitTolerance = 0.5f;
 
     [Header("Combo")]
     [Tooltip("Quantos golpes tem a sequencia. O ultimo e o golpe final: " +
              "demora mais e tira mais. Com 1 nao tem combo, todo golpe e " +
              "igual.")]
-    [FormerlySerializedAs("golpesNoCombo")]
     [SerializeField] private int comboLength = 3;
 
     [Tooltip("Quanto tempo depois de o golpe terminar o proximo ainda conta " +
              "como sequencia. Passou disso, volta pro primeiro. Segurando o " +
              "clique no bicho os golpes emendam na hora e o combo corre " +
              "sozinho; a janela e pra trocar de alvo sem perder a conta.")]
-    [FormerlySerializedAs("janelaDoCombo")]
     [SerializeField] private float comboWindow = 0.6f;
 
     [Tooltip("Quanto o golpe final tira, em vezes o dano da arma.")]
-    [FormerlySerializedAs("danoDoFinal")]
     [SerializeField] private float finisherMultiplier = 2f;
 
     [Header("Critico")]
     [Tooltip("Chance de cada pancada sair critica, de 0 a 1. O Diablo 4 " +
              "comeca com 5%; pus 10% pra ele aparecer o bastante pra ser " +
              "sentido enquanto nao tem equipamento somando.")]
-    [FormerlySerializedAs("chanceDeCritico")]
     [SerializeField, Range(0f, 1f)] private float critChance = 0.1f;
 
     [Tooltip("Quanto o critico tira, em vezes o dano. Multiplica junto com " +
              "o do golpe final: final critico tira 2 x 1,5 = 3 vezes.")]
-    [FormerlySerializedAs("danoDoCritico")]
     [SerializeField, Min(1f)] private float critMultiplier = 1.5f;
 
     [Tooltip("Quanto o golpe final demora, em vezes o cooldown. O clipe " +
              "dele levanta a espada acima da cabeca antes de descer, e essa " +
              "espera e o que faz ele pesar mais que os outros.")]
-    [FormerlySerializedAs("tempoDoFinal")]
     [SerializeField] private float finisherDelay = 1.3f;
 
     [Header("Magia")]
     [Tooltip("A bola que sai da mao. Vazio = corpo a corpo: o dano sai " +
              "no evento LandHit e o alcance passa a ser o da arma.")]
-    [FormerlySerializedAs("projetil")]
     [SerializeField] private Projectile projectile;
 
     [Tooltip("Contra o que testar se a visao esta limpa. Deixei so o " +
@@ -132,7 +122,6 @@ public class PlayerCombat : MonoBehaviour
              "proprios inimigos e metade da cenografia barrariam o " +
              "tiro. Quem colocar parede nova fora da Obstaculo tem que " +
              "lembrar de marcar aqui, senao da pra atirar atraves dela.")]
-    [FormerlySerializedAs("oQueBloqueiaVisao")]
     [SerializeField] private LayerMask sightBlockMask = 1 << 3;
 
     [Tooltip("Sobe o raio da linha de visao. Deixei em zero porque o " +
@@ -142,7 +131,6 @@ public class PlayerCombat : MonoBehaviour
              "raio ja sai reto de peito a peito e nao raspa no chao. " +
              "Sobrou como knob pro dia em que entrar um inimigo baixo " +
              "demais e o raio comecar a passar por cima dele.")]
-    [FormerlySerializedAs("alturaDoRaio")]
     [SerializeField] private float rayHeight;
 
     [Header("Perseguicao")]

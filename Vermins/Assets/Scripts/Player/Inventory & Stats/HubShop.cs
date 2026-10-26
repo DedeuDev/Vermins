@@ -1,5 +1,4 @@
 using UnityEngine;
-using UnityEngine.Serialization;
 
 /// <summary>
 /// A conta da loja do hub (secao 4.4 do GDR): vender joias e equipamento,
@@ -37,21 +36,16 @@ public class HubShop : MonoBehaviour
 {
     [Header("Compra")]
     [Tooltip("Quanto custa uma pocao. Valor de teste, nao e definitivo.")]
-    [FormerlySerializedAs("precoDaPocao")]
     [SerializeField, Min(1)] private int potionPrice = 25;
 
     [Header("Venda de equipamento (por raridade)")]
-    [FormerlySerializedAs("vendaComum")]
     [SerializeField, Min(1)] private int commonSellPrice = 10;
-    [FormerlySerializedAs("vendaMagico")]
     [SerializeField, Min(1)] private int magicSellPrice = 25;
-    [FormerlySerializedAs("vendaRaro")]
     [SerializeField, Min(1)] private int rareSellPrice = 60;
 
     [Header("Venda de joia")]
     [Tooltip("Fracao do valor guardado que a loja paga. Em 1 paga o valor " +
              "inteiro, que e o que o rotulo da joia promete.")]
-    [FormerlySerializedAs("fracaoDaJoia")]
     [SerializeField, Range(0.1f, 1f)] private float jewelSellFraction = 1f;
 
     private GoldWallet wallet;

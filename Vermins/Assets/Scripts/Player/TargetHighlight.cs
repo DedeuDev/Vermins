@@ -1,5 +1,4 @@
 using UnityEngine;
-using UnityEngine.Serialization;
 
 /// <summary>
 /// Mostra em quem o jogador vai bater e em quem ele ja esta batendo.
@@ -19,46 +18,35 @@ public class TargetHighlight : MonoBehaviour
 {
     [Header("Contorno no inimigo sob o mouse")]
     [Tooltip("Material com o shader Vermins/Contorno.")]
-    [FormerlySerializedAs("contorno")]
     [SerializeField] private Material outlineMaterial;
 
     [Tooltip("Cor do contorno no item sob o mouse. Clara, pra nao " +
              "confundir com o vermelho do inimigo.")]
-    [FormerlySerializedAs("corDoContornoDeItem")]
     [SerializeField] private Color itemOutlineColor = new Color(1f, 0.95f, 0.75f, 1f);
 
     [Header("Anel no alvo travado")]
     [Tooltip("Material transparente com cor de vertice. Uso o mesmo do " +
              "marcador de destino.")]
-    [FormerlySerializedAs("materialDoAnel")]
     [SerializeField] private Material ringMaterial;
 
-    [FormerlySerializedAs("corDoAnel")]
     [SerializeField] private Color ringColor = new Color(0.9f, 0.15f, 0.1f, 0.9f);
 
-    [FormerlySerializedAs("espessuraDoAnel")]
     [SerializeField] private float ringThickness = 0.06f;
 
     [Tooltip("Quanto o anel passa da borda do corpo do alvo.")]
-    [FormerlySerializedAs("folgaDoRaio")]
     [SerializeField] private float radiusPadding = 0.25f;
 
     [Tooltip("Quanto o raio cresce e encolhe no pulso, em fracao do raio.")]
-    [FormerlySerializedAs("pulso")]
     [SerializeField] private float pulseAmount = 0.06f;
 
-    [FormerlySerializedAs("velocidadeDoPulso")]
     [SerializeField] private float pulseSpeed = 4f;
 
-    [FormerlySerializedAs("segmentos")]
     [SerializeField] private int segments = 48;
 
     [Tooltip("Layers do chao visivel. Mesma do clique no PlayerController.")]
-    [FormerlySerializedAs("mascaraDoChao")]
     [SerializeField] private LayerMask groundMask = (1 << 7) | (1 << 8);
 
     [Tooltip("Folga acima do chao pra o anel nao piscar dentro dele.")]
-    [FormerlySerializedAs("alturaAcimaDoChao")]
     [SerializeField] private float groundOffset = 0.03f;
 
     private ContextualCursor cursor;

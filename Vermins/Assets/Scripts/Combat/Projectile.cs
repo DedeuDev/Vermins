@@ -1,5 +1,4 @@
 using UnityEngine;
-using UnityEngine.Serialization;
 
 /// <summary>
 /// Bola de magia que sai da mao, voa reto e machuca no que encostar.
@@ -27,19 +26,16 @@ public class Projectile : MonoBehaviour
              "ainda assim nao parecer que o golpe emperrou. Bem mais " +
              "lento que isso e o inimigo consegue simplesmente andar pra " +
              "fora do caminho toda vez.")]
-    [FormerlySerializedAs("velocidade")]
     [SerializeField] private float speed = 18f;
 
     [Tooltip("Raio da bola pro teste de colisao. Nao precisa bater com o " +
              "tamanho do desenho - este numero e o que decide se acertou, " +
              "e um pouco mais gordo que a arte perdoa a mira.")]
-    [FormerlySerializedAs("raio")]
     [SerializeField] private float radius = 0.15f;
 
     [Tooltip("Depois de voar isto tudo sem bater em nada, some sozinho. " +
              "Deixei maior que o alcance do ataque pra bola nao evaporar " +
              "no ar bem na frente de um inimigo que recuou.")]
-    [FormerlySerializedAs("alcanceMaximo")]
     [SerializeField] private float maxRange = 14f;
 
     [Tooltip("Contra o que testar colisao. Deixei tudo menos a Ignore " +
@@ -48,14 +44,12 @@ public class Projectile : MonoBehaviour
              "nada. Quem distingue inimigo de parede aqui e a presenca de " +
              "um Health, nao a layer. No dia em que o projeto tiver layer " +
              "de personagem, e so apertar esta mascara.")]
-    [FormerlySerializedAs("oQueAcerta")]
     [SerializeField] private LayerMask hitMask = ~(1 << 2);
 
     [Header("Sumico")]
     [Tooltip("Solto o rastro em vez de destruir junto, pra ele apagar " +
              "sozinho no ar. Sem isso o trail some de estalo e a bola " +
              "parece ter sido deletada em vez de ter batido.")]
-    [FormerlySerializedAs("rastro")]
     [SerializeField] private TrailRenderer trail;
 
     private float damage;

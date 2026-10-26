@@ -1,6 +1,5 @@
 using UnityEngine;
 using UnityEngine.AI;
-using UnityEngine.Serialization;
 
 /// <summary>
 /// Liga a animacao na velocidade real do NavMeshAgent.
@@ -38,13 +37,11 @@ public class PlayerAnimator : MonoBehaviour
              "Medi o descompasso somado num trajeto de 38 m: com 0,12 da " +
              "1,28 m de escorregao, com 0,06 da 0,64 m. Abaixo disso o " +
              "blend comeca a trancar.")]
-    [FormerlySerializedAs("suavizacao")]
     [SerializeField] private float smoothing = 0.06f;
 
     [Tooltip("Abaixo disso eu trato como parado. O NavMeshAgent nunca zera " +
              "a velocidade de verdade e sem esse corte o personagem fica " +
              "tremendo entre parado e andando.")]
-    [FormerlySerializedAs("velocidadeMinima")]
     [SerializeField] private float minSpeed = 0.1f;
 
     [Tooltip("Velocidade em que o pe da corrida pra frente pisa, em m/s. " +
@@ -53,25 +50,21 @@ public class PlayerAnimator : MonoBehaviour
              "com 2,58 aqui, ela toca a 1,47x. O numero sai no log do menu " +
              "Vermins/Player/Montar Animator do Paladino - se trocar o " +
              "clipe de corrida, copie de la.")]
-    [FormerlySerializedAs("velocidadeDaCorrida")]
     [SerializeField] private float runSpeed = 2.58f;
 
     [Header("Reacao a dano")]
     [Tooltip("Segundos pra camada da reacao entrar. Tem que casar com a " +
              "duracao da transicao pro estado Reagir la no controller, " +
              "senao uma rampa termina antes da outra e aparece um degrau.")]
-    [FormerlySerializedAs("entradaDaReacao")]
     [SerializeField] private float reactionFadeIn = 0.08f;
 
     [Tooltip("Segundos pra camada da reacao sair. Casa com a duracao da " +
              "transicao de volta pro Vazio pelo mesmo motivo.")]
-    [FormerlySerializedAs("saidaDaReacao")]
     [SerializeField] private float reactionFadeOut = 0.15f;
 
     [Tooltip("Segundos do blend quando uma ordem de andar corta o golpe. " +
              "Curto de proposito: e o tempo em que as pernas ainda estao " +
              "no gesto enquanto o corpo ja anda.")]
-    [FormerlySerializedAs("corteDoGolpe")]
     [SerializeField] private float attackCutFade = 0.1f;
 
     [Tooltip("Segundos do blend quando o jogador sai andando no fim do " +

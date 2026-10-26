@@ -1,5 +1,4 @@
 using UnityEngine;
-using UnityEngine.Serialization;
 
 /// <summary>
 /// Espirra sangue no ponto do golpe: quando a espada do jogador acerta um
@@ -17,24 +16,18 @@ public class HitParticles : MonoBehaviour
     [Tooltip("Material de particula com textura redonda e cor de vertice.")]
     [SerializeField] private Material material;
 
-    [FormerlySerializedAs("corEscura")]
     [SerializeField] private Color darkColor = new Color(0.6f, 0.03f, 0.03f, 1f);
-    [FormerlySerializedAs("corClara")]
     [SerializeField] private Color lightColor = new Color(0.95f, 0.12f, 0.06f, 1f);
 
-    [FormerlySerializedAs("particulasNoAcerto")]
     [SerializeField] private int hitCount = 14;
 
     [Tooltip("O golpe que mata e o final do combo espirram mais.")]
-    [FormerlySerializedAs("particulasNaMorte")]
     [SerializeField] private int killCount = 26;
 
-    [FormerlySerializedAs("particulasAoApanhar")]
     [SerializeField] private int hurtCount = 10;
 
     [Tooltip("Altura do peito, de onde o golpe parte e onde o jogador " +
              "leva o dano.")]
-    [FormerlySerializedAs("alturaDoPeito")]
     [SerializeField] private float chestHeight = 1.1f;
 
     private PlayerCombat combat;

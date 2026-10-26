@@ -1,5 +1,4 @@
 using UnityEngine;
-using UnityEngine.Serialization;
 
 /// <summary>
 /// Pisca o corpo de vermelho toda vez que leva dano.
@@ -20,21 +19,18 @@ using UnityEngine.Serialization;
 [DisallowMultipleComponent]
 public class DamageFlash : MonoBehaviour
 {
-    [FormerlySerializedAs("cor")]
     [SerializeField] private Color color = Color.red;
 
     [Tooltip("Quanto tempo o flash leva pra apagar. Curto de proposito: " +
              "o inimigo bate a cada 1,5 s e o jogador a cada 1,2 s, entao " +
              "qualquer coisa acima de uns 0,3 s faria um golpe emendar no " +
              "outro e viraria uma luz acesa em vez de um pisca por golpe.")]
-    [FormerlySerializedAs("duracao")]
     [SerializeField] private float duration = 0.15f;
 
     [Tooltip("Quanto da cor entra no auge do flash. 1 apaga a textura " +
              "inteira e o personagem vira uma silhueta vermelha; deixei " +
              "menos pra ainda dar pra ver quem e que levou.")]
     [Range(0f, 1f)]
-    [FormerlySerializedAs("forca")]
     [SerializeField] private float strength = 0.8f;
 
     // O _BaseColor e o nome no URP/Lit. O _Color e o nome antigo, que

@@ -1,5 +1,4 @@
 using UnityEngine;
-using UnityEngine.Serialization;
 
 /// <summary>
 /// Pega uma build e escreve os numeros dela nos componentes que fazem o
@@ -40,7 +39,6 @@ public class CharacterAttributes : MonoBehaviour
              "da partida, que e quando o personagem tem que nascer inteiro. " +
              "Quem for aplicar buff no meio da luta desliga isto, senao " +
              "equipar e desequipar um anel vira cura infinita.")]
-    [FormerlySerializedAs("encherAVidaAoAplicar")]
     [SerializeField] private bool refillHealthOnApply = true;
 
     // Opcional: um inimigo que use este componente nao tem nivel, e ai o

@@ -1,6 +1,5 @@
 using TMPro;
 using UnityEngine;
-using UnityEngine.Serialization;
 
 /// <summary>
 /// Experiencia e nivel do Player.
@@ -55,43 +54,35 @@ public class CharacterLevel : MonoBehaviour
              "isto vezes n, entao o nivel 10 pede 6750 no total. Medi 42 " +
              "inimigos por dungeon: com o boss sao 2260 de XP em cada uma, " +
              "e quem mata tudo chega no nivel 10 no fim da terceira.")]
-    [FormerlySerializedAs("xpDoPrimeiroNivel")]
     [SerializeField, Min(1)] private int firstLevelXp = 150;
 
     [Tooltip("Daqui pra cima o XP para de subir.")]
-    [FormerlySerializedAs("nivelMaximo")]
     [SerializeField, Min(1)] private int maxLevel = 10;
 
     [Header("Bonus")]
     [Tooltip("Quanto cada nivel acima do 1 soma de vida maxima e de dano, " +
              "em cima do que a build da. Soma e nao compoe: o nivel 10 e " +
              "+90%, e nao 1,1 elevado a 9.")]
-    [FormerlySerializedAs("bonusPorNivel")]
     [SerializeField, Range(0f, 1f)] private float bonusPerLevel = 0.1f;
 
     [Header("Aviso de nivel")]
     [Tooltip("Cor do \"Nivel N\" que sobe da cabeca ao subir de nivel.")]
-    [FormerlySerializedAs("corDoAviso")]
     [SerializeField] private Color levelUpColor = new Color(1f, 0.8f, 0.25f, 1f);
 
     [Tooltip("Tamanho da fonte do TextMeshPro no mundo. O numero de dano " +
              "usa 5; pus maior porque subir de nivel e mais raro e mais " +
              "importante que um golpe.")]
-    [FormerlySerializedAs("tamanhoDoAviso")]
     [SerializeField] private float levelUpSize = 8f;
 
     [Tooltip("Quanto tempo o aviso fica na tela.")]
-    [FormerlySerializedAs("duracaoDoAviso")]
     [SerializeField] private float levelUpDuration = 2f;
 
     [Tooltip("Quanto o aviso sobe, em metros, ate sumir.")]
-    [FormerlySerializedAs("subidaDoAviso")]
     [SerializeField] private float levelUpRise = 1.2f;
 
     [Tooltip("Altura acima do pivo do Player onde o aviso nasce. O pivo " +
              "fica no peito (baseOffset 0,92, capsula de 2 m), entao com " +
              "1,4 o texto nasce um pouco acima da cabeca.")]
-    [FormerlySerializedAs("alturaDoAviso")]
     [SerializeField] private float levelUpHeight = 1.4f;
 
     private PlayerCombat combat;

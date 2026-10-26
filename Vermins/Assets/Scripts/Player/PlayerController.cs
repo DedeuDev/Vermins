@@ -1,7 +1,6 @@
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.InputSystem;
-using UnityEngine.Serialization;
 
 /// <summary>
 /// Le o input e traduz em ordens pro PlayerMotor.
@@ -43,7 +42,6 @@ public class PlayerController : MonoBehaviour
     [Tooltip("Por quanto tempo a esquiva apertada antes da hora fica " +
              "guardada. Apertando ate isso antes da recarga acabar, ela " +
              "sai sozinha assim que puder, em vez de se perder.")]
-    [FormerlySerializedAs("janelaDaEsquiva")]
     [SerializeField] private float dodgeBufferWindow = 0.2f;
 
     private InputSystem_Actions input;

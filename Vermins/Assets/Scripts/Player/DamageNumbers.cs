@@ -1,7 +1,6 @@
 using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
-using UnityEngine.Serialization;
 
 /// <summary>
 /// Numero de dano subindo em cima do inimigo quando a espada acerta. O
@@ -18,52 +17,40 @@ using UnityEngine.Serialization;
 [RequireComponent(typeof(PlayerCombat))]
 public class DamageNumbers : MonoBehaviour
 {
-    [FormerlySerializedAs("corNormal")]
     [SerializeField] private Color normalColor = new Color(1f, 0.97f, 0.9f, 1f);
-    [FormerlySerializedAs("corDaMorte")]
     [SerializeField] private Color killColor = new Color(1f, 0.6f, 0.15f, 1f);
 
     [Tooltip("Tamanho da fonte do TextMeshPro no mundo.")]
-    [FormerlySerializedAs("tamanho")]
     [SerializeField] private float fontSize = 5f;
 
     [Tooltip("Quanto o golpe que mata sai maior.")]
-    [FormerlySerializedAs("escalaDaMorte")]
     [SerializeField] private float killScale = 1.4f;
 
     [Tooltip("Quanto o golpe final do combo sai maior. Fica na cor normal: " +
              "o laranja e so de quem morreu.")]
-    [FormerlySerializedAs("escalaDoFinal")]
     [SerializeField] private float finisherScale = 1.25f;
 
     [Tooltip("Cor do critico. Amarelo, como no Diablo 4. Se o critico " +
              "mata, fica o laranja da morte e o ! continua dizendo que foi " +
              "critico.")]
-    [FormerlySerializedAs("corDoCritico")]
     [SerializeField] private Color critColor = new Color(1f, 0.85f, 0.2f, 1f);
 
     [Tooltip("Quanto o critico sai maior.")]
-    [FormerlySerializedAs("escalaDoCritico")]
     [SerializeField] private float critScale = 1.5f;
 
     [Tooltip("Quanto tempo o numero fica na tela.")]
-    [FormerlySerializedAs("duracao")]
     [SerializeField] private float duration = 0.8f;
 
     [Tooltip("Quanto o numero sobe, em metros, ate sumir.")]
-    [FormerlySerializedAs("subida")]
     [SerializeField] private float riseDistance = 0.9f;
 
     [Tooltip("Altura acima do topo do inimigo onde o numero nasce.")]
-    [FormerlySerializedAs("folgaAcimaDaCabeca")]
     [SerializeField] private float headOffset = 0.2f;
 
     [Tooltip("Espalha um pouco de lado, pra golpes seguidos nao " +
              "escreverem um numero em cima do outro.")]
-    [FormerlySerializedAs("espalhamento")]
     [SerializeField] private float spread = 0.35f;
 
-    [FormerlySerializedAs("quantosTextos")]
     [SerializeField] private int poolSize = 12;
 
     private class Entry

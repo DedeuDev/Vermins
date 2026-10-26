@@ -319,9 +319,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: bac3ac55a5aea1f4d9ca9976e1fe2501, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::FlashDeDano
-  cor: {r: 1, g: 0, b: 0, a: 1}
-  duracao: 0.15
-  forca: 0.8
+  color: {r: 1, g: 0, b: 0, a: 1}
+  duration: 0.15
+  strength: 0.8
 --- !u!1001 &149820689
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -1267,9 +1267,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: bac3ac55a5aea1f4d9ca9976e1fe2501, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::FlashDeDano
-  cor: {r: 1, g: 0, b: 0, a: 1}
-  duracao: 0.15
-  forca: 0.8
+  color: {r: 1, g: 0, b: 0, a: 1}
+  duration: 0.15
+  strength: 0.8
 --- !u!1 &1969745420
 GameObject:
   m_ObjectHideFlags: 0
@@ -1383,6 +1383,9 @@ MonoBehaviour:
   distance: 24.3
   fieldOfView: 30
   smoothTime: 0.15
+  tremorMaximo: 0.7
+  frequenciaDoTremor: 25
+  recuperacaoDoTremor: 2
 --- !u!114 &1969745425
 MonoBehaviour:
   m_ObjectHideFlags: 0
