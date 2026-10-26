@@ -21,7 +21,7 @@ public abstract class Ability : MonoBehaviour
 {
     [Tooltip("Segundos entre um uso e o proximo, contados do uso. A " +
              "Celeridade vai encurtar isto na 3.4.")]
-    [SerializeField, Min(0f)] private float cooldown = 3f;
+    [SerializeField, Min(0f)] protected float cooldown = 3f;
 
     private Health health;
     private Dodge dodge;
@@ -29,6 +29,10 @@ public abstract class Ability : MonoBehaviour
     // Quando a habilidade volta. Guardo o horario, e nao o tempo que falta,
     // pra nao precisar descontar nada por frame.
     private float readyTime;
+
+    // Quando o gesto termina e o jogador volta a mandar. Mesmo esquema da
+    // recarga: um horario, sem Update.
+    private float castEndTime;
 
     /// <summary>
     /// Disparado depois de cada uso que deu certo. Animacao, efeito e o HUD
@@ -52,6 +56,20 @@ public abstract class Ability : MonoBehaviour
     /// numero que a barra do HUD desenha.
     /// </summary>
     public float CooldownFraction => Cooldown > 0f ? Mathf.Clamp01(CooldownRemaining / Cooldown) : 0f;
+
+    /// <summary>
+    /// Quanto o gesto trava o jogador, do aperto ate poder andar de novo.
+    /// Zero e habilidade instantanea. O PlayerAnimator encaixa o clipe neste
+    /// tempo.
+    /// </summary>
+    public virtual float CastTime => 0f;
+
+    /// <summary>
+    /// Verdadeiro durante o gesto. O PlayerController trata igual ao
+    /// rolamento: guarda o clique e usa no fim, pra o corpo nao sair
+    /// deslizando no meio da pancada.
+    /// </summary>
+    public bool IsCasting => Time.time < castEndTime;
 
     protected virtual void Awake()
     {
@@ -78,8 +96,19 @@ public abstract class Ability : MonoBehaviour
         // Conto a recarga depois do Activate pra uma recusa da filha (sem
         // alvo, sem chao) nao gastar o uso.
         readyTime = Time.time + Cooldown;
+        castEndTime = Time.time + CastTime;
         OnUsed?.Invoke(this);
         return true;
+    }
+
+    /// <summary>
+    /// Solta o jogador antes do fim do gesto. A filha chama quando o gesto
+    /// e cortado (a esquiva no meio da pancada). A recarga continua: cortar
+    /// nao devolve o uso.
+    /// </summary>
+    protected void EndCast()
+    {
+        castEndTime = 0f;
     }
 
     /// <summary>

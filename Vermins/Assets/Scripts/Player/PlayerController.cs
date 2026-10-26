@@ -182,7 +182,8 @@ public class PlayerController : MonoBehaviour
         // segurado, o jogador volta a andar ou a bater sozinho no fim do
         // rolamento, que e o que se espera de quem rolou no meio da briga.
         // Clique novo no meio do rolamento fica guardado e vale no fim.
-        if (dodge != null && dodge.IsDodging)
+        // No gesto da habilidade, igual: o corpo esta preso na pancada.
+        if (IsBusy())
         {
             if (input.Player.Click.WasPressedThisFrame() && !IsPointerOverUI())
             {
@@ -334,6 +335,15 @@ public class PlayerController : MonoBehaviour
 
         if (rightClickAbility.TryUse(bufferedAbilityPoint))
             bufferedAbilityUntil = -1f;
+    }
+
+    /// <summary>
+    /// Rolando ou no gesto da habilidade: o corpo nao obedece clique agora.
+    /// </summary>
+    private bool IsBusy()
+    {
+        return (dodge != null && dodge.IsDodging) ||
+               (rightClickAbility != null && rightClickAbility.IsCasting);
     }
 
     private Ray CursorRay()

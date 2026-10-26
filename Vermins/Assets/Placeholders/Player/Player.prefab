@@ -35,6 +35,7 @@ GameObject:
   - component: {fileID: 7469843910050184080}
   - component: {fileID: 4118665497087882245}
   - component: {fileID: 5894885784309209177}
+  - component: {fileID: 1204055502946249803}
   m_Layer: 0
   m_Name: Player
   m_TagString: Player
@@ -149,6 +150,8 @@ MonoBehaviour:
     m_Bits: 507
   viewCamera: {fileID: 0}
   dodgeBufferWindow: 0.2
+  abilityBufferWindow: 0.2
+  rightClickAbility: {fileID: 0}
 --- !u!114 &2527989469152364073
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -543,6 +546,23 @@ MonoBehaviour:
   magicSellPrice: 25
   rareSellPrice: 60
   jewelSellFraction: 1
+--- !u!114 &1204055502946249803
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7457194079543536127}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b78fb1edaaba9344c8db57ad65c0f5dd, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::GroundSlam
+  cooldown: 5
+  radius: 3
+  damageMultiplier: 1.5
+  castTime: 1
+  impactDelay: 0.48
 --- !u!1001 &9095150474061651368
 PrefabInstance:
   m_ObjectHideFlags: 0

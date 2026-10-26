@@ -203,7 +203,12 @@ public class PlayerCombat : MonoBehaviour
     /// Se o golpe que esta saindo e o final da sequencia. Quem escuta o
     /// OnAttackHit le isto pra pesar mais a pancada.
     /// </summary>
-    public bool IsFinisher => comboLength > 1 && castStep == comboLength - 1;
+    public bool IsFinisher => !reportingHit && comboLength > 1 && castStep == comboLength - 1;
+
+    // Ligado enquanto o ReportHit dispara o OnAttackHit. O passo do combo
+    // e do ultimo golpe de espada, e a pancada de uma habilidade nao e
+    // golpe final: sem isto ela herdaria o peso dele.
+    private bool reportingHit;
 
     /// <summary>
     /// Se a pancada que acabou de acertar foi critica. Vale durante o
@@ -540,6 +545,25 @@ public class PlayerCombat : MonoBehaviour
     }
 
     /// <summary>
+    /// Avisa um acerto que nao veio da espada, como o golpe em area. Passa
+    /// pelo mesmo OnAttackHit, entao numero, sangue, tremor e XP funcionam
+    /// sem nenhum deles saber que habilidade existe.
+    ///
+    /// Quem chama ja aplicou o dano e mediu quanto a vida perdeu, como o
+    /// LandHit faz. Dano zero (alvo invulneravel) nao conta como acerto.
+    /// </summary>
+    public void ReportHit(Health alvo, float dano, bool critico)
+    {
+        if (alvo == null || dano <= 0f)
+            return;
+
+        LastHitWasCrit = critico;
+        reportingHit = true;
+        OnAttackHit?.Invoke(alvo, dano);
+        reportingHit = false;
+    }
+
+    /// <summary>
     /// Quem leva a pancada do golpe parado: o vivo mais perto entre os que
     /// a lamina alcanca e sem parede no meio, pelos mesmos testes do golpe
     /// com alvo, olhando pra metade da frente dada. Null quando ninguem
@@ -773,8 +797,11 @@ public class PlayerCombat : MonoBehaviour
     /// esta na altura do peito, nao no pe (baseOffset 0,92, capsula de 2
     /// m centrada). Como os dois lados usam a mesma convencao, o raio ja
     /// sai reto de peito a peito.
+    ///
+    /// Publico porque o golpe em area usa o mesmo teste: a pancada dele
+    /// tambem nao pode atravessar parede.
     /// </summary>
-    private bool HasLineOfSight(Health alvo)
+    public bool HasLineOfSight(Health alvo)
     {
         Vector3 de = transform.position + Vector3.up * rayHeight;
         Vector3 para = alvo.transform.position + Vector3.up * rayHeight;

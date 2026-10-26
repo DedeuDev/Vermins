@@ -131,6 +131,7 @@ public class PlayerAnimator : MonoBehaviour
     private Health health;
     private PlayerCombat combat;
     private Dodge dodge;
+    private Ability[] abilities;
 
     // Indice da camada da reacao, resolvido uma vez. Guardo porque
     // GetLayerIndex faz busca por nome e eu leio isto todo frame.
@@ -176,6 +177,7 @@ public class PlayerAnimator : MonoBehaviour
         health = GetComponent<Health>();
         combat = GetComponent<PlayerCombat>();
         dodge = GetComponent<Dodge>();
+        abilities = GetComponents<Ability>();
 
         if (animator == null)
             animator = GetComponentInChildren<Animator>();
@@ -381,6 +383,9 @@ public class PlayerAnimator : MonoBehaviour
 
         if (health != null)
             health.OnDamaged += HandleDamaged;
+
+        foreach (Ability habilidade in abilities)
+            habilidade.OnUsed += HandleAbilityUsed;
     }
 
     private void OnDisable()
@@ -396,6 +401,9 @@ public class PlayerAnimator : MonoBehaviour
 
         if (health != null)
             health.OnDamaged -= HandleDamaged;
+
+        foreach (Ability habilidade in abilities)
+            habilidade.OnUsed -= HandleAbilityUsed;
     }
 
     /// <summary>
@@ -472,6 +480,43 @@ public class PlayerAnimator : MonoBehaviour
         // tempo normal de saida em vez de ficar por cima do golpe - antes
         // ela cobria 1,15 s, quase o golpe inteiro. E um Apanhar armado
         // neste mesmo frame morre antes de entrar.
+        if (canReact)
+        {
+            animator.ResetTrigger(HurtId);
+
+            if (IsReacting())
+                animator.CrossFadeInFixedTime(EmptyStateId, reactionFadeOut, reactionLayer);
+        }
+    }
+
+    /// <summary>
+    /// Uma habilidade foi usada. Toco o golpe final da espada encaixado no
+    /// CastTime dela, pelo mesmo estado de ataque do combo. E o unico clipe
+    /// que levanta a espada antes de descer, entao serve de pancada no chao
+    /// enquanto nao tem clipe proprio.
+    ///
+    /// Hoje toda habilidade toca este clipe. Quando a 3.3 trouxer o
+    /// projetil, a habilidade vai ter que dizer qual clipe quer.
+    /// </summary>
+    private void HandleAbilityUsed(Ability habilidade)
+    {
+        if (health != null && health.IsDead)
+            return;
+
+        int n = attackDurations.Length;
+
+        if (n == 0 || habilidade.CastTime <= 0f)
+            return;
+
+        int clipe = n - 1;
+
+        // A mesma conta do AttackSpeedFor, so que com o tempo da habilidade
+        // no lugar do cooldown da espada.
+        animator.SetFloat(AttackSpeedId,
+            Mathf.Max(1f, attackDurations[clipe] / (habilidade.CastTime * AttackFitRatio)));
+        animator.SetFloat(VariantId, clipe);
+        animator.SetTrigger(AttackId);
+
         if (canReact)
         {
             animator.ResetTrigger(HurtId);
