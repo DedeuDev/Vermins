@@ -14,7 +14,9 @@ using UnityEngine.InputSystem;
 /// esquerdo faz tudo, e o que ele faz depende do que esta embaixo do
 /// cursor quando desce - NPC interage, inimigo ataca, chao anda. Antes
 /// era o direito que andava, herdado do Movement.cs antigo, e o
-/// esquerdo so atacava. O direito ficou livre pra quando existir skill.
+/// esquerdo so atacava. O direito agora solta a habilidade (Ability), fora
+/// da fila do esquerdo: ele nao olha o que esta embaixo do cursor, so
+/// manda a habilidade pro ponto do chao.
 /// </summary>
 [RequireComponent(typeof(PlayerMotor))]
 public class PlayerController : MonoBehaviour
@@ -43,6 +45,15 @@ public class PlayerController : MonoBehaviour
              "guardada. Apertando ate isso antes da recarga acabar, ela " +
              "sai sozinha assim que puder, em vez de se perder.")]
     [SerializeField] private float dodgeBufferWindow = 0.2f;
+
+    [Tooltip("O mesmo da esquiva, pra habilidade apertada na recarga. " +
+             "Apertada no meio do rolamento, ela espera o fim dele.")]
+    [SerializeField] private float abilityBufferWindow = 0.2f;
+
+    [Header("Habilidade")]
+    [Tooltip("O que o botao direito solta. Vazio pega a primeira Ability " +
+             "do Player.")]
+    [SerializeField] private Ability rightClickAbility;
 
     private InputSystem_Actions input;
     private PlayerMotor motor;
@@ -76,6 +87,8 @@ public class PlayerController : MonoBehaviour
     private Ray bufferedClick;
     private float bufferedDodgeUntil = -1f;
     private Vector3 bufferedDodgePoint;
+    private float bufferedAbilityUntil = -1f;
+    private Vector3 bufferedAbilityPoint;
 
     /// <summary>
     /// Disparado toda vez que o jogador manda andar pra um ponto.
@@ -93,6 +106,9 @@ public class PlayerController : MonoBehaviour
         interactor = GetComponent<PlayerInteractor>();
         dodge = GetComponent<Dodge>();
         input = new InputSystem_Actions();
+
+        if (rightClickAbility == null)
+            rightClickAbility = GetComponent<Ability>();
 
         if (viewCamera == null)
             viewCamera = Camera.main;
@@ -156,6 +172,11 @@ public class PlayerController : MonoBehaviour
         // ou em cima da UI - e tecla, nao clique.
         if (dodge != null)
             TryBufferedDodge();
+
+        // Antes do return do rolamento: apertada rolando, a habilidade tem
+        // que ficar guardada, igual ao clique.
+        if (rightClickAbility != null)
+            TryBufferedAbility();
 
         // Rolando, o clique espera. Nao zero a ordem: se o botao continua
         // segurado, o jogador volta a andar ou a bater sozinho no fim do
@@ -273,6 +294,46 @@ public class PlayerController : MonoBehaviour
         // A esquiva nova corta tudo, entao o clique guardado na anterior
         // tambem cai. Vale o comando mais novo.
         hasBufferedClick = false;
+
+        // E a habilidade guardada antes dela tambem.
+        bufferedAbilityUntil = -1f;
+    }
+
+    /// <summary>
+    /// Botao direito: solta a habilidade no ponto do chao embaixo do mouse.
+    /// Apertado na recarga, fica guardado pela abilityBufferWindow, como a
+    /// esquiva. Apertado rolando, espera o rolamento acabar e sai no fim,
+    /// pro ponto em que o mouse estava no aperto.
+    /// </summary>
+    private void TryBufferedAbility()
+    {
+        // E botao do mouse, entao clique na UI nao conta, ao contrario da
+        // esquiva, que e tecla.
+        if (input.Player.Ability1.WasPressedThisFrame() && !IsPointerOverUI())
+        {
+            bufferedAbilityPoint = CursorGroundPoint();
+            bufferedAbilityUntil = Time.time + abilityBufferWindow;
+        }
+
+        if (bufferedAbilityUntil < 0f)
+            return;
+
+        // O rolamento dura 0,5 s, mais que a janela. Sem empurrar o prazo,
+        // a habilidade apertada no comeco dele venceria antes do fim.
+        if (dodge != null && dodge.IsDodging)
+        {
+            bufferedAbilityUntil = Mathf.Max(bufferedAbilityUntil, Time.time + abilityBufferWindow);
+            return;
+        }
+
+        if (Time.time > bufferedAbilityUntil)
+        {
+            bufferedAbilityUntil = -1f;
+            return;
+        }
+
+        if (rightClickAbility.TryUse(bufferedAbilityPoint))
+            bufferedAbilityUntil = -1f;
     }
 
     private Ray CursorRay()
