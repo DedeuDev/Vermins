@@ -49,6 +49,15 @@ public class SaveSystem : MonoBehaviour
             Debug.LogError("Componente Health não encontrado no Player.");
             return;
         }
+        
+        // Ian: morto nao salva. O save gravava vida 0 e o XP da tentativa,
+        // e no load o Revive(0) enchia a vida: morrer, pausar e salvar
+        // virava cura com XP de brinde.
+        if (health.IsDead)
+        {
+            Debug.LogWarning("Player morto, save ignorado.");
+            return;
+        }
 
         SaveData data = new SaveData();
 
