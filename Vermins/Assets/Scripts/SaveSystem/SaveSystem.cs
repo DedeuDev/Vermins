@@ -158,6 +158,11 @@ public class SaveSystem : MonoBehaviour
 
     private IEnumerator WaitForDungeonAndLoadPlayer()
     {
+        // Ian: espero um frame. O sceneLoaded chega antes dos Start, e o
+        // CharacterAttributes enche a vida no Start: na HUB a vida do save
+        // era aplicada antes e sobrescrita (medi 50 salvo, 100 no load).
+        yield return null;
+
         float timeout = 30f;
         float timer = 0f;
 
