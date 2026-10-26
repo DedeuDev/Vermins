@@ -65,6 +65,13 @@ public class Projectile : MonoBehaviour
     private float traveled;
     private bool launched;
 
+    // Buffer unico pra todas as bolas. O SphereCastAll criava um array
+    // novo por bola em todo frame. Estatico da certo porque o Update e
+    // single-thread e cada bola le o resultado antes da proxima lancar.
+    // 16 sobra: o trecho de um frame tem uns 30 cm, e ali nao cabem
+    // tantos colliders.
+    private static readonly RaycastHit[] hitBuffer = new RaycastHit[16];
+
     /// <summary>
     /// Poe a bola pra voar. Chame logo depois de instanciar - antes
     /// disso ela fica parada de proposito, pra nao sair andando na
@@ -137,15 +144,17 @@ public class Projectile : MonoBehaviour
     {
         hit = default;
 
-        RaycastHit[] tudo = Physics.SphereCastAll(
-            transform.position, radius, direction, passo,
+        int total = Physics.SphereCastNonAlloc(
+            transform.position, radius, direction, hitBuffer, passo,
             hitMask, QueryTriggerInteraction.Ignore);
 
         float maisPerto = float.MaxValue;
         bool achou = false;
 
-        foreach (RaycastHit h in tudo)
+        for (int i = 0; i < total; i++)
         {
+            RaycastHit h = hitBuffer[i];
+
             // A propria bola e quem lancou nao contam.
             if (ownerRoot != null && h.collider.transform.IsChildOf(ownerRoot))
                 continue;
