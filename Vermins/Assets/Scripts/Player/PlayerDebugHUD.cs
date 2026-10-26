@@ -208,6 +208,7 @@ public class PlayerDebugHUD : MonoBehaviour
     private readonly CachedText weaponButton = new CachedText();
     private readonly CachedText armorButton = new CachedText();
     private readonly CachedText ringButton = new CachedText();
+    private readonly CachedText backpackButton = new CachedText();
 
     /// <summary>
     /// Um texto do painel e os numeros de que ele foi montado. So vira
@@ -431,6 +432,15 @@ public class PlayerDebugHUD : MonoBehaviour
         UpdateSlotButton(weaponButton, EquipmentSlot.Weapon);
         UpdateSlotButton(armorButton, EquipmentSlot.Armor);
         UpdateSlotButton(ringButton, EquipmentSlot.Ring);
+
+        int naMochila = shop.BackpackCount;
+        int valorDaMochila = shop.BackpackValue;
+        if (backpackButton.HasChanged(naMochila, valorDaMochila))
+        {
+            backpackButton.Set(naMochila > 0
+                ? $"Vender mochila: {naMochila} itens   ({valorDaMochila})"
+                : "Mochila: vazia");
+        }
     }
 
     private void UpdateSlotButton(CachedText botao, EquipmentSlot slot)
@@ -728,8 +738,8 @@ public class PlayerDebugHUD : MonoBehaviour
         GUI.Label(caixa, tooltipContent, tooltipStyle);
     }
 
-    // Cabecalho e seis botoes.
-    private const int ShopButtonCount = 6;
+    // Cabecalho e sete botoes.
+    private const int ShopButtonCount = 7;
 
     /// <summary>
     /// A loja de debug, do mesmo tamanho do HUD e a esquerda dele. So abre
@@ -765,6 +775,10 @@ public class PlayerDebugHUD : MonoBehaviour
         SellButton(weaponButton, EquipmentSlot.Weapon, habilitado, x, largura, ref y);
         SellButton(armorButton, EquipmentSlot.Armor, habilitado, x, largura, ref y);
         SellButton(ringButton, EquipmentSlot.Ring, habilitado, x, largura, ref y);
+
+        GUI.enabled = habilitado && shop.BackpackCount > 0;
+        if (ShopButton(backpackButton.Content, x, largura, ref y))
+            shop.SellBackpack();
 
         GUI.enabled = habilitado;
         if (ShopButton(AddGoldLabel, x, largura, ref y))

@@ -18,7 +18,12 @@ using UnityEngine.Serialization;
 /// novo ja nasce com preco, sem ninguem lembrar de preencher.
 ///
 /// NAO DUPLICA ITEM: vender equipamento paga pelo que o Unequip
-/// devolveu. Slot vazio devolve null, e null nao vale ouro.
+/// devolveu. Slot vazio devolve null, e null nao vale ouro. A mochila do
+/// InventorySystem (do Rogger) segue a mesma regra pelo TakeItem.
+///
+/// A mochila e opcional. O InventorySystem ainda nao esta no Player.prefab,
+/// so no Player da HUBCity e da DungeonComPlayer. Sem ele, vender da
+/// mochila devolve false e o resto da loja funciona igual.
 ///
 /// Os precos sao de teste. Medi pelos drops do Enemy.prefab: cada abate
 /// rende uns 4 de ouro (40% de 5 a 15), uns 2 de joia (5% de 30 a 60) e
@@ -53,11 +58,45 @@ public class HubShop : MonoBehaviour
     private JewelPouch pouch;
     private PotionBelt belt;
     private CharacterEquipment equipment;
+    private InventorySystem backpack;
 
     public int PotionPrice => potionPrice;
 
     /// <summary>Quanto o SellJewels pagaria agora, pra tela mostrar antes.</summary>
     public int JewelsValue => Mathf.RoundToInt(pouch.TotalValue * jewelSellFraction);
+
+    /// <summary>Quantos itens a mochila tem. 0 sem mochila.</summary>
+    public int BackpackCount
+    {
+        get
+        {
+            if (backpack == null)
+                return 0;
+
+            int quantos = 0;
+            for (int i = 0; i < InventorySystem.SlotCount; i++)
+            {
+                if (backpack.GetItem(i) != null)
+                    quantos++;
+            }
+            return quantos;
+        }
+    }
+
+    /// <summary>Quanto o SellBackpack pagaria agora, pra tela mostrar antes.</summary>
+    public int BackpackValue
+    {
+        get
+        {
+            if (backpack == null)
+                return 0;
+
+            int total = 0;
+            for (int i = 0; i < InventorySystem.SlotCount; i++)
+                total += SellPrice(backpack.GetItem(i));
+            return total;
+        }
+    }
 
     private void Awake()
     {
@@ -65,6 +104,7 @@ public class HubShop : MonoBehaviour
         pouch = GetComponent<JewelPouch>();
         belt = GetComponent<PotionBelt>();
         equipment = GetComponent<CharacterEquipment>();
+        backpack = GetComponent<InventorySystem>();
     }
 
     /// <summary>Quanto a loja paga por este item. Sem item, 0.</summary>
@@ -124,6 +164,35 @@ public class HubShop : MonoBehaviour
         return true;
     }
 
+    /// <summary>
+    /// Vende o item deste espaco da mochila. False com o espaco vazio ou
+    /// sem mochila. E o que a tela do inventario chama.
+    /// </summary>
+    public bool SellFromBackpack(int index)
+    {
+        if (backpack == null)
+            return false;
+
+        EquipmentItem vendido = backpack.TakeItem(index);
+        if (vendido == null)
+            return false;
+
+        wallet.Add(SellPrice(vendido));
+        return true;
+    }
+
+    /// <summary>
+    /// Vende tudo da mochila de uma vez. False com ela vazia. Com 12
+    /// espacos, vender um por um na loja de debug seriam 12 botoes.
+    /// </summary>
+    public bool SellBackpack()
+    {
+        bool vendeu = false;
+        for (int i = 0; i < InventorySystem.SlotCount; i++)
+            vendeu |= SellFromBackpack(i);
+        return vendeu;
+    }
+
     // Menus pra testar no jogo antes da tela do Rogger existir. O log so
     // roda no clique, nunca por frame.
 
@@ -153,6 +222,12 @@ public class HubShop : MonoBehaviour
 
     [ContextMenu("Vender anel")]
     private void MenuSellRing() => LogSale(EquipmentSlot.Ring);
+
+    [ContextMenu("Vender mochila")]
+    private void MenuSellBackpack()
+    {
+        Debug.Log($"[Loja] Vender mochila: {SellBackpack()} (ouro {wallet.Amount})", this);
+    }
 
     private void LogSale(EquipmentSlot slot)
     {

@@ -155,6 +155,25 @@ public class InventorySystem : MonoBehaviour
         return true;
     }
 
+    // Ian: tira o item do espaco sem soltar no chao e devolve ele, ou null
+    // se o espaco estava vazio. A HubShop vende por aqui e paga so pelo que
+    // voltou, entao o item nao duplica.
+    public EquipmentItem TakeItem(int index)
+    {
+        if (!IsValidIndex(index))
+            return null;
+
+        EquipmentItem item = items[index];
+
+        if (item == null)
+            return null;
+
+        items[index] = null;
+        OnInventoryChanged?.Invoke();
+
+        return item;
+    }
+
     // Converte os itens para nomes que podem ser guardados no SaveSystem.
     public string[] GetSavedItemNames()
     {
