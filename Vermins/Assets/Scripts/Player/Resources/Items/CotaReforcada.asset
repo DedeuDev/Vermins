@@ -12,6 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 51860ef7f5f31644a8aa9dd269b67787, type: 3}
   m_Name: CotaReforcada
   m_EditorClassIdentifier: Assembly-CSharp::ItemDeEquipamento
+  icon: {fileID: 21300000, guid: 6ab19e41cfccdc24da220880477e1203, type: 3}
   itemName: "Cota Refor\xE7ada"
   slot: 1
   rarity: 1
