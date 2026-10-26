@@ -40,6 +40,9 @@ public class PlayerInteractor : MonoBehaviour
 
     private PlayerMotor motor;
 
+    // Ian: 16 sobra. Na HUB o raio do centro da tela pega 2 colliders.
+    private static readonly RaycastHit[] hitBuffer = new RaycastHit[16];
+
     // ==================================================
     // AWAKE
     // ==================================================
@@ -183,17 +186,37 @@ public class PlayerInteractor : MonoBehaviour
         out IInteractable interactable,
         out RaycastHit hit)
     {
-        RaycastHit[] hits = Physics.RaycastAll(
+        // Ian: buffer fixo e ordenacao na mao. O cursor chama isto todo
+        // frame, e o RaycastAll com o Sort davam 352 B de lixo por chamada
+        // (medi na HUB, raio com 2 colliders). O Array.Sort sozinho, mesmo
+        // com comparador guardado, ainda dava 128 B; com no maximo 16
+        // acertos a insercao e de graca.
+        int quantos = Physics.RaycastNonAlloc(
             ray,
+            hitBuffer,
             raycastDistance,
             interactionLayers,
             QueryTriggerInteraction.Collide
         );
 
-        System.Array.Sort(hits, (a, b) => a.distance.CompareTo(b.distance));
-
-        foreach (RaycastHit h in hits)
+        for (int i = 1; i < quantos; i++)
         {
+            RaycastHit atual = hitBuffer[i];
+            int j = i - 1;
+
+            while (j >= 0 && hitBuffer[j].distance > atual.distance)
+            {
+                hitBuffer[j + 1] = hitBuffer[j];
+                j--;
+            }
+
+            hitBuffer[j + 1] = atual;
+        }
+
+        for (int i = 0; i < quantos; i++)
+        {
+            RaycastHit h = hitBuffer[i];
+
             interactable = FindInteractable(h.collider);
 
             if (interactable != null)
@@ -221,29 +244,11 @@ public class PlayerInteractor : MonoBehaviour
         colliderDoPendente = null;
     }
 
+    // Ian: o GetComponentInParent acha o mesmo componente, na mesma ordem,
+    // sem montar o array de MonoBehaviour que o GetComponentsInParent montava.
     private IInteractable FindInteractable(Collider collider)
     {
-        MonoBehaviour[] behaviours =
-            collider.GetComponentsInParent<MonoBehaviour>(
-                true
-            );
-
-        foreach (
-            MonoBehaviour behaviour
-            in behaviours
-        )
-        {
-            if (behaviour == null)
-                continue;
-
-            IInteractable interactable =
-                behaviour as IInteractable;
-
-            if (interactable != null)
-                return interactable;
-        }
-
-        return null;
+        return collider.GetComponentInParent<IInteractable>(true);
     }
 
     private float DistanceTo(Collider collider)

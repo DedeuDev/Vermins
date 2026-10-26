@@ -115,7 +115,22 @@ public class ContextualCursor : MonoBehaviour
             QueryTriggerInteraction.Collide
         );
 
-        System.Array.Sort(hits, 0, quantos, ByDistance);
+        // Ordeno na mao: o Array.Sort com comparador guardado ainda dava
+        // 128 B de lixo por frame com o mouse no chao (medi na HUB). Com
+        // no maximo o tamanho do buffer, a insercao e de graca.
+        for (int i = 1; i < quantos; i++)
+        {
+            RaycastHit atual = hits[i];
+            int j = i - 1;
+
+            while (j >= 0 && hits[j].distance > atual.distance)
+            {
+                hits[j + 1] = hits[j];
+                j--;
+            }
+
+            hits[j + 1] = atual;
+        }
 
         for (int i = 0; i < quantos; i++)
         {
@@ -136,10 +151,6 @@ public class ContextualCursor : MonoBehaviour
 
         return false;
     }
-
-    private static readonly System.Collections.Generic.IComparer<RaycastHit> ByDistance =
-        System.Collections.Generic.Comparer<RaycastHit>.Create(
-            (a, b) => a.distance.CompareTo(b.distance));
 
     private void Apply(CursorKind tipo)
     {
