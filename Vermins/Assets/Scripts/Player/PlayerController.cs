@@ -55,6 +55,11 @@ public class PlayerController : MonoBehaviour
              "do Player.")]
     [SerializeField] private Ability rightClickAbility;
 
+    [Tooltip("O que a tecla 1 solta. Vazio deixa a tecla sem nada: com " +
+             "duas habilidades no Player, pegar a primeira poria a mesma " +
+             "nos dois botoes.")]
+    [SerializeField] private Ability key1Ability;
+
     private InputSystem_Actions input;
     private PlayerMotor motor;
     private Health health;
@@ -89,6 +94,8 @@ public class PlayerController : MonoBehaviour
     private Vector3 bufferedDodgePoint;
     private float bufferedAbilityUntil = -1f;
     private Vector3 bufferedAbilityPoint;
+    private float bufferedKey1Until = -1f;
+    private Vector3 bufferedKey1Point;
 
     /// <summary>
     /// Disparado toda vez que o jogador manda andar pra um ponto.
@@ -176,7 +183,16 @@ public class PlayerController : MonoBehaviour
         // Antes do return do rolamento: apertada rolando, a habilidade tem
         // que ficar guardada, igual ao clique.
         if (rightClickAbility != null)
-            TryBufferedAbility();
+        {
+            TryBufferedAbility(input.Player.Ability1, rightClickAbility,
+                ref bufferedAbilityUntil, ref bufferedAbilityPoint);
+        }
+
+        if (key1Ability != null)
+        {
+            TryBufferedAbility(input.Player.Ability2, key1Ability,
+                ref bufferedKey1Until, ref bufferedKey1Point);
+        }
 
         // Rolando, o clique espera. Nao zero a ordem: se o botao continua
         // segurado, o jogador volta a andar ou a bater sozinho no fim do
@@ -296,45 +312,50 @@ public class PlayerController : MonoBehaviour
         // tambem cai. Vale o comando mais novo.
         hasBufferedClick = false;
 
-        // E a habilidade guardada antes dela tambem.
+        // E as habilidades guardadas antes dela tambem.
         bufferedAbilityUntil = -1f;
+        bufferedKey1Until = -1f;
     }
 
     /// <summary>
-    /// Botao direito: solta a habilidade no ponto do chao embaixo do mouse.
-    /// Apertado na recarga, fica guardado pela abilityBufferWindow, como a
-    /// esquiva. Apertado rolando, espera o rolamento acabar e sai no fim,
-    /// pro ponto em que o mouse estava no aperto.
+    /// Botao direito ou tecla 1: solta a habilidade no ponto do chao embaixo
+    /// do mouse. Apertado na recarga, fica guardado pela abilityBufferWindow,
+    /// como a esquiva. Apertado rolando, espera o rolamento acabar e sai no
+    /// fim, pro ponto em que o mouse estava no aperto.
+    ///
+    /// O prazo e o ponto de cada botao vem por ref: e o mesmo codigo pros
+    /// dois, cada um com o seu comando guardado.
     /// </summary>
-    private void TryBufferedAbility()
+    private void TryBufferedAbility(InputAction acao, Ability habilidade,
+                                    ref float ate, ref Vector3 ponto)
     {
-        // E botao do mouse, entao clique na UI nao conta, ao contrario da
-        // esquiva, que e tecla.
-        if (input.Player.Ability1.WasPressedThisFrame() && !IsPointerOverUI())
+        // Clique na UI nao conta. Na tecla tambem nao: o mouse em cima de
+        // um botao do HUD nao aponta pra lugar nenhum do chao.
+        if (acao.WasPressedThisFrame() && !IsPointerOverUI())
         {
-            bufferedAbilityPoint = CursorGroundPoint();
-            bufferedAbilityUntil = Time.time + abilityBufferWindow;
+            ponto = CursorGroundPoint();
+            ate = Time.time + abilityBufferWindow;
         }
 
-        if (bufferedAbilityUntil < 0f)
+        if (ate < 0f)
             return;
 
         // O rolamento dura 0,5 s, mais que a janela. Sem empurrar o prazo,
         // a habilidade apertada no comeco dele venceria antes do fim.
         if (dodge != null && dodge.IsDodging)
         {
-            bufferedAbilityUntil = Mathf.Max(bufferedAbilityUntil, Time.time + abilityBufferWindow);
+            ate = Mathf.Max(ate, Time.time + abilityBufferWindow);
             return;
         }
 
-        if (Time.time > bufferedAbilityUntil)
+        if (Time.time > ate)
         {
-            bufferedAbilityUntil = -1f;
+            ate = -1f;
             return;
         }
 
-        if (rightClickAbility.TryUse(bufferedAbilityPoint))
-            bufferedAbilityUntil = -1f;
+        if (habilidade.TryUse(ponto))
+            ate = -1f;
     }
 
     /// <summary>
@@ -343,7 +364,8 @@ public class PlayerController : MonoBehaviour
     private bool IsBusy()
     {
         return (dodge != null && dodge.IsDodging) ||
-               (rightClickAbility != null && rightClickAbility.IsCasting);
+               (rightClickAbility != null && rightClickAbility.IsCasting) ||
+               (key1Ability != null && key1Ability.IsCasting);
     }
 
     private Ray CursorRay()

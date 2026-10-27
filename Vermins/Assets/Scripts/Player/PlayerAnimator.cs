@@ -490,13 +490,10 @@ public class PlayerAnimator : MonoBehaviour
     }
 
     /// <summary>
-    /// Uma habilidade foi usada. Toco o golpe final da espada encaixado no
-    /// CastTime dela, pelo mesmo estado de ataque do combo. E o unico clipe
-    /// que levanta a espada antes de descer, entao serve de pancada no chao
-    /// enquanto nao tem clipe proprio.
-    ///
-    /// Hoje toda habilidade toca este clipe. Quando a 3.3 trouxer o
-    /// projetil, a habilidade vai ter que dizer qual clipe quer.
+    /// Uma habilidade foi usada. Toco o golpe da espada que ela pede
+    /// (AttackClip) encaixado no CastTime dela, pelo mesmo estado de ataque
+    /// do combo. O golpe em area pede o final, que levanta a espada antes de
+    /// descer; a onda de choque pede o 01, reto.
     /// </summary>
     private void HandleAbilityUsed(Ability habilidade)
     {
@@ -508,7 +505,9 @@ public class PlayerAnimator : MonoBehaviour
         if (n == 0 || habilidade.CastTime <= 0f)
             return;
 
-        int clipe = n - 1;
+        int clipe = habilidade.AttackClip < 0 || habilidade.AttackClip >= n
+            ? n - 1
+            : habilidade.AttackClip;
 
         // A mesma conta do AttackSpeedFor, so que com o tempo da habilidade
         // no lugar do cooldown da espada.

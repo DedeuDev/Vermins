@@ -46,6 +46,11 @@ public class Projectile : MonoBehaviour
              "de personagem, e so apertar esta mascara.")]
     [SerializeField] private LayerMask hitMask = ~(1 << 2);
 
+    [Tooltip("Atravessa quem tem Health: tira vida e segue em frente, e cada " +
+             "um so leva uma vez. Parede (sem Health) ainda para. E a onda " +
+             "de choque do guerreiro; a bola de magia fica desligada.")]
+    [SerializeField] private bool pierce;
+
     [Header("Sumico")]
     [Tooltip("Solto o rastro em vez de destruir junto, pra ele apagar " +
              "sozinho no ar. Sem isso o trail some de estalo e a bola " +
@@ -58,6 +63,15 @@ public class Projectile : MonoBehaviour
     private Vector3 direction;
     private float traveled;
     private bool launched;
+
+    // Quem quer saber do acerto, com quanto a vida perdeu. A magia do
+    // PlayerCombat lanca sem, e a do MagicBolt usa pra numero, sangue e XP.
+    private System.Action<Health, float> onHit;
+
+    // Quem a onda ja atravessou. So existe com pierce, e nasce uma vez por
+    // projetil, no Launch. 8 sobra: a onda vai 10 m.
+    private Health[] pierced;
+    private int piercedCount;
 
     // Buffer unico pra todas as bolas. O SphereCastAll criava um array
     // novo por bola em todo frame. Estatico da certo porque o Update e
@@ -73,6 +87,22 @@ public class Projectile : MonoBehaviour
     /// </summary>
     public void Launch(Vector3 direction, float damage, GameObject owner)
     {
+        Launch(direction, damage, owner, null);
+    }
+
+    /// <summary>
+    /// Igual ao outro Launch, e no acerto avisa o onHit com o alvo e quanto
+    /// a vida dele perdeu. Acerto em alvo invulneravel (perdeu zero) tambem
+    /// avisa; quem escuta decide se conta.
+    /// </summary>
+    public void Launch(Vector3 direction, float damage, GameObject owner,
+                       System.Action<Health, float> onHit)
+    {
+        this.onHit = onHit;
+
+        if (pierce && pierced == null)
+            pierced = new Health[8];
+
         // Aqui eu achatava o Y, e isso so nao doia porque o blockout era
         // plano. Com o alvo em cima de uma plataforma de 2,5 m a bola
         // saia da mao reta e passava por baixo do bicho: o jogador subia
@@ -111,10 +141,13 @@ public class Projectile : MonoBehaviour
 
         float passo = speed * Time.deltaTime;
 
-        if (CastHit(passo, out RaycastHit hit))
+        // Com pierce, um mesmo trecho pode ter dois inimigos colados: testo
+        // de novo ate nao sobrar ninguem novo. Cada volta pula quem ja levou,
+        // entao o laco acaba.
+        while (CastHit(passo, out RaycastHit hit))
         {
-            HandleImpact(hit);
-            return;
+            if (!HandleImpact(hit))
+                return;
         }
 
         transform.position += direction * passo;
@@ -153,6 +186,16 @@ public class Projectile : MonoBehaviour
             if (ownerRoot != null && h.collider.transform.IsChildOf(ownerRoot))
                 continue;
 
+            // A onda passa por quem ja levou e por quem esta morto: um corpo
+            // no caminho nao pode segurar a onda.
+            if (pierce)
+            {
+                Health vida = h.collider.GetComponentInParent<Health>();
+
+                if (vida != null && (vida.IsDead || WasPierced(vida)))
+                    continue;
+            }
+
             if (h.distance < maisPerto)
             {
                 maisPerto = h.distance;
@@ -164,19 +207,48 @@ public class Projectile : MonoBehaviour
         return achou;
     }
 
-    private void HandleImpact(RaycastHit hit)
+    /// <summary>
+    /// Trata o que a bola encostou. Devolve true se ela segue voando (a
+    /// onda atravessando alguem), false se parou e sumiu.
+    /// </summary>
+    private bool HandleImpact(RaycastHit hit)
     {
-        transform.position = hit.point;
-
         // Quem tem Health leva dano; o resto e cenario e so para a bola.
         // Testo pelo componente e nao pela layer porque hoje inimigo e
         // parede dividem a Default - ver o tooltip da mascara.
         Health vida = hit.collider.GetComponentInParent<Health>();
 
         if (vida != null && !vida.IsDead)
+        {
+            // Meco o que a vida perdeu, como o LandHit: no alvo com 5 de
+            // vida sai 5, e no invulneravel sai zero.
+            float vidaAntes = vida.Current;
             vida.TakeDamage(damage, owner);
+            onHit?.Invoke(vida, vidaAntes - vida.Current);
 
+            // A onda marca e segue. Sem lugar na lista (mais de 8 no
+            // caminho), ela para neste, pra nao acertar ninguem duas vezes.
+            if (pierce && piercedCount < pierced.Length)
+            {
+                pierced[piercedCount++] = vida;
+                return true;
+            }
+        }
+
+        transform.position = hit.point;
         Despawn();
+        return false;
+    }
+
+    private bool WasPierced(Health vida)
+    {
+        for (int i = 0; i < piercedCount; i++)
+        {
+            if (pierced[i] == vida)
+                return true;
+        }
+
+        return false;
     }
 
     private void Despawn()

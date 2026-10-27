@@ -71,6 +71,13 @@ public abstract class Ability : MonoBehaviour
     /// </summary>
     public bool IsCasting => Time.time < castEndTime;
 
+    /// <summary>
+    /// Qual golpe da espada o PlayerAnimator toca no gesto, contando do
+    /// zero. -1 e o ultimo, o golpe final, que levanta a espada antes de
+    /// descer.
+    /// </summary>
+    public virtual int AttackClip => -1;
+
     protected virtual void Awake()
     {
         health = GetComponent<Health>();
