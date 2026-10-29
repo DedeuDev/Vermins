@@ -59,8 +59,14 @@ public class GroundSlam : Ability
 
     public override float CastTime => castTime;
 
-    /// <summary>O raio que vale agora. A 3.4 vai somar o Alcance aqui.</summary>
+    /// <summary>O raio que vale agora.</summary>
     public float Radius => radius;
+
+    /// <summary>
+    /// Disparado na pancada, com o centro e o raio que valeram. O anel no
+    /// chao (SlamRing) escuta daqui, e o golpe nao precisa saber dele.
+    /// </summary>
+    public event System.Action<Vector3, float> OnImpact;
 
     // A recarga mora na base, com 3 s de padrao. O Reset roda quando o
     // componente e adicionado no editor e poe os 5 s deste golpe. Sem ele o
@@ -131,6 +137,9 @@ public class GroundSlam : Ability
     {
         if (ownHealth.IsDead)
             return;
+
+        // Aviso antes do dano, pra o anel aparecer no mesmo frame do numero.
+        OnImpact?.Invoke(transform.position, radius);
 
         int quantos = Physics.OverlapSphereNonAlloc(
             transform.position, radius, Overlaps, ~0, QueryTriggerInteraction.Ignore);
