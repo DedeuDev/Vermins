@@ -242,14 +242,6 @@ public class PlayerCombat : MonoBehaviour
     public bool HasTarget => target != null && !target.IsDead;
 
     /// <summary>
-    /// Verdadeiro do comeco do golpe ate a pancada (ou o corte). A Ability
-    /// espera isto acabar antes de sair: cortar o golpe antes da pancada
-    /// jogava fora o dano dele, e com isso as habilidades quase nao
-    /// somavam (medi o Monge caindo de 80 s so pra 69 s com as duas).
-    /// </summary>
-    public bool IsWaitingForHit => waitingForEvent;
-
-    /// <summary>
     /// Quanto tempo entre um golpe e o proximo.
     ///
     /// Tem setter porque a Celeridade da build mexe nisto. Quem escreve

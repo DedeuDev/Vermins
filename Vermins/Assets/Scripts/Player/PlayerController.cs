@@ -353,14 +353,6 @@ public class PlayerController : MonoBehaviour
             return;
         }
 
-        // Mesma coisa com o golpe de espada esperando a pancada: ate 0,6 s,
-        // tambem mais que a janela. A habilidade sai no frame do acerto.
-        if (combat != null && combat.IsWaitingForHit)
-        {
-            ate = Mathf.Max(ate, Time.time + abilityBufferWindow);
-            return;
-        }
-
         if (Time.time > ate)
         {
             ate = -1f;
