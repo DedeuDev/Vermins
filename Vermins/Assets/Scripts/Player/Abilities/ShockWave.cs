@@ -22,8 +22,10 @@ using UnityEngine;
 /// acerto volta pelo onHit e passa pelo PlayerCombat.ReportHit, entao
 /// numero, sangue e XP funcionam igual ao golpe de espada.
 ///
-/// Numeros de teste: 15 em cada um (arma x 1), ate 10 m, recarga de 4 s, gesto
-/// de 0,6 s. Fica entre a bola (pegava um so, 2 s) e o golpe em area (5 s).
+/// Numeros de teste: 22,5 em cada um (arma x 1,5), ate 10 m, recarga de 4 s,
+/// gesto de 0,6 s. Fica entre a bola (pegava um so, 2 s) e o golpe em area
+/// (5 s). Comecou em x 1 e, pelo mesmo motivo do GroundSlam, quase nao
+/// somava dano; com 22,5 ainda nao mata sozinha o inimigo de 30.
 /// </summary>
 [RequireComponent(typeof(MeleeAttack), typeof(PlayerCombat), typeof(PlayerMotor))]
 public class ShockWave : Ability
@@ -34,7 +36,7 @@ public class ShockWave : Ability
 
     [Tooltip("Dano em vezes o dano da arma, em cada um que a onda pegar. O " +
              "critico multiplica por cima.")]
-    [SerializeField, Min(0f)] private float damageMultiplier = 1f;
+    [SerializeField, Min(0f)] private float damageMultiplier = 1.5f;
 
     [Tooltip("Quanto na frente do centro do Player a onda nasce. O centro " +
              "fica na altura do peito; meio metro tira ela de dentro da " +

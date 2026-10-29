@@ -3,7 +3,7 @@ using UnityEngine;
 
 /// <summary>
 /// Golpe em area no botao direito (3.2): o Player para, vira pro mouse,
-/// desce a espada e todo inimigo a ate 3 m dele leva o dano da arma x 1,5.
+/// desce a espada e todo inimigo a ate 3 m dele leva o dano da arma x 2,5.
 ///
 /// O centro e o Player, e nao o mouse. E golpe de espada: o mouse so diz
 /// pra que lado o corpo vira.
@@ -17,10 +17,14 @@ using UnityEngine;
 /// escutam o OnAttackHit de la, e assim funcionam sem saber do golpe em
 /// area.
 ///
-/// Numeros de teste: 22,5 de dano no nivel 1 nao matam sozinhos o inimigo
-/// de 30, entao golpe em area e mais um golpe normal limpam um grupo. O
-/// raio de 3 m e o mesmo do terremoto do Monge. A recarga de 5 s da uns 4
-/// golpes de espada entre um uso e outro.
+/// Numeros de teste: 37,5 de dano no nivel 1 matam o inimigo de 30 numa
+/// pancada, entao limpar um grupo e um botao. Comecou em x 1,5 e somava
+/// pouco: a habilidade corta o golpe de espada que estava no meio, e com
+/// 22,5 o que ela ganhava sumia nesse corte (medi o Monge caindo de 80 s
+/// so pra 69 s com as duas habilidades). Como no Diablo 4, a habilidade e
+/// o dano e o golpe comum preenche o intervalo. O raio de 3 m e o mesmo do
+/// terremoto do Monge. A recarga de 5 s da uns 4 golpes de espada entre um
+/// uso e outro.
 /// </summary>
 [RequireComponent(typeof(MeleeAttack), typeof(PlayerCombat), typeof(PlayerMotor))]
 public class GroundSlam : Ability
@@ -29,9 +33,9 @@ public class GroundSlam : Ability
              "centro do inimigo, medido no chao.")]
     [SerializeField, Min(0.5f)] private float radius = 3f;
 
-    [Tooltip("Dano em vezes o dano da arma. Com 15 de arma sai 22,5. O " +
+    [Tooltip("Dano em vezes o dano da arma. Com 15 de arma sai 37,5. O " +
              "critico multiplica por cima, igual ao golpe normal.")]
-    [SerializeField, Min(0f)] private float damageMultiplier = 1.5f;
+    [SerializeField, Min(0f)] private float damageMultiplier = 2.5f;
 
     [Tooltip("Quanto o golpe trava o Player, do aperto ate poder andar de " +
              "novo. O PlayerAnimator encaixa o golpe final da espada neste " +
