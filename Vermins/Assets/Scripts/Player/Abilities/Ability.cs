@@ -25,6 +25,7 @@ public abstract class Ability : MonoBehaviour
 
     private Health health;
     private Dodge dodge;
+    private PlayerCombat combat;
 
     // Opcional: sem ele a recarga fica no numero do Inspector.
     private CharacterAttributes attributes;
@@ -87,12 +88,14 @@ public abstract class Ability : MonoBehaviour
     {
         health = GetComponent<Health>();
         dodge = GetComponent<Dodge>();
+        combat = GetComponent<PlayerCombat>();
         attributes = GetComponent<CharacterAttributes>();
     }
 
     /// <summary>
     /// Usa a habilidade na direcao do ponto, que e onde o mouse esta no
-    /// chao. Devolve false na recarga, morto, rolando ou se a filha recusar,
+    /// chao. Devolve false na recarga, morto, rolando, com golpe de espada
+    /// esperando a pancada ou se a filha recusar,
     /// e ai a recarga nao comeca.
     /// </summary>
     public bool TryUse(Vector3 point)
@@ -101,6 +104,12 @@ public abstract class Ability : MonoBehaviour
         // habilidade no meio dele deixaria rolar e bater ao mesmo tempo. O
         // PlayerController guarda o comando e tenta de novo no fim.
         if (!IsReady || health.IsDead || (dodge != null && dodge.IsDodging))
+            return false;
+
+        // Golpe de espada no meio: espera a pancada e so corta o resto do
+        // gesto, que ja nao tem dano. O controller tambem guarda o comando
+        // ate la.
+        if (combat != null && combat.IsWaitingForHit)
             return false;
 
         if (!Activate(point))
