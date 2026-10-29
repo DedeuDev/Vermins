@@ -15,6 +15,8 @@ GameObject:
   - component: {fileID: 4005408994331704784}
   - component: {fileID: 2141688634682590286}
   - component: {fileID: 6213920998551177747}
+  - component: {fileID: 2913203966917076390}
+  - component: {fileID: 7411968891185164066}
   m_Layer: 0
   m_Name: DungeonGenerator
   m_TagString: Untagged
@@ -186,3 +188,38 @@ MonoBehaviour:
   maxFramesWaitingForNavMesh: 300
   generatedRootName: Generated Quest Objects
   logResult: 1
+--- !u!114 &2913203966917076390
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4620527827470701182}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f285ff53e33df3448af2e6c5d5b08729, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::DungeonGuide
+  torchPrefab: {fileID: 1060151284653296282, guid: 5eace036904c72b4cac609612a2260a2, type: 3}
+  torchSpacing: 8
+  wallGap: 0.06
+  wallProbe: 4
+  guardMarkerPrefab: {fileID: 8832428295753277690, guid: 6d3ff9bdd0b3c5d47a4c937593fdd014, type: 3}
+  bossDoorPrefab: {fileID: 3347965590491254105, guid: ff896ef3a2588594a9ab1d1091df2672, type: 3}
+  ambientScale: 0.2
+  maxFramesWaitingForNavMesh: 300
+--- !u!114 &7411968891185164066
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4620527827470701182}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f4690a568016b6d4a8cf618b6fc13e62, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::DungeonSeams
+  pillarPrefab: {fileID: 7716154056053669401, guid: f599cb94e3ad5844e994a80b69b255a9, type: 3}
+  jambOffset: 1.95
+  maxFramesWaitingForNavMesh: 300
