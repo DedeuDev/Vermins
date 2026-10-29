@@ -19,12 +19,15 @@ using UnityEngine;
 [RequireComponent(typeof(Health))]
 public abstract class Ability : MonoBehaviour
 {
-    [Tooltip("Segundos entre um uso e o proximo, contados do uso. A " +
-             "Celeridade vai encurtar isto na 3.4.")]
+    [Tooltip("Segundos entre um uso e o proximo, contados do uso, com a " +
+             "celeridade neutra (5). Celeridade acima disso encurta.")]
     [SerializeField, Min(0f)] protected float cooldown = 3f;
 
     private Health health;
     private Dodge dodge;
+
+    // Opcional: sem ele a recarga fica no numero do Inspector.
+    private CharacterAttributes attributes;
 
     // Quando a habilidade volta. Guardo o horario, e nao o tempo que falta,
     // pra nao precisar descontar nada por frame.
@@ -41,10 +44,12 @@ public abstract class Ability : MonoBehaviour
     public event System.Action<Ability> OnUsed;
 
     /// <summary>
-    /// A recarga que vale agora. Virtual porque a 3.4 vai tirar a Celeridade
-    /// daqui, e quem le (o HUD, o TryUse) nao precisa saber disso.
+    /// A recarga que vale agora, ja com a Celeridade. Leio a escala na
+    /// hora em vez de guardar: subir ponto ou trocar anel vale no proximo
+    /// uso, sem ninguem avisar a habilidade.
     /// </summary>
-    public virtual float Cooldown => cooldown;
+    public virtual float Cooldown =>
+        attributes != null ? cooldown * attributes.AbilityCooldownScale : cooldown;
 
     public bool IsReady => Time.time >= readyTime;
 
@@ -82,6 +87,7 @@ public abstract class Ability : MonoBehaviour
     {
         health = GetComponent<Health>();
         dodge = GetComponent<Dodge>();
+        attributes = GetComponent<CharacterAttributes>();
     }
 
     /// <summary>

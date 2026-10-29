@@ -75,6 +75,11 @@ public class BuildAttributes : ScriptableObject
     private const float BaseRange = 4f;
     private const float RangePerPoint = 1f;
 
+    // A celeridade da build equilibrada. As recargas das habilidades
+    // foram medidas com ela, entao e o ponto em que a Celeridade nao
+    // encurta nem alonga nada.
+    private const int NeutralHaste = 5;
+
     public string BuildName => string.IsNullOrWhiteSpace(buildName) ? name : buildName;
     public string Playstyle => playstyle;
 
@@ -111,6 +116,13 @@ public class BuildAttributes : ScriptableObject
     /// </summary>
     public float CooldownWith(int celeridadeExtra) =>
         BaseCooldown / (1f + (haste + celeridadeExtra) * HastePerPoint);
+
+    /// <summary>
+    /// O tempo entre golpes com a celeridade neutra: os 1,2 s do jogo de
+    /// antes dos atributos. O CharacterAttributes divide o cooldown atual
+    /// por este numero pra saber quanto encurtar as habilidades.
+    /// </summary>
+    public static float NeutralCooldown => BaseCooldown / (1f + NeutralHaste * HastePerPoint);
 
     public float MaxHealthWith(int vitalidadeExtra) => BaseHealth + (vitality + vitalidadeExtra) * HealthPerPoint;
 

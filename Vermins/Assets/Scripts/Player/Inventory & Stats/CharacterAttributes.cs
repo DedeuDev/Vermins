@@ -50,6 +50,14 @@ public class CharacterAttributes : MonoBehaviour
 
     public BuildAttributes Build => build;
 
+    /// <summary>
+    /// Quanto a Celeridade encurta a recarga das habilidades: 1 na
+    /// celeridade neutra (5), menor que 1 acima dela. E a mesma proporcao
+    /// que encurta o golpe, entao um ponto de anel acelera os dois na
+    /// mesma medida. Fica em 1 sem build ligada.
+    /// </summary>
+    public float AbilityCooldownScale { get; private set; } = 1f;
+
     /// <summary>Os tres numeros que a build vira: dano, vida maxima e tempo entre golpes.</summary>
     public readonly struct Numbers
     {
@@ -179,6 +187,10 @@ public class CharacterAttributes : MonoBehaviour
         var combate = GetComponent<PlayerCombat>();
 
         Numbers numeros = NumbersWith(default);
+
+        // Guardo a escala em vez de escrever nas habilidades: a Ability le
+        // na hora do uso, e uma habilidade nova nao precisa entrar aqui.
+        AbilityCooldownScale = numeros.AttackCooldown / BuildAttributes.NeutralCooldown;
 
         if (vida != null)
             vida.SetMaxHealth(numeros.MaxHealth, encherAVida);
