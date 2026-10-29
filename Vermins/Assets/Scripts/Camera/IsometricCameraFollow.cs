@@ -20,6 +20,9 @@ using UnityEngine;
 public class IsometricCameraFollow : MonoBehaviour
 {
     [Header("Alvo")]
+    [Tooltip("Vazio procura o objeto com a tag Player no Awake. O prefab " +
+             "nao guarda referencia de cena, entao e assim que ele acha o " +
+             "Player em toda cena.")]
     [SerializeField] private Transform target;
 
     [Tooltip("Ponto que a camera enquadra, em relacao ao alvo. Subir um " +
@@ -67,39 +70,39 @@ public class IsometricCameraFollow : MonoBehaviour
              "Quem pede tremor manda um 'trauma' de 0 a 1 e o " +
              "deslocamento e trauma ao quadrado vezes isto: tremor fraco " +
              "fica bem fraco e so pancada forte sacode de verdade.")]
-    [SerializeField] private float tremorMaximo = 0.7f;
+    [SerializeField] private float maxShake = 0.7f;
 
     [Tooltip("Rapidez da sacudida. Alto parece impacto, baixo parece " +
              "terremoto.")]
-    [SerializeField] private float frequenciaDoTremor = 25f;
+    [SerializeField] private float shakeFrequency = 25f;
 
     [Tooltip("Quanto trauma some por segundo. Com 2, o maior tremor " +
              "acaba em meio segundo.")]
-    [SerializeField] private float recuperacaoDoTremor = 2f;
+    [SerializeField] private float shakeRecovery = 2f;
 
     private Camera cam;
     private Vector3 followVelocity;
 
     // So uma camera segue o jogador por cena. Guardo ela aqui pra quem
     // quiser tremer nao precisar achar a camera.
-    private static IsometricCameraFollow ativa;
+    private static IsometricCameraFollow active;
 
     // A posicao que o seguir calcula, sem o tremor. O tremor entra por
     // cima dela: se ele entrasse no transform.position, o SmoothDamp do
     // proximo frame partiria do ponto tremido e a camera sairia do
     // lugar.
-    private Vector3 posicaoSeguida;
+    private Vector3 followedPosition;
     private float trauma;
 
     /// <summary>Pra onde a camera olha. Calculada uma vez e nunca mais.</summary>
-    private Quaternion Rotacao => Quaternion.Euler(pitch, yaw, 0f);
+    private Quaternion Rotation => Quaternion.Euler(pitch, yaw, 0f);
 
     /// <summary>
     /// Altura em metros que cabe na tela na distancia do alvo. Serve pra
     /// saber o tamanho do personagem na tela sem ter que abrir o jogo:
     /// um personagem de 1,9 m ocupa 1,9 dividido por isso.
     /// </summary>
-    public float AlturaVisivel => 2f * distance * Mathf.Tan(fieldOfView * 0.5f * Mathf.Deg2Rad);
+    public float VisibleHeight => 2f * distance * Mathf.Tan(fieldOfView * 0.5f * Mathf.Deg2Rad);
 
     public void SetTarget(Transform newTarget)
     {
@@ -110,34 +113,42 @@ public class IsometricCameraFollow : MonoBehaviour
     /// Sacode a camera. O trauma soma com o que ja tinha, ate 1: dois
     /// golpes seguidos tremem mais que um.
     /// </summary>
-    public static void Tremer(float quanto)
+    public static void Shake(float quanto)
     {
-        if (ativa != null)
-            ativa.trauma = Mathf.Clamp01(ativa.trauma + quanto);
+        if (active != null)
+            active.trauma = Mathf.Clamp01(active.trauma + quanto);
     }
 
     private void OnEnable()
     {
-        ativa = this;
+        active = this;
     }
 
     private void OnDisable()
     {
-        if (ativa == this)
-            ativa = null;
+        if (active == this)
+            active = null;
     }
 
     private void Awake()
     {
         cam = GetComponent<Camera>();
-        Aplicar();
+        Apply();
+
+        if (target == null)
+        {
+            GameObject player = GameObject.FindGameObjectWithTag("Player");
+
+            if (player != null)
+                target = player.transform;
+        }
 
         // Sem isso a camera entra na cena vinda de onde parou no editor
         // e passa o primeiro segundo voando ate o jogador.
         if (target != null)
-            transform.position = PosicaoDesejada();
+            transform.position = DesiredPosition();
 
-        posicaoSeguida = transform.position;
+        followedPosition = transform.position;
     }
 
     private void LateUpdate()
@@ -145,14 +156,14 @@ public class IsometricCameraFollow : MonoBehaviour
         if (target == null)
             return;
 
-        posicaoSeguida = Vector3.SmoothDamp(
-            posicaoSeguida,
-            PosicaoDesejada(),
+        followedPosition = Vector3.SmoothDamp(
+            followedPosition,
+            DesiredPosition(),
             ref followVelocity,
             smoothTime
         );
 
-        transform.position = posicaoSeguida + Tremor();
+        transform.position = followedPosition + ShakeOffset();
     }
 
     /// <summary>
@@ -161,37 +172,37 @@ public class IsometricCameraFollow : MonoBehaviour
     /// tremor tambem. Uso ruido de Perlin em vez de Random pra a
     /// sacudida ser continua e nao pular de um canto pro outro.
     /// </summary>
-    private Vector3 Tremor()
+    private Vector3 ShakeOffset()
     {
         if (trauma <= 0f)
             return Vector3.zero;
 
         // Tempo sem escala: o tremor termina mesmo com o jogo pausado.
-        trauma = Mathf.Max(0f, trauma - recuperacaoDoTremor * Time.unscaledDeltaTime);
+        trauma = Mathf.Max(0f, trauma - shakeRecovery * Time.unscaledDeltaTime);
 
-        float forca = trauma * trauma * tremorMaximo;
-        float t = Time.unscaledTime * frequenciaDoTremor;
+        float forca = trauma * trauma * maxShake;
+        float t = Time.unscaledTime * shakeFrequency;
         float x = Mathf.PerlinNoise(t, 0.5f) * 2f - 1f;
         float y = Mathf.PerlinNoise(0.5f, t) * 2f - 1f;
 
         return (transform.right * x + transform.up * y) * forca;
     }
 
-    private Vector3 PosicaoDesejada()
+    private Vector3 DesiredPosition()
     {
         // Ando pra tras a partir do ponto enquadrado, na direcao pra onde
         // a camera olha. Assim mexer no pitch nao muda a distancia, e
         // mexer na distancia nao muda o angulo - da pra achar o
         // enquadramento sem os dois brigarem.
-        return target.position + targetOffset - Rotacao * Vector3.forward * distance;
+        return target.position + targetOffset - Rotation * Vector3.forward * distance;
     }
 
     /// <summary>
     /// Deixa mexer nos numeros com o jogo rodando e ver na hora.
     /// </summary>
-    private void Aplicar()
+    private void Apply()
     {
-        transform.rotation = Rotacao;
+        transform.rotation = Rotation;
 
         if (cam != null)
             cam.fieldOfView = fieldOfView;
@@ -200,10 +211,10 @@ public class IsometricCameraFollow : MonoBehaviour
     private void OnValidate()
     {
         cam = GetComponent<Camera>();
-        Aplicar();
+        Apply();
 
         if (target != null && !Application.isPlaying)
-            transform.position = PosicaoDesejada();
+            transform.position = DesiredPosition();
     }
 
     private void OnDrawGizmosSelected()

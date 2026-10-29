@@ -71,7 +71,7 @@ public class HitImpact : MonoBehaviour
         // de ter fechado a sequencia.
         bool forte = alvo.IsDead || combat.IsFinisher || combat.LastHitWasCrit;
 
-        IsometricCameraFollow.Tremer(forte ? killShake : hitShake);
+        IsometricCameraFollow.Shake(forte ? killShake : hitShake);
 
         Freeze(gameObject);
         Freeze(alvo.gameObject);
@@ -85,7 +85,7 @@ public class HitImpact : MonoBehaviour
 
     private void HandleDamaged(float dano, GameObject quemBateu)
     {
-        IsometricCameraFollow.Tremer(hurtShake);
+        IsometricCameraFollow.Shake(hurtShake);
     }
 
     private void Freeze(GameObject quem)
