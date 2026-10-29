@@ -171,6 +171,13 @@ public class PlayerDebugHUD : MonoBehaviour
     private readonly CachedText levelLine = new CachedText();
     private readonly CachedText pointsLine = new CachedText();
 
+    // As habilidades dos dois botoes, na ordem da tela. O nome da classe
+    // sai uma vez no Start: GetType().Name cria string nova a cada chamada.
+    private readonly Ability[] abilities = new Ability[2];
+    private readonly string[] abilityNames = new string[2];
+    private readonly CachedText[] abilityLines = { new CachedText(), new CachedText() };
+    private static readonly string[] AbilityKeys = { "Direito", "Tecla 1" };
+
     // Os botoes dos pontos. O texto e fixo; o que muda e o tooltip, com a
     // previa do numero.
     private readonly CachedText powerButton = new CachedText();
@@ -279,6 +286,28 @@ public class PlayerDebugHUD : MonoBehaviour
         useGUILayout = false;
     }
 
+    /// <summary>
+    /// Pego as habilidades no Start e nao no Awake: o PlayerController
+    /// preenche o botao direito vazio no Awake dele, e a ordem entre dois
+    /// Awake e indefinida.
+    /// </summary>
+    private void Start()
+    {
+        var controle = GetComponent<PlayerController>();
+
+        if (controle == null)
+            return;
+
+        abilities[0] = controle.RightClickAbility;
+        abilities[1] = controle.Key1Ability;
+
+        for (int i = 0; i < abilities.Length; i++)
+        {
+            if (abilities[i] != null)
+                abilityNames[i] = abilities[i].GetType().Name;
+        }
+    }
+
     private void Update()
     {
         // Leio o teclado direto em vez de criar uma acao no
@@ -362,6 +391,12 @@ public class PlayerDebugHUD : MonoBehaviour
             // continuam funcionando, so sem tooltip.
             if (level.FreePoints > 0 && attributes != null && attributes.Build != null)
                 UpdatePointTooltips();
+        }
+
+        for (int i = 0; i < abilities.Length; i++)
+        {
+            if (abilities[i] != null)
+                UpdateAbilityLine(i);
         }
 
         if (belt != null && potionsLine.HasChanged(belt.Count, belt.Capacity))
@@ -527,6 +562,23 @@ public class PlayerDebugHUD : MonoBehaviour
             speedLine.Set($"Velocidade   {atual / 100f:F2} / {maxima / 100f:F2} m/s");
     }
 
+    /// <summary>
+    /// Conto em decimos de segundo: o texto troca no maximo 10 vezes por
+    /// segundo, e so durante a recarga. Pronta, o numero fica em 0 e nada
+    /// e remontado.
+    /// </summary>
+    private void UpdateAbilityLine(int i)
+    {
+        int decimos = Mathf.CeilToInt(abilities[i].CooldownRemaining * 10f);
+
+        if (!abilityLines[i].HasChanged(decimos))
+            return;
+
+        abilityLines[i].Set(decimos == 0
+            ? $"{AbilityKeys[i]}   {abilityNames[i]}   pronta"
+            : $"{AbilityKeys[i]}   {abilityNames[i]}   {decimos / 10f:0.0} s");
+    }
+
     private float PanelHeight()
     {
         // O cinto, a carteira, a bolsa, o equipamento e o nivel sao opcionais no Player;
@@ -546,6 +598,13 @@ public class PlayerDebugHUD : MonoBehaviour
         // livres embaixo dela.
         if (level != null)
             altura += BarHeight + Spacing + TextHeight;
+
+        // Cada habilidade ligada e uma linha e uma barra.
+        for (int i = 0; i < abilities.Length; i++)
+        {
+            if (abilities[i] != null)
+                altura += TextHeight + BarHeight + Spacing;
+        }
 
         return altura;
     }
@@ -601,6 +660,18 @@ public class PlayerDebugHUD : MonoBehaviour
         else
         {
             pointsRect = default;
+        }
+
+        for (int i = 0; i < abilities.Length; i++)
+        {
+            if (abilities[i] == null)
+                continue;
+
+            // A barra enche ate a habilidade ficar pronta, como a do XP
+            // enche ate o proximo nivel.
+            DrawLine(abilityLines[i].Content, x, largura, ref y, null, AbilityColor);
+            DrawBar(new Rect(x, y, largura, BarHeight), 1f - abilities[i].CooldownFraction, AbilityColor);
+            y += BarHeight + Spacing;
         }
 
         // Cores dos rotulos dos itens no chao (Pickup), pra a pocao do
@@ -821,6 +892,9 @@ public class PlayerDebugHUD : MonoBehaviour
     // As barras usam a mesma cor do marcador da linha delas.
     private static readonly Color HealthColor = new Color(0.75f, 0.15f, 0.12f);
     private static readonly Color LevelColor = new Color(0.85f, 0.65f, 0.15f);
+
+    // Roxo, pra nao confundir com a vida, o XP nem as cores de raridade.
+    private static readonly Color AbilityColor = new Color(0.6f, 0.45f, 0.9f);
     private const float IconSize = 18f;
 
     /// <summary>

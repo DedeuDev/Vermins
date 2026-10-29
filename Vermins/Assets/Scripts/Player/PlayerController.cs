@@ -60,6 +60,11 @@ public class PlayerController : MonoBehaviour
              "nos dois botoes.")]
     [SerializeField] private Ability key1Ability;
 
+    // O HUD le pra mostrar a recarga com a tecla certa. O direito vazio
+    // so e preenchido no Awake, entao quem le espera o Start.
+    public Ability RightClickAbility => rightClickAbility;
+    public Ability Key1Ability => key1Ability;
+
     private InputSystem_Actions input;
     private PlayerMotor motor;
     private Health health;
