@@ -1639,8 +1639,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 2d5888ebe04614899b495f81cc159f2b, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::BossStats
-  dadosBoss: {fileID: 0}
-  destruirAoSerDerrotado: 1
+  dadosBoss: {fileID: 11400000, guid: 3cbcfdea9d3e648788147f9b9f8cea2a, type: 2}
+  destruirAoSerDerrotado: 0
   onBossDerrotado:
     m_PersistentCalls:
       m_Calls: []
