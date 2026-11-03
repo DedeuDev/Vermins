@@ -152,6 +152,9 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 55003825314667967}
+  - component: {fileID: 5490815079986258628}
+  - component: {fileID: 7091929117118082209}
+  - component: {fileID: 4660741661751180106}
   m_Layer: 0
   m_Name: Bau
   m_TagString: Untagged
@@ -174,8 +177,78 @@ Transform:
   m_Children:
   - {fileID: 6765721217983728440}
   - {fileID: 3388529124032522537}
+  - {fileID: 952173757566494395}
   m_Father: {fileID: 3064897234361166726}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!65 &5490815079986258628
+BoxCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3789344771113181161}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Size: {x: 1.2402487, y: 1.2153319, z: 1.9258795}
+  m_Center: {x: 0.0023231506, y: 0.712666, z: 0}
+--- !u!114 &7091929117118082209
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3789344771113181161}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 10da74626265b7a46a54e1b441ac6760, type: 3}
+  m_Name:
+  m_EditorClassIdentifier: Assembly-CSharp::DropOnDeath
+  drops:
+  - prefab: {fileID: 2973204847232773527, guid: 6ef96f9d9ae8a0f4ca5dd23fcb09ce9d, type: 3}
+    chance: 1
+  - prefab: {fileID: 2973204847232773527, guid: 3752323ac4348de4e81ac5fc7af46740, type: 3}
+    chance: 1
+  - prefab: {fileID: 2973204847232773527, guid: 2744e1e7e34a25347b3ebd2994ca7869, type: 3}
+    chance: 1
+  scatterRadius: 0.5
+  equipmentChance: 1
+  equipmentPrefab: {fileID: 3727387141899743554, guid: a4514f84043633042a54f6754414859f, type: 3}
+  equipmentPool:
+  - {fileID: 11400000, guid: 3148a401e627b374896eeb1071dc18a2, type: 2}
+  - {fileID: 11400000, guid: f5872758c83892046b17bbca36cc115a, type: 2}
+  - {fileID: 11400000, guid: 1cce024ab8b10ca498727d54706cf582, type: 2}
+  commonWeight: 0
+  magicWeight: 75
+  rareWeight: 25
+--- !u!114 &4660741661751180106
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3789344771113181161}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9c5741dc6f63478480f95e79fbf83fa4, type: 3}
+  m_Name:
+  m_EditorClassIdentifier: Assembly-CSharp::TreasureChest
+  lid: {fileID: 3388529124032522537}
+  treasureLight: {fileID: 7271558530363485621}
+  dropOffset: {x: -1.8, y: 0, z: 0}
+  openingAngle: -100
+  openingDuration: 0.4
+  dimDuration: 1
+  openedLightFraction: 0.3
 --- !u!1 &3872485216569571441
 GameObject:
   m_ObjectHideFlags: 0
@@ -232,6 +305,103 @@ MonoBehaviour:
   allowedOnMainPath: 0
   allowedOnSideBranch: 1
   placementBounds: {fileID: 8978627411760174771}
+--- !u!1 &4386524527951402056
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 952173757566494395}
+  - component: {fileID: 7271558530363485621}
+  m_Layer: 0
+  m_Name: TreasureLight
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &952173757566494395
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4386524527951402056}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 1.5, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 55003825314667967}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!108 &7271558530363485621
+Light:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4386524527951402056}
+  m_Enabled: 1
+  serializedVersion: 12
+  m_Type: 2
+  m_Color: {r: 1, g: 0.85, b: 0.4, a: 1}
+  m_Intensity: 4
+  m_Range: 8
+  m_SpotAngle: 30
+  m_InnerSpotAngle: 21.80208
+  m_CookieSize2D: {x: 0.5, y: 0.5}
+  m_Shadows:
+    m_Type: 0
+    m_Resolution: -1
+    m_CustomResolution: -1
+    m_Strength: 1
+    m_Bias: 0.05
+    m_NormalBias: 0.4
+    m_NearPlane: 0.2
+    m_CullingMatrixOverride:
+      e00: 1
+      e01: 0
+      e02: 0
+      e03: 0
+      e10: 0
+      e11: 1
+      e12: 0
+      e13: 0
+      e20: 0
+      e21: 0
+      e22: 1
+      e23: 0
+      e30: 0
+      e31: 0
+      e32: 0
+      e33: 1
+    m_UseCullingMatrixOverride: 0
+  m_Cookie: {fileID: 0}
+  m_DrawHalo: 0
+  m_Flare: {fileID: 0}
+  m_RenderMode: 0
+  m_CullingMask:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  m_RenderingLayerMask: 1
+  m_Lightmapping: 4
+  m_LightShadowCasterMode: 0
+  m_AreaSize: {x: 1, y: 1}
+  m_BounceIntensity: 1
+  m_ColorTemperature: 6570
+  m_UseColorTemperature: 0
+  m_BoundingSphereOverride: {x: 0, y: 0, z: 0, w: 0}
+  m_UseBoundingSphereOverride: 0
+  m_UseViewFrustumForShadowCasterCull: 1
+  m_ForceVisible: 0
+  m_ShadowRadius: 0
+  m_ShadowAngle: 0
+  m_LightUnit: 1
+  m_LuxAtDistance: 1
+  m_EnableSpotReflector: 1
 --- !u!1 &5854103246652669093
 GameObject:
   m_ObjectHideFlags: 0

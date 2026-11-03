@@ -2,12 +2,15 @@ using UnityEngine;
 using UnityEngine.AI;
 
 /// <summary>
-/// Solta itens no chao quando o dono morre.
+/// Solta itens no chao quando o dono morre, ou quando alguem chama DropAt.
 ///
 /// Vai em qualquer coisa que tenha Health - hoje o inimigo, depois
 /// barril ou chefe - e nao mexe na IA de ninguem: so escuta o OnDied,
 /// do mesmo jeito que o DamageFlash escuta o OnDamaged. Por isso o
 /// EnemyFollow do Leo nao precisou mudar.
+///
+/// O Health e opcional: o bau do tesouro nao tem vida nem da XP, entao
+/// ele chama o DropAt direto pela interacao.
 ///
 /// Cada item da lista sorteia sozinho. Quando o ouro existir, ele entra
 /// na lista do lado da pocao, e os dois podem cair na mesma morte.
@@ -16,7 +19,6 @@ using UnityEngine.AI;
 /// pelo peso, depois um item dessa raridade na lista. Assim a chance de
 /// raro nao depende de quantos itens raros existem na lista.
 /// </summary>
-[RequireComponent(typeof(Health))]
 public class DropOnDeath : MonoBehaviour
 {
     [System.Serializable]
@@ -65,12 +67,14 @@ public class DropOnDeath : MonoBehaviour
 
     private void OnEnable()
     {
-        health.OnDied += HandleDied;
+        if (health != null)
+            health.OnDied += HandleDied;
     }
 
     private void OnDisable()
     {
-        health.OnDied -= HandleDied;
+        if (health != null)
+            health.OnDied -= HandleDied;
     }
 
     private void HandleDied(Health _)
@@ -83,6 +87,15 @@ public class DropOnDeath : MonoBehaviour
         if (TryGetComponent(out NavMeshAgent agent))
             pe -= Vector3.up * agent.baseOffset;
 
+        DropAt(pe);
+    }
+
+    /// <summary>
+    /// Solta a lista e o equipamento a partir de um ponto no chao. O bau
+    /// chama direto, com o ponto na frente dele, sem passar por morte.
+    /// </summary>
+    public void DropAt(Vector3 pe)
+    {
         foreach (Drop drop in drops)
         {
             // O Random.value vai de 0 a 1 com as duas pontas incluidas:
