@@ -20,8 +20,11 @@ public class DungeonReflections : MonoBehaviour
     [SerializeField, Min(1)] private int maxFramesWaitingForNavMesh = 300;
 
     private ReflectionProbe[] probes = System.Array.Empty<ReflectionProbe>();
+    private DungeonModule[] modules = System.Array.Empty<DungeonModule>();
     private Renderer[] hiddenRenderers = System.Array.Empty<Renderer>();
     private bool[] rendererStates;
+    private Light[] hiddenLights = System.Array.Empty<Light>();
+    private bool[] lightStates;
     private bool probesEnabled = true;
     private bool capturing;
     private long cameraStart;
@@ -44,6 +47,8 @@ public class DungeonReflections : MonoBehaviour
     public int LastCaptureFrame { get; private set; } = -1;
     public int RenderedProbeCount { get; private set; }
     public bool CaptureComplete { get; private set; }
+    public ReflectionProbe GetProbe(int index) => probes[index];
+    public DungeonModule GetModule(int index) => modules[index];
 
     public bool ProbesEnabled
     {
@@ -74,7 +79,7 @@ public class DungeonReflections : MonoBehaviour
         for (int i = 0; i < 4; i++)
             yield return null;
 
-        DungeonModule[] modules = GetComponentsInChildren<DungeonModule>();
+        modules = GetComponentsInChildren<DungeonModule>();
         probes = new ReflectionProbe[modules.Length];
         int[] renderIds = new int[modules.Length];
         for (int i = 0; i < modules.Length; i++)
@@ -155,12 +160,30 @@ public class DungeonReflections : MonoBehaviour
     private void HideActors()
     {
         var renderers = new HashSet<Renderer>();
+        var lights = new HashSet<Light>();
         // Busquei todo Health da cena, sem depender de tags: inimigo e boss
         // sao Untagged na layer Default. So a raiz gerada deixava o Player
         // de fora, e ele ficava parado na poca da sala inicial. Roda uma vez.
         foreach (Health actor in FindObjectsByType<Health>(FindObjectsInactive.Include, FindObjectsSortMode.None))
+        {
             foreach (Renderer renderer in actor.GetComponentsInChildren<Renderer>(true))
                 renderers.Add(renderer);
+            foreach (Light light in actor.GetComponentsInChildren<Light>(true))
+                lights.Add(light);
+        }
+        // Tirei tambem a luz da camera: ela acompanha o Player, mas nao
+        // e filha do Health e ficava gravada so na sala inicial.
+        DungeonTheme theme = GetComponent<DungeonTheme>();
+        if (theme != null && theme.PlayerLight != null)
+            lights.Add(theme.PlayerLight);
+        hiddenLights = new Light[lights.Count];
+        lights.CopyTo(hiddenLights);
+        lightStates = new bool[hiddenLights.Length];
+        for (int i = 0; i < hiddenLights.Length; i++)
+        {
+            lightStates[i] = hiddenLights[i].enabled;
+            hiddenLights[i].enabled = false;
+        }
         hiddenRenderers = new Renderer[renderers.Count];
         renderers.CopyTo(hiddenRenderers);
         rendererStates = new bool[hiddenRenderers.Length];
@@ -199,6 +222,10 @@ public class DungeonReflections : MonoBehaviour
             if (hiddenRenderers[i] != null)
                 hiddenRenderers[i].enabled = rendererStates[i];
         hiddenRenderers = System.Array.Empty<Renderer>();
+        for (int i = 0; i < hiddenLights.Length; i++)
+            if (hiddenLights[i] != null)
+                hiddenLights[i].enabled = lightStates[i];
+        hiddenLights = System.Array.Empty<Light>();
         capturing = false;
         ApplyEnabled();
     }
