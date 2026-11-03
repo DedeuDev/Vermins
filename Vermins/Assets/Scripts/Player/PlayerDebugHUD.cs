@@ -148,6 +148,7 @@ public class PlayerDebugHUD : MonoBehaviour
     private PlayerCombat combat;
     private CharacterAttributes attributes;
     private NavMeshAgent agent;
+    private DungeonReflections dungeonReflections;
 
     // De quanto em quanto tempo a linha do fps troca de numero.
     // Frame a frame o valor treme e nao da pra ler.
@@ -165,6 +166,8 @@ public class PlayerDebugHUD : MonoBehaviour
     private GUIContent header;
     private static readonly GUIContent VSyncOn = new GUIContent("vsync ligado");
     private static readonly GUIContent VSyncOff = new GUIContent("vsync desligado");
+    private static readonly GUIContent ReflectionsOn = new GUIContent("reflexo das salas: ligado");
+    private static readonly GUIContent ReflectionsOff = new GUIContent("reflexo das salas: desligado");
     private static readonly GUIContent CapOn = new GUIContent("limite ligado");
     private static readonly GUIContent CapOff = new GUIContent("limite desligado");
     private readonly CachedText healthLine = new CachedText();
@@ -293,6 +296,7 @@ public class PlayerDebugHUD : MonoBehaviour
     /// </summary>
     private void Start()
     {
+        dungeonReflections = FindFirstObjectByType<DungeonReflections>();
         var controle = GetComponent<PlayerController>();
 
         if (controle == null)
@@ -609,9 +613,10 @@ public class PlayerDebugHUD : MonoBehaviour
         return altura;
     }
 
-    private static float ControlsHeight()
+    private float ControlsHeight()
     {
-        return ButtonHeight + Spacing + ButtonHeight + Spacing + SliderHeight + Spacing;
+        return ButtonHeight + Spacing + ButtonHeight + Spacing + SliderHeight + Spacing +
+               (dungeonReflections != null ? ButtonHeight + Spacing : 0f);
     }
 
     private void OnGUI()
@@ -925,9 +930,20 @@ public class PlayerDebugHUD : MonoBehaviour
         GUIContent textoDoVSync = FpsLimiter.VSync ? VSyncOn : VSyncOff;
 
         if (GUI.Button(new Rect(area.x, y, area.width, ButtonHeight), textoDoVSync, buttonStyle))
+        {
             FpsLimiter.VSync = !FpsLimiter.VSync;
+            FpsLimiter.SaveChoice();
+        }
 
         y += ButtonHeight + Spacing;
+
+        if (dungeonReflections != null)
+        {
+            GUIContent reflectionsText = dungeonReflections.ProbesEnabled ? ReflectionsOn : ReflectionsOff;
+            if (GUI.Button(new Rect(area.x, y, area.width, ButtonHeight), reflectionsText, buttonStyle))
+                dungeonReflections.ProbesEnabled = !dungeonReflections.ProbesEnabled;
+            y += ButtonHeight + Spacing;
+        }
 
         // Com o vsync ligado o teto nao vale. Deixo os controles dele
         // apagados em vez de sumir, pra o painel nao pular de tamanho.
@@ -942,7 +958,10 @@ public class PlayerDebugHUD : MonoBehaviour
         GUI.Label(new Rect(area.x + 156f, y - 2f, 80f, TextHeight), capLine.Content, style);
 
         if (GUI.Button(new Rect(area.xMax - 110f, y, 110f, ButtonHeight), defaultCapLine.Content, buttonStyle))
+        {
             FpsLimiter.Fps = FpsLimiter.FpsPadrao;
+            FpsLimiter.SaveChoice();
+        }
 
         y += ButtonHeight + Spacing;
 
@@ -960,7 +979,10 @@ public class PlayerDebugHUD : MonoBehaviour
             mostrado, MinFpsCap, maximo, trackStyle, thumbStyle));
 
         if (escolhido != mostrado)
+        {
             FpsLimiter.Fps = escolhido;
+            FpsLimiter.SaveChoice();
+        }
 
         GUI.enabled = habilitado;
 

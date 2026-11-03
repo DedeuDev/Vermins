@@ -2,14 +2,12 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.AI;
-using UnityEngine.Rendering;
 
 /// <summary>
 /// Arquivo do Ian. O cenario guia o jogador na dungeon: tochas no caminho
 /// principal, luz fria em cima do guarda morto e luz roxa na entrada da
-/// sala do boss. O professor apontou que o jogador se perdia na dungeon e
-/// na quest, e eu preferi resolver com luz no cenario em vez de seta na
-/// tela.
+/// sala do boss. O jogador se perdia na dungeon e na quest, e eu preferi
+/// resolver com luz no cenario em vez de seta na tela.
 ///
 /// Mora no DungeonGenerator, ao lado do DeadGuardSpawner e do BossSpawner,
 /// e roda do mesmo jeito que eles: espera o RuntimeDungeonNavMesh ficar
@@ -28,9 +26,9 @@ using UnityEngine.Rendering;
 /// colliders no fim. Por isso os FBX dos modulos estao com Read/Write
 /// ligado: sem isso o MeshCollider nao monta na build.
 ///
-/// A dungeon nao tinha nenhuma luz, so o ambiente do ceu, e com isso a
-/// tocha nao aparecia. Por isso escureco o ambiente em ambientScale
-/// enquanto este componente existir, e devolvo o original no OnDestroy.
+/// A tocha so aparece porque o ambiente da dungeon e escuro. Isso morava
+/// aqui (20% do ceu) e passou pro DungeonTheme, que da a cor de cada
+/// dungeon: assim so um script escreve o ambiente.
 ///
 /// Tudo acontece uma vez, na carga da dungeon. Nao tem Update.
 /// </summary>
@@ -58,11 +56,6 @@ public class DungeonGuide : MonoBehaviour
 
     [Tooltip("Luz na entrada da sala do boss. Vazio, sem marco.")]
     [SerializeField] private GameObject bossDoorPrefab;
-
-    [Header("Ambiente")]
-    [Tooltip("Quanto do ambiente do ceu fica na dungeon. 1 deixa como " +
-             "esta; mais baixo deixa a tocha aparecer.")]
-    [SerializeField, Range(0f, 1f)] private float ambientScale = 0.2f;
 
     [Tooltip("Maximo de frames esperando o NavMesh, igual aos spawners.")]
     [SerializeField, Min(1)] private int maxFramesWaitingForNavMesh = 300;
@@ -92,8 +85,6 @@ public class DungeonGuide : MonoBehaviour
 
     private RuntimeDungeonNavMesh runtimeNavMesh;
     private Transform generatedRoot;
-    private SphericalHarmonicsL2 originalAmbient;
-    private bool ambientChanged;
 
     /// <summary>Quantas tochas foram postas. O teste le daqui.</summary>
     public int TorchCount { get; private set; }
@@ -109,12 +100,6 @@ public class DungeonGuide : MonoBehaviour
     private void Start()
     {
         StartCoroutine(GuideWhenReady());
-    }
-
-    private void OnDestroy()
-    {
-        if (ambientChanged)
-            RenderSettings.ambientProbe = originalAmbient;
     }
 
     private IEnumerator GuideWhenReady()
@@ -139,18 +124,7 @@ public class DungeonGuide : MonoBehaviour
         yield return null;
         yield return null;
 
-        DarkenAmbient();
         Build();
-    }
-
-    private void DarkenAmbient()
-    {
-        if (ambientScale >= 1f)
-            return;
-
-        originalAmbient = RenderSettings.ambientProbe;
-        RenderSettings.ambientProbe = originalAmbient * ambientScale;
-        ambientChanged = true;
     }
 
     [ContextMenu("Rebuild Guide")]

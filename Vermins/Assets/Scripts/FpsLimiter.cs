@@ -47,6 +47,10 @@ using UnityEngine.LowLevel;
 /// No editor o padrao continua sendo o teto, porque a Game view ignora o
 /// vsync: medi 318 fps com ele ligado.
 ///
+/// O teto e o vsync escolhidos no HUD de debug ficam no PlayerPrefs e
+/// voltam na proxima vez que o jogo abre. Sem isso o teto de 60 que eu
+/// escolhia voltava pro padrao do monitor a cada abertura.
+///
 /// Fica numa classe estatica, sem objeto em cena, pra valer do menu em
 /// diante sem eu ter que por componente em cada cena.
 /// </summary>
@@ -114,6 +118,11 @@ public static class FpsLimiter
 #else
     private const bool VSyncPadrao = true;
 #endif
+
+    // Onde a escolha do HUD fica de uma abertura pra outra. O prefixo
+    // fica em portugues, igual ao das chaves do SessionState.
+    private const string CapKey = "Vermins.LimiteDeFps.Teto";
+    private const string VSyncKey = "Vermins.LimiteDeFps.VSync";
 
     /// <summary>
     /// O teto em fps, ou 0 pra nenhum.
@@ -337,12 +346,32 @@ public static class FpsLimiter
     private static void Aplicar()
     {
         LerOMonitor();
-        Fps = FpsPadrao;
-        VSync = VSyncPadrao;
+
+        // Um teto guardado acima do monitor atual (o jogo mudou de tela)
+        // volta pro padrao: o slider do HUD nem chegaria nele.
+        int guardado = PlayerPrefs.GetInt(CapKey, FpsPadrao);
+        Fps = TaxaDoMonitor > 0 && guardado > TaxaDoMonitor ? FpsPadrao : guardado;
+        VSync = PlayerPrefs.GetInt(VSyncKey, VSyncPadrao ? 1 : 0) == 1;
 
         // O limite da Unity fica desligado de vez. No editor ele nao
         // volta sozinho pra -1 entre uma sessao de Play e outra.
         Application.targetFrameRate = -1;
+    }
+
+    /// <summary>
+    /// Guarda o teto e o vsync pra proxima abertura. Quem chama e o HUD,
+    /// quando o jogador mexe: os setters nao guardam porque o Instalar e
+    /// o Desinstalar tambem passam por eles, com numeros que nao sao
+    /// escolha de ninguem. O Ligado fica de fora de proposito: so serve
+    /// pra comparar com e sem teto na mesma sessao.
+    ///
+    /// Nao chamo o PlayerPrefs.Save: o slider chama isto a cada frame do
+    /// arrasto, e a Unity ja grava no disco quando o jogo fecha.
+    /// </summary>
+    public static void SaveChoice()
+    {
+        PlayerPrefs.SetInt(CapKey, fps);
+        PlayerPrefs.SetInt(VSyncKey, vsync ? 1 : 0);
     }
 
     // Separado do Aplicar porque a recompilacao no meio do Play apaga

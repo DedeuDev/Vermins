@@ -104,6 +104,9 @@ public class IsometricCameraFollow : MonoBehaviour
     /// </summary>
     public float VisibleHeight => 2f * distance * Mathf.Tan(fieldOfView * 0.5f * Mathf.Deg2Rad);
 
+    /// <summary>Metros da camera ate o alvo. O DungeonTheme poe a luz do Player por aqui.</summary>
+    public float Distance => distance;
+
     public void SetTarget(Transform newTarget)
     {
         target = newTarget;

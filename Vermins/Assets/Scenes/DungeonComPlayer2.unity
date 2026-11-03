@@ -3625,6 +3625,10 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 0}
     m_Modifications:
+    - target: {fileID: 617386822718373390, guid: b3832b5cb55dc84418370776c96ba770, type: 3}
+      propertyPath: propSet
+      value:
+      objectReference: {fileID: 11400000, guid: 502f957521e4b4449bc71bbbefd657ff, type: 2}
     - target: {fileID: 1853299916416796810, guid: b3832b5cb55dc84418370776c96ba770, type: 3}
       propertyPath: m_LocalPosition.x
       value: 0.51722
@@ -3669,6 +3673,22 @@ PrefabInstance:
       propertyPath: m_Name
       value: DungeonGenerator
       objectReference: {fileID: 0}
+    - target: {fileID: 4942510435954905036, guid: b3832b5cb55dc84418370776c96ba770, type: 3}
+      propertyPath: ambientColor.b
+      value: 0.221
+      objectReference: {fileID: 0}
+    - target: {fileID: 4942510435954905036, guid: b3832b5cb55dc84418370776c96ba770, type: 3}
+      propertyPath: ambientColor.g
+      value: 0.283
+      objectReference: {fileID: 0}
+    - target: {fileID: 4942510435954905036, guid: b3832b5cb55dc84418370776c96ba770, type: 3}
+      propertyPath: ambientColor.r
+      value: 0.19
+      objectReference: {fileID: 0}
+    - target: {fileID: 4942510435954905036, guid: b3832b5cb55dc84418370776c96ba770, type: 3}
+      propertyPath: moduleMaterial
+      value:
+      objectReference: {fileID: 2100000, guid: 3b92da7beb7ca87478f507d6f51c6be4, type: 2}
     - target: {fileID: 6213920998551177747, guid: b3832b5cb55dc84418370776c96ba770, type: 3}
       propertyPath: m_Enabled
       value: 0

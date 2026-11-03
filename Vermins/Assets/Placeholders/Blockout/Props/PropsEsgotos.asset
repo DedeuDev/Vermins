@@ -1,0 +1,55 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5e92d8056a146524db145b7d5c29fc2c, type: 3}
+  m_Name: PropsEsgotos
+  m_EditorClassIdentifier: Assembly-CSharp::DungeonPropSet
+  entries:
+  - prefab: {fileID: 1583339901839603148, guid: 6dbbe429b228f774faab906a2b0a3f39, type: 3}
+    placement: 1
+    size: {x: 1.4, y: 0.85}
+    perRoom: {x: 0, y: 1}
+    perCorridor: {x: 0, y: 0}
+  - prefab: {fileID: 6578839198391026754, guid: 8eb7a839a2a3f464b8861c2f2e6170e0, type: 3}
+    placement: 1
+    size: {x: 1.3, y: 0.65}
+    perRoom: {x: 0, y: 1}
+    perCorridor: {x: 0, y: 0}
+  - prefab: {fileID: 378511920907319600, guid: 0e5a54d5a8b9b414ead0bfe687219f3a, type: 3}
+    placement: 1
+    size: {x: 0.7, y: 0.7}
+    perRoom: {x: 0, y: 1}
+    perCorridor: {x: 0, y: 0}
+  - prefab: {fileID: 378511920907319600, guid: 0e5a54d5a8b9b414ead0bfe687219f3a, type: 3}
+    placement: 0
+    size: {x: 0.7, y: 0.7}
+    perRoom: {x: 0, y: 1}
+    perCorridor: {x: 0, y: 0}
+  - prefab: {fileID: 1054525191981932880, guid: 609287ed74ff9ae43b0bc130677fec39, type: 3}
+    placement: 0
+    size: {x: 0.6, y: 0.6}
+    perRoom: {x: 0, y: 1}
+    perCorridor: {x: 0, y: 1}
+  - prefab: {fileID: 4442513903497137707, guid: 18426d8d435f65a459c7be89afd80100, type: 3}
+    placement: 0
+    size: {x: 0.9, y: 0.6}
+    perRoom: {x: 0, y: 1}
+    perCorridor: {x: 0, y: 1}
+  - prefab: {fileID: 1784079101098895340, guid: 7f12dd35ecab2624ea6a07a5b2386c0a, type: 3}
+    placement: 0
+    size: {x: 2.5, y: 0.3}
+    perRoom: {x: 0, y: 1}
+    perCorridor: {x: 0, y: 1}
+  - prefab: {fileID: 9050595861957953220, guid: 298319ec3f9a6db42b9418437fdd6342, type: 3}
+    placement: 2
+    size: {x: 1.2, y: 0.9}
+    perRoom: {x: 0, y: 1}
+    perCorridor: {x: 0, y: 1}

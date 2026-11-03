@@ -443,8 +443,8 @@ public class QuestManager : MonoBehaviour
                 "Investigação nos Esgotos"
             );
 
-        // Ian: os textos dizem a acao e o lugar. O professor viu
-        // jogador perdido: "Investigue o que esta acontecendo" nao
+        // Ian: os textos dizem a acao e o lugar. O jogador ficava
+        // perdido: "Investigue o que esta acontecendo" nao
         // dizia que era pra derrotar o chefe. O lugar usa o mesmo nome
         // do botao da DungeonSelectionUI.
         quest1.EnsureObjective(
