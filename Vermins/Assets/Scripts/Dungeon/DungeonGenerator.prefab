@@ -241,6 +241,7 @@ MonoBehaviour:
   replacedMaterial: {fileID: 2100000, guid: 31321ba15b8f8eb4c954353edc038b1d, type: 2}
   moduleMaterial: {fileID: 2100000, guid: 87f11e30e601c33418aa6fa8cf17c04a, type: 2}
   ambientColor: {r: 0.272, g: 0.235, b: 0.206, a: 1}
+  giStrength: 1
   outsideColor: {r: 0, g: 0, b: 0, a: 1}
   maxFramesWaitingForNavMesh: 300
 --- !u!114 &617386822718373390
@@ -289,4 +290,3 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e2667fe473c64393ab889e9b6b205f1e, type: 3}
   m_Name:
   m_EditorClassIdentifier: Assembly-CSharp::DungeonGI
-  intensity: 1

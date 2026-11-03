@@ -8,14 +8,13 @@ using Stopwatch = System.Diagnostics.Stopwatch;
 /// Arquivo do Ian. Reaproveitei a foto de cada sala como um rebote SH L2:
 /// piso e parede compartilham a captura, mas recebem luz por direcao.
 /// Li as seis faces uma vez na carga, em linear, sem recapturar nem Update.
-/// Mantive intensidade 1 para medir o resultado sem corrigir no olho.
+/// Somei o rebote ao ambiente do tema para nao apagar a luz escolhida.
 /// </summary>
 [RequireComponent(typeof(DungeonReflections))]
 public class DungeonGI : MonoBehaviour
 {
-    [SerializeField, Min(0f)] private float intensity = 1f;
-
     private DungeonReflections reflections;
+    private DungeonTheme theme;
     private SphericalHarmonicsL2[] roomLighting;
     private readonly List<Renderer> renderers = new List<Renderer>();
     private readonly List<LightProbeUsage> originalUsage = new List<LightProbeUsage>();
@@ -26,6 +25,8 @@ public class DungeonGI : MonoBehaviour
 
     public bool Ready { get; private set; }
     public int AppliedRendererCount => renderers.Count;
+    public int XZAssignedRendererCount { get; private set; }
+    public int NearestAssignedRendererCount { get; private set; }
     public string[] UnassignedRenderers { get; private set; } = System.Array.Empty<string>();
     public int ReadResolution { get; private set; }
     public int ReadMip { get; private set; }
@@ -47,6 +48,7 @@ public class DungeonGI : MonoBehaviour
     {
         block = new MaterialPropertyBlock();
         reflections = GetComponent<DungeonReflections>();
+        theme = GetComponent<DungeonTheme>();
         while (!reflections.CaptureComplete)
             yield return null;
 
@@ -157,6 +159,9 @@ public class DungeonGI : MonoBehaviour
 
     private static Vector3 FaceDirection(int face, float u, float v)
     {
+        // Corrigi o v: a leitura GPU traz as linhas de baixo para cima.
+        // Testei as metades inferiores de +X e +Z contra as duas diagonais.
+        v = -v;
         switch ((CubemapFace)face)
         {
             case CubemapFace.PositiveX: return new Vector3(1f, -v, -u).normalized;
@@ -174,21 +179,41 @@ public class DungeonGI : MonoBehaviour
         foreach (Renderer renderer in FindObjectsByType<Renderer>(FindObjectsSortMode.None))
         {
             if (renderer.gameObject.scene != gameObject.scene ||
+                renderer is ParticleSystemRenderer || renderer is LineRenderer ||
                 renderer.GetComponentInParent<Health>() != null || IsPlayer(renderer.transform))
                 continue;
             int room = -1;
+            int nearestRoom = -1;
+            float nearestDistance = float.PositiveInfinity;
             for (int i = 0; i < reflections.ProbeCount; i++)
             {
                 BoxCollider bounds = reflections.GetModule(i).PlacementBounds;
                 Vector3 local = bounds.transform.InverseTransformPoint(renderer.bounds.center) - bounds.center;
                 Vector3 half = bounds.size * 0.5f;
                 if (Mathf.Abs(local.x) <= half.x + 0.001f &&
-                    Mathf.Abs(local.y) <= half.y + 0.001f &&
                     Mathf.Abs(local.z) <= half.z + 0.001f)
                 {
                     room = i;
+                    XZAssignedRendererCount++;
                     break;
                 }
+                // Ignorei a altura da caixa de 1 m; medi a borda em metros
+                // do mundo para cobrir as emendas ate 2 m, mesmo com escala.
+                Vector3 edge = bounds.transform.TransformPoint(bounds.center + new Vector3(
+                    Mathf.Clamp(local.x, -half.x, half.x), 0f,
+                    Mathf.Clamp(local.z, -half.z, half.z)));
+                Vector3 delta = renderer.bounds.center - edge;
+                float distance = delta.x * delta.x + delta.z * delta.z;
+                if (distance < nearestDistance)
+                {
+                    nearestDistance = distance;
+                    nearestRoom = i;
+                }
+            }
+            if (room < 0 && nearestRoom >= 0 && nearestDistance <= 4f)
+            {
+                room = nearestRoom;
+                NearestAssignedRendererCount++;
             }
             if (room < 0)
             {
@@ -214,6 +239,10 @@ public class DungeonGI : MonoBehaviour
 
     private void ApplyLighting()
     {
+        // Li depois do DungeonTheme. Mantive o ambiente na captura para
+        // nao piscar; o rebote conta albedo x ambiente uma segunda vez.
+        SphericalHarmonicsL2 ambient = RenderSettings.ambientProbe;
+        float strength = theme != null ? theme.GIStrength : 1f;
         for (int i = 0; i < renderers.Count; i++)
         {
             Renderer renderer = renderers[i];
@@ -224,7 +253,7 @@ public class DungeonGI : MonoBehaviour
                 renderer.SetPropertyBlock(null);
                 continue;
             }
-            singleProbe[0] = roomLighting[roomIndices[i]] * intensity;
+            singleProbe[0] = ambient + roomLighting[roomIndices[i]] * strength;
             block.Clear();
             block.CopySHCoefficientArraysFrom(singleProbe);
             renderer.lightProbeUsage = LightProbeUsage.CustomProvided;

@@ -73,6 +73,9 @@ public class DungeonTheme : MonoBehaviour
              "igual ao do Lighting. Mais claro apaga a tocha.")]
     [SerializeField] private Color ambientColor = new Color(0.272f, 0.235f, 0.206f);
 
+    [Tooltip("A forca do rebote por sala somado ao ambiente deste tema.")]
+    [SerializeField, Min(0f)] private float giStrength = 1f;
+
     [Tooltip("A cor de fora das paredes, onde a camera via o ceu.")]
     [SerializeField] private Color outsideColor = Color.black;
 
@@ -105,6 +108,8 @@ public class DungeonTheme : MonoBehaviour
 
     /// <summary>Quantas malhas trocaram de material. O teste le daqui.</summary>
     public int PaintedCount { get; private set; }
+
+    public float GIStrength => giStrength;
 
     private void Awake()
     {
