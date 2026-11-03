@@ -2384,7 +2384,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c23f7b762b9869d45b230ad59be9aef4, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::InventoryUI
-  inventory: {fileID: 1987949154}
+  inventory: {fileID: 1987949126}
   inventoryPanel: {fileID: 1317236079}
   slotGrid: {fileID: 1558847612}
 --- !u!1 &929746374
@@ -3323,7 +3323,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c23f7b762b9869d45b230ad59be9aef4, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::InventoryUI
-  inventory: {fileID: 1987949154}
+  inventory: {fileID: 1987949126}
   inventoryPanel: {fileID: 1317236079}
   slotGrid: {fileID: 1558847612}
 --- !u!1 &1367796307
@@ -3627,7 +3627,7 @@ PrefabInstance:
     m_Modifications:
     - target: {fileID: 617386822718373390, guid: b3832b5cb55dc84418370776c96ba770, type: 3}
       propertyPath: propSet
-      value:
+      value: 
       objectReference: {fileID: 11400000, guid: 502f957521e4b4449bc71bbbefd657ff, type: 2}
     - target: {fileID: 1853299916416796810, guid: b3832b5cb55dc84418370776c96ba770, type: 3}
       propertyPath: m_LocalPosition.x
@@ -3687,7 +3687,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 4942510435954905036, guid: b3832b5cb55dc84418370776c96ba770, type: 3}
       propertyPath: moduleMaterial
-      value:
+      value: 
       objectReference: {fileID: 2100000, guid: 3b92da7beb7ca87478f507d6f51c6be4, type: 2}
     - target: {fileID: 6213920998551177747, guid: b3832b5cb55dc84418370776c96ba770, type: 3}
       propertyPath: m_Enabled
@@ -4946,10 +4946,18 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 7457194079543536127, guid: 356d799949babdd4395cace30c1da930, type: 3}
       insertIndex: -1
       addedObject: {fileID: 1987949127}
-    - targetCorrespondingSourceObject: {fileID: 7457194079543536127, guid: 356d799949babdd4395cace30c1da930, type: 3}
-      insertIndex: -1
-      addedObject: {fileID: 1987949154}
   m_SourcePrefab: {fileID: 100100000, guid: 356d799949babdd4395cace30c1da930, type: 3}
+--- !u!114 &1987949126 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 8166981664061235315, guid: 356d799949babdd4395cace30c1da930, type: 3}
+  m_PrefabInstance: {fileID: 1987949125}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1560433406}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 08fc99a8d9b4a1041a3feee7c0bdff31, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::InventorySystem
 --- !u!114 &1987949127
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -4973,21 +4981,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 17dda58a5bd15d243983811b60cc0bd1, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::EquipamentoDoPersonagem
---- !u!114 &1987949154
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1560433406}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 08fc99a8d9b4a1041a3feee7c0bdff31, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::InventorySystem
-  potionBelt: {fileID: 0}
-  characterEquipment: {fileID: 0}
-  equipmentPickupPrefab: {fileID: 0}
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0

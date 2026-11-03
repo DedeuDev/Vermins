@@ -363,6 +363,7 @@ GameObject:
   - component: {fileID: 5894885784309209177}
   - component: {fileID: 1204055502946249803}
   - component: {fileID: 720753791961685626}
+  - component: {fileID: 8166981664061235315}
   m_Layer: 0
   m_Name: Player
   m_TagString: Player
@@ -910,6 +911,21 @@ MonoBehaviour:
   spawnForward: 0.5
   castTime: 0.6
   impactDelay: 0.29
+--- !u!114 &8166981664061235315
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7457194079543536127}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 08fc99a8d9b4a1041a3feee7c0bdff31, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::InventorySystem
+  potionBelt: {fileID: 0}
+  characterEquipment: {fileID: 0}
+  equipmentPickupPrefab: {fileID: 0}
 --- !u!1001 &9095150474061651368
 PrefabInstance:
   m_ObjectHideFlags: 0

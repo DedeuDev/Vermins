@@ -178,10 +178,7 @@ PrefabInstance:
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
-    m_AddedComponents:
-    - targetCorrespondingSourceObject: {fileID: 7457194079543536127, guid: 356d799949babdd4395cace30c1da930, type: 3}
-      insertIndex: -1
-      addedObject: {fileID: 21841682}
+    m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 356d799949babdd4395cace30c1da930, type: 3}
 --- !u!114 &21841678 stripped
 MonoBehaviour:
@@ -196,15 +193,15 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::EquipamentoDoPersonagem
 --- !u!114 &21841679 stripped
 MonoBehaviour:
-  m_CorrespondingSourceObject: {fileID: 6934464736222207046, guid: 356d799949babdd4395cace30c1da930, type: 3}
+  m_CorrespondingSourceObject: {fileID: 8166981664061235315, guid: 356d799949babdd4395cace30c1da930, type: 3}
   m_PrefabInstance: {fileID: 21841677}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 21841681}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 8122b40a52e2d0847a0f3ba74e46ea96, type: 3}
+  m_Script: {fileID: 11500000, guid: 08fc99a8d9b4a1041a3feee7c0bdff31, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::PotionBelt
+  m_EditorClassIdentifier: Assembly-CSharp::InventorySystem
 --- !u!4 &21841680 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 4279875411252354025, guid: 356d799949babdd4395cace30c1da930, type: 3}
@@ -215,21 +212,6 @@ GameObject:
   m_CorrespondingSourceObject: {fileID: 7457194079543536127, guid: 356d799949babdd4395cace30c1da930, type: 3}
   m_PrefabInstance: {fileID: 21841677}
   m_PrefabAsset: {fileID: 0}
---- !u!114 &21841682
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 21841681}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 08fc99a8d9b4a1041a3feee7c0bdff31, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::InventorySystem
-  potionBelt: {fileID: 21841679}
-  characterEquipment: {fileID: 21841678}
-  equipmentPickupPrefab: {fileID: 3727387141899743554, guid: a4514f84043633042a54f6754414859f, type: 3}
 --- !u!1 &22960832
 GameObject:
   m_ObjectHideFlags: 0
@@ -4799,7 +4781,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c23f7b762b9869d45b230ad59be9aef4, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::InventoryUI
-  inventory: {fileID: 21841682}
+  inventory: {fileID: 21841679}
   inventoryPanel: {fileID: 312144569}
   slotGrid: {fileID: 1643667594}
 --- !u!1 &821270598
@@ -11397,7 +11379,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::WeaponSlotUI
   characterEquipment: {fileID: 21841678}
-  inventory: {fileID: 21841682}
+  inventory: {fileID: 21841679}
   weaponIcon: {fileID: 1587068501}
   slotButton: {fileID: 2084991268}
   defaultWeaponIcon: {fileID: 0}
