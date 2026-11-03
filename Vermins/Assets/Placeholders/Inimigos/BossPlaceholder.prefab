@@ -125,6 +125,8 @@ GameObject:
   - component: {fileID: 8475650373607586276}
   - component: {fileID: 2717590656779967852}
   - component: {fileID: 7323676446091377546}
+  - component: {fileID: 6407880247746736189}
+  - component: {fileID: 4396034319507173038}
   m_Layer: 0
   m_Name: BossPlaceholder
   m_TagString: Untagged
@@ -181,3 +183,44 @@ MonoBehaviour:
   onBossDerrotado:
     m_PersistentCalls:
       m_Calls: []
+--- !u!114 &6407880247746736189
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2439943171675175868}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4627f9c6ec3bf5943bc4e4e1da39420b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Health
+  maxHealth: 100
+  destroyOnDeath: 0
+  destroyDelay: 2
+--- !u!114 &4396034319507173038
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2439943171675175868}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6f6cdf4302a649848bee07a736c45fe9, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::BossQuestObjective
+  scenes:
+  - sceneName: DungeonComPlayer
+    quest: 0
+    objectives: 01000000
+    speaker: 
+    line: 
+  - sceneName: DungeonComPlayer2
+    quest: 1
+    objectives: 0200000003000000
+    speaker: "L\xEDder dos Ratos"
+    line: "Chega... chega! N\xE3o fomos n\xF3s que juntamos os cl\xE3s. Foi o Sacerdote.
+      Ele promete os t\xFAneis... e a cidade l\xE1 em cima. Se quer ele, procure
+      o templo debaixo dos esgotos."
+  destroyOnDefeat: 1

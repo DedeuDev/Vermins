@@ -443,14 +443,18 @@ public class QuestManager : MonoBehaviour
                 "Investigação nos Esgotos"
             );
 
+        // Ian: os textos dizem a acao e o lugar. O professor viu
+        // jogador perdido: "Investigue o que esta acontecendo" nao
+        // dizia que era pra derrotar o chefe. O lugar usa o mesmo nome
+        // do botao da DungeonSelectionUI.
         quest1.EnsureObjective(
             QuestObjectiveId.FindDeadGuard,
-            "Descubra o que aconteceu com os guardas."
+            "Encontre o guarda desaparecido nos Esgotos Superiores."
         );
 
         quest1.EnsureObjective(
             QuestObjectiveId.DefeatBoss1,
-            "Investigue o que está acontecendo nos esgotos."
+            "Derrote o chefe no fim dos Esgotos Superiores."
         );
 
         // ==============================================
@@ -465,12 +469,12 @@ public class QuestManager : MonoBehaviour
 
         quest2.EnsureObjective(
             QuestObjectiveId.DefeatBoss2,
-            "Derrote o líder encontrado nas profundezas."
+            "Derrote o líder nas Profundezas dos Esgotos."
         );
 
         quest2.EnsureObjective(
             QuestObjectiveId.InterrogateBoss2,
-            "Descubra por que os clãs de ratos se uniram."
+            "Interrogue o líder derrotado sobre a união dos clãs."
         );
 
         // ==============================================
@@ -485,7 +489,7 @@ public class QuestManager : MonoBehaviour
 
         quest3.EnsureObjective(
             QuestObjectiveId.DefeatRatPriest,
-            "Derrote o Rato Sacerdote."
+            "Derrote o Rato Sacerdote no Templo Subterrâneo."
         );
     }
 

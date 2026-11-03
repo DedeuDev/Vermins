@@ -310,11 +310,16 @@ public class DungeonSelectionUI : MonoBehaviour
         if (buttonText == null)
             return;
 
+        // Ian: o estado virou uma linha menor com a cor da HUD da
+        // quest: amarelo pra missao atual, cinza pro que nao abre.
+        // "Cena nao configurada" e texto de dev; pro jogador e "em
+        // breve".
         if (!unlocked)
         {
             buttonText.text =
+                "<color=#8C8C8C>" +
                 displayName +
-                "\n[BLOQUEADO]";
+                "\n<size=70%>BLOQUEADO</size></color>";
 
             return;
         }
@@ -322,8 +327,9 @@ public class DungeonSelectionUI : MonoBehaviour
         if (!sceneAvailable)
         {
             buttonText.text =
+                "<color=#8C8C8C>" +
                 displayName +
-                "\n[CENA NÃO CONFIGURADA]";
+                "\n<size=70%>EM BREVE</size></color>";
 
             return;
         }
@@ -332,7 +338,7 @@ public class DungeonSelectionUI : MonoBehaviour
         {
             buttonText.text =
                 displayName +
-                "\n[MISSÃO ATUAL]";
+                "\n<size=70%><color=#FFD24D>MISSÃO ATUAL</color></size>";
 
             return;
         }

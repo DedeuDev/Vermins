@@ -33,6 +33,24 @@ public class QuestUI : MonoBehaviour
 
     private bool subscribedToQuestManager;
 
+    // Ian: a ordem da campanha virou campo, porque agora duas
+    // funcoes percorrem ela.
+    private static readonly QuestId[] QuestOrder =
+    {
+        QuestId.SewerInvestigation,
+        QuestId.DeeperIntoSewers,
+        QuestId.RatPriest
+    };
+
+    // Ian: o objetivo da vez fica amarelo e o feito fica cinza e
+    // riscado. Antes so o [ ] virava [X], e os dois brigavam pela
+    // atencao do jogador.
+    private const string CurrentColor =
+        "<color=#FFD24D>";
+
+    private const string DoneColor =
+        "<color=#8C8C8C>";
+
     // ==================================================
     // AWAKE
     // ==================================================
@@ -132,7 +150,23 @@ public class QuestUI : MonoBehaviour
          */
         if (currentQuest == null)
         {
-            HideQuestPanel();
+            // Ian: antes o painel sumia aqui, justo antes da
+            // primeira quest e entre uma e outra, quando o jogador
+            // precisa saber que tem que voltar ao Capitao. Agora so
+            // some quando nao sobra quest nenhuma.
+            QuestProgress nextQuest =
+                FindNextQuestToStart();
+
+            if (nextQuest == null)
+            {
+                HideQuestPanel();
+                return;
+            }
+
+            ShowTalkToCaptain(
+                nextQuest
+            );
+
             return;
         }
 
@@ -166,16 +200,9 @@ public class QuestUI : MonoBehaviour
          * ReadyToTurnIn.
          */
 
-        QuestId[] questOrder =
-        {
-            QuestId.SewerInvestigation,
-            QuestId.DeeperIntoSewers,
-            QuestId.RatPriest
-        };
-
         foreach (
             QuestId questId
-            in questOrder
+            in QuestOrder
         )
         {
             QuestProgress quest =
@@ -204,6 +231,78 @@ public class QuestUI : MonoBehaviour
         }
 
         return null;
+    }
+
+    // ==================================================
+    // Ian: PROXIMA QUEST A PEGAR
+    // ==================================================
+
+    private QuestProgress FindNextQuestToStart()
+    {
+        foreach (
+            QuestId questId
+            in QuestOrder
+        )
+        {
+            QuestProgress quest =
+                QuestManager.Instance.FindQuest(
+                    questId
+                );
+
+            if (quest == null)
+                continue;
+
+            if (
+                quest.State ==
+                QuestState.NotStarted &&
+                QuestManager.Instance.CanStartQuest(
+                    questId
+                )
+            )
+            {
+                return quest;
+            }
+        }
+
+        return null;
+    }
+
+    // ==================================================
+    // Ian: FALE COM O CAPITAO
+    // ==================================================
+
+    private void ShowTalkToCaptain(
+        QuestProgress nextQuest
+    )
+    {
+        questPanel.SetActive(
+            true
+        );
+
+        UpdateTitle(
+            nextQuest
+        );
+
+        ClearObjectiveTexts();
+
+        if (objectiveText1 != null)
+        {
+            objectiveText1.gameObject.SetActive(
+                true
+            );
+
+            objectiveText1.text =
+                CurrentColor +
+                "[ ] Fale com o Capitão da Guarda na cidade." +
+                "</color>";
+        }
+
+        if (returnObjectiveText != null)
+        {
+            returnObjectiveText.gameObject.SetActive(
+                false
+            );
+        }
     }
 
     // ==================================================
@@ -237,11 +336,33 @@ public class QuestUI : MonoBehaviour
         if (objectives == null)
             return;
 
+        // Ian: o da vez e o primeiro que falta, na ordem da lista.
+        QuestObjectiveProgress currentObjective =
+            null;
+
+        foreach (
+            QuestObjectiveProgress objective
+            in objectives
+        )
+        {
+            if (
+                objective != null &&
+                !objective.Completed
+            )
+            {
+                currentObjective =
+                    objective;
+
+                break;
+            }
+        }
+
         if (objectives.Count >= 1)
         {
             SetObjectiveText(
                 objectiveText1,
-                objectives[0]
+                objectives[0],
+                objectives[0] == currentObjective
             );
         }
 
@@ -249,7 +370,8 @@ public class QuestUI : MonoBehaviour
         {
             SetObjectiveText(
                 objectiveText2,
-                objectives[1]
+                objectives[1],
+                objectives[1] == currentObjective
             );
         }
     }
@@ -260,7 +382,8 @@ public class QuestUI : MonoBehaviour
 
     private void SetObjectiveText(
         TMP_Text textComponent,
-        QuestObjectiveProgress objective
+        QuestObjectiveProgress objective,
+        bool isCurrent
     )
     {
         if (textComponent == null)
@@ -279,13 +402,22 @@ public class QuestUI : MonoBehaviour
             true
         );
 
-        string checkbox =
-            objective.Completed
-                ? "[X]"
-                : "[ ]";
-
-        textComponent.text =
-            $"{checkbox} {objective.Description}";
+        // Ian: so remonta quando a quest muda, nunca por frame.
+        if (objective.Completed)
+        {
+            textComponent.text =
+                $"{DoneColor}<s>[X] {objective.Description}</s></color>";
+        }
+        else if (isCurrent)
+        {
+            textComponent.text =
+                $"{CurrentColor}[ ] {objective.Description}</color>";
+        }
+        else
+        {
+            textComponent.text =
+                $"[ ] {objective.Description}";
+        }
     }
 
     // ==================================================
@@ -336,8 +468,11 @@ public class QuestUI : MonoBehaviour
 
         if (readyToTurnIn)
         {
+            // Ian: amarelo como o objetivo da vez, e com o lugar.
             returnObjectiveText.text =
-                "Volte ao Capitão da Guarda.";
+                CurrentColor +
+                "[ ] Volte ao Capitão da Guarda na cidade." +
+                "</color>";
         }
     }
 
