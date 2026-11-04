@@ -10,6 +10,7 @@ public class SaveSystem : MonoBehaviour
 
     private string savePath;
     private SaveData pendingLoadData;
+    private bool ignoreSavedPosition;
 
     private void Awake()
     {
@@ -161,7 +162,22 @@ public class SaveSystem : MonoBehaviour
         SceneManager.sceneLoaded -= OnSceneLoaded;
         SceneManager.sceneLoaded += OnSceneLoaded;
 
-        SceneManager.LoadScene(pendingLoadData.sceneName);
+        // Ian: save feito numa dungeon volta na HUBCity, como no Diablo 4. A
+        // dungeon e gerada de novo a cada entrada, entao a posicao salva nao
+        // batia com o layout novo, e a cidade tem o QuestManager e a HUD da
+        // quest.
+        string targetScene = pendingLoadData.sceneName;
+        ignoreSavedPosition =
+            targetScene != "HUBCity" &&
+            targetScene != "MainMenu" &&
+            targetScene != "Options";
+
+        if (ignoreSavedPosition)
+        {
+            targetScene = "HUBCity";
+        }
+
+        SceneManager.LoadScene(targetScene);
     }
 
     private void OnSceneLoaded(Scene scene, LoadSceneMode mode)
@@ -198,11 +214,20 @@ public class SaveSystem : MonoBehaviour
                 pendingLoadData.playerPosZ
             );
 
-            if (NavMesh.SamplePosition(
-                savedPosition,
-                out NavMeshHit navMeshHit,
-                100f,
-                NavMesh.AllAreas))
+            // Ian: quando o save veio de uma dungeon e abriu na HUBCity,
+            // deixo o Player onde a cidade o coloca e nao procuro a posicao
+            // da dungeon no NavMesh da cidade.
+            NavMeshHit navMeshHit = default;
+            bool hasPosition =
+                ignoreSavedPosition ||
+                NavMesh.SamplePosition(
+                    savedPosition,
+                    out navMeshHit,
+                    100f,
+                    NavMesh.AllAreas
+                );
+
+            if (hasPosition)
             {
                 GameObject player = GameObject.FindGameObjectWithTag("Player");
 
@@ -224,18 +249,24 @@ public class SaveSystem : MonoBehaviour
                             continue;
                         }
 
-                        agent.Warp(navMeshHit.position);
+                        if (!ignoreSavedPosition)
+                        {
+                            agent.Warp(navMeshHit.position);
+                        }
                     }
-                    else
+                    else if (!ignoreSavedPosition)
                     {
                         player.transform.position = navMeshHit.position;
                     }
 
-                    player.transform.eulerAngles = new Vector3(
-                        pendingLoadData.playerRotX,
-                        pendingLoadData.playerRotY,
-                        pendingLoadData.playerRotZ
-                    );
+                    if (!ignoreSavedPosition)
+                    {
+                        player.transform.eulerAngles = new Vector3(
+                            pendingLoadData.playerRotX,
+                            pendingLoadData.playerRotY,
+                            pendingLoadData.playerRotZ
+                        );
+                    }
 
                     // Ian: o XP e os pontos gastos voltam antes da vida.
                     // O Revive corta a vida no teto, e o teto depende do
@@ -336,6 +367,7 @@ public class SaveSystem : MonoBehaviour
                     Debug.Log("Jogo carregado com sucesso.");
 
                     pendingLoadData = null;
+                    ignoreSavedPosition = false;
 
                     yield break;
                 }
@@ -349,6 +381,7 @@ public class SaveSystem : MonoBehaviour
         );
 
         pendingLoadData = null;
+        ignoreSavedPosition = false;
     }
 
     public bool HasSave()
