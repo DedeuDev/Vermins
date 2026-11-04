@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
 public class QuestUI : MonoBehaviour
 {
@@ -77,6 +78,19 @@ public class QuestUI : MonoBehaviour
                 gameObject
             );
         }
+
+        // Ian: escuto a troca de cena para esconder o painel no MainMenu e em
+        // Options e mostra-lo de novo ao voltar para o jogo.
+        SceneManager.sceneLoaded +=
+            HandleSceneLoaded;
+    }
+
+    private void HandleSceneLoaded(
+        Scene scene,
+        LoadSceneMode mode
+    )
+    {
+        RefreshUI();
     }
 
     // ==================================================
@@ -134,6 +148,20 @@ public class QuestUI : MonoBehaviour
     {
         if (questPanel == null)
             return;
+
+        // Ian: o Canvas persiste por DontDestroyOnLoad, entao escondo a HUD
+        // da quest fora das cenas de jogo (MainMenu e Options).
+        string activeScene =
+            SceneManager.GetActiveScene().name;
+
+        if (
+            activeScene == "MainMenu" ||
+            activeScene == "Options"
+        )
+        {
+            HideQuestPanel();
+            return;
+        }
 
         if (QuestManager.Instance == null)
         {
@@ -493,6 +521,9 @@ public class QuestUI : MonoBehaviour
 
     private void OnDestroy()
     {
+        SceneManager.sceneLoaded -=
+            HandleSceneLoaded;
+
         if (
             subscribedToQuestManager &&
             QuestManager.Instance != null
