@@ -136,6 +136,8 @@ public class PlayerAnimator : MonoBehaviour
     // Indice da camada da reacao, resolvido uma vez. Guardo porque
     // GetLayerIndex faz busca por nome e eu leio isto todo frame.
     private int reactionLayer = -1;
+    private int abilityLayer = -1;
+    private Ability movingCast;
 
     // Peso atual da camada da reacao. Guardo em vez de ler do Animator
     // todo frame porque eu preciso do valor de ONTEM pra saber se estou
@@ -209,6 +211,7 @@ public class PlayerAnimator : MonoBehaviour
         MeasureAttackClips();
         MeasureDodgeClip();
         FindReactionLayer();
+        abilityLayer = animator.GetLayerIndex("Habilidade");
 
         // Sem aviso quando falta. O controller da magia nao tem este
         // parametro e nao precisa: o SprintForward dele pisa a 4,13, mais
@@ -390,6 +393,7 @@ public class PlayerAnimator : MonoBehaviour
 
     private void OnDisable()
     {
+        ClearMovingCast();
         if (combat != null)
         {
             combat.OnAttack -= HandleAttack;
@@ -443,7 +447,7 @@ public class PlayerAnimator : MonoBehaviour
         // O Atacar armado conta como golpe: o PlayerCombat pode ter
         // comecado o golpe neste mesmo frame, antes do dano chegar, e o
         // Animator so entra no estado no frame seguinte.
-        if (IsInAttack() || animator.GetBool(AttackId))
+        if (movingCast != null || IsInAttack() || animator.GetBool(AttackId))
             return;
 
         animator.SetTrigger(HurtId);
@@ -514,7 +518,20 @@ public class PlayerAnimator : MonoBehaviour
         animator.SetFloat(AttackSpeedId,
             Mathf.Max(1f, attackDurations[clipe] / (habilidade.CastTime * AttackFitRatio)));
         animator.SetFloat(VariantId, clipe);
-        animator.SetTrigger(AttackId);
+
+        if (habilidade.MoveWhileCasting && abilityLayer >= 0)
+        {
+            // Pus so o torso no golpe; as pernas continuam na locomocao.
+            movingCast = habilidade;
+            animator.ResetTrigger(AttackId);
+            animator.CrossFadeInFixedTime(LocomotionStateId, attackCutFade, 0);
+            animator.SetLayerWeight(abilityLayer, 1f);
+            animator.Play(AttackStateId, abilityLayer, 0f);
+        }
+        else
+        {
+            animator.SetTrigger(AttackId);
+        }
 
         if (canReact)
         {
@@ -537,6 +554,7 @@ public class PlayerAnimator : MonoBehaviour
     /// </summary>
     private void HandleDodged(float duracao)
     {
+        ClearMovingCast();
         if (dodgeDuration <= 0f || duracao <= 0f)
             return;
 
@@ -634,6 +652,9 @@ public class PlayerAnimator : MonoBehaviour
         // sozinho e o corpo levanta, sem ninguem precisar lembrar de
         // mandar um aviso separado no respawn.
         animator.SetBool(DeadId, morto);
+
+        if (movingCast != null && (morto || !movingCast.isActiveAndEnabled || !movingCast.IsCasting))
+            ClearMovingCast();
 
         UpdateReactionWeight(morto);
 
@@ -768,6 +789,13 @@ public class PlayerAnimator : MonoBehaviour
             : animator.GetCurrentAnimatorStateInfo(reactionLayer);
 
         return info.shortNameHash == ReactStateId;
+    }
+
+    private void ClearMovingCast()
+    {
+        movingCast = null;
+        if (animator != null && abilityLayer >= 0)
+            animator.SetLayerWeight(abilityLayer, 0f);
     }
 
     private Vector3 GroundVelocity()

@@ -271,6 +271,21 @@ public static class PlayerAnimatorSetup
     [MenuItem("Vermins/Player/Montar Animator do Paladino")]
     public static void MontarPaladino()
     {
+        var controller = AssetDatabase.LoadAssetAtPath<AnimatorController>(Paladino.controllerPath);
+        AnimatorStateMachine machine = controller != null ? controller.layers[0].stateMachine : null;
+        AnimatorState attack = machine != null ? AcharEstado(machine, EstadoAtaque) : null;
+
+        // Preservei o controller ja montado: recriar transicoes troca seus IDs
+        // e altera as outras camadas no diff, mesmo sem mudar o comportamento.
+        if (attack != null && AcharEstado(machine, EstadoLocomocao) != null &&
+            AcharEstado(machine, EstadoMorte) != null && AcharEstado(machine, EstadoEsquiva) != null &&
+            AcharCamada(controller, CamadaDaReacao) != null)
+        {
+            EnsureAbilityLayer(controller, attack);
+            AssetDatabase.SaveAssetIfDirty(controller);
+            return;
+        }
+
         Montar(Paladino);
     }
 
@@ -363,10 +378,49 @@ public static class PlayerAnimatorSetup
 
         LigarTudo(maquina, locomocao, ataque, morte, esquiva);
 
+        if (perfil == Paladino)
+            EnsureAbilityLayer(controller, ataque);
+
         EditorUtility.SetDirty(controller);
         AssetDatabase.SaveAssets();
 
         Debug.Log(Resumo(perfil, arvore, ataque, morte, reacao));
+    }
+
+    private static void EnsureAbilityLayer(AnimatorController controller, AnimatorState attack)
+    {
+        const string layerName = "Habilidade";
+        AnimatorStateMachine machine = AcharCamada(controller, layerName);
+        if (machine == null)
+        {
+            controller.AddLayer(layerName);
+            machine = AcharCamada(controller, layerName);
+        }
+
+        AnimatorControllerLayer[] layers = controller.layers;
+        for (int i = 0; i < layers.Length; i++)
+        {
+            if (layers[i].name != layerName)
+                continue;
+
+            layers[i].defaultWeight = 0f;
+            layers[i].blendingMode = AnimatorLayerBlendingMode.Override;
+            layers[i].avatarMask = AssetDatabase.LoadAssetAtPath<AvatarMask>(MascaraPath);
+        }
+        controller.layers = layers;
+
+        AnimatorState empty = AcharEstado(machine, EstadoVazio)
+                              ?? machine.AddState(EstadoVazio, new Vector3(260f, 60f, 0f));
+        empty.writeDefaultValues = false;
+        AnimatorState cast = AcharEstado(machine, EstadoAtaque)
+                             ?? machine.AddState(EstadoAtaque, new Vector3(260f, 170f, 0f));
+        cast.motion = attack.motion;
+        cast.speed = 1f;
+        cast.speedParameterActive = true;
+        cast.speedParameter = ParamVelAtaque;
+        cast.writeDefaultValues = false;
+        machine.defaultState = empty;
+        EditorUtility.SetDirty(controller);
     }
 
     private static void Reclamar(List<string> faltando)

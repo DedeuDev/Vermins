@@ -2,7 +2,8 @@ using System.Collections;
 using UnityEngine;
 
 /// <summary>
-/// Golpe em area no botao direito (3.2): o Player para, vira pro mouse,
+/// Golpe em area no botao direito (3.2): pus o gesto andando mais devagar,
+/// virado pro mouse ate a pancada. O Player
 /// desce a espada e todo inimigo a ate 3 m dele leva o dano da arma x 2,5.
 ///
 /// O centro e o Player, e nao o mouse. E golpe de espada: o mouse so diz
@@ -37,8 +38,8 @@ public class GroundSlam : Ability
              "critico multiplica por cima, igual ao golpe normal.")]
     [SerializeField, Min(0f)] private float damageMultiplier = 2.5f;
 
-    [Tooltip("Quanto o golpe trava o Player, do aperto ate poder andar de " +
-             "novo. O PlayerAnimator encaixa o golpe final da espada neste " +
+    [Tooltip("Quanto dura o gesto, do aperto ate aceitar outra ordem de " +
+             "combate. O PlayerAnimator encaixa o golpe final da espada neste " +
              "tempo.")]
     [SerializeField, Min(0.1f)] private float castTime = 1f;
 
@@ -106,10 +107,12 @@ public class GroundSlam : Ability
 
     protected override bool Activate(Vector3 point)
     {
-        // Larga o que estava fazendo. O golpe de espada no meio seria uma
-        // segunda pancada por cima desta, e o alvo travado faria o
-        // PlayerCombat sair perseguindo no fim do gesto.
-        motor.Stop();
+        // Mantive a rota com o gesto movel a 50%; larguei o combate para
+        // nao somar um golpe de espada nem perseguir o alvo no meio dele.
+        if (!MoveWhileCasting)
+            motor.Stop();
+
+        motor.HoldRotation = MoveWhileCasting;
         combat.ClearTarget();
         combat.InterruptAttack();
 
@@ -139,6 +142,8 @@ public class GroundSlam : Ability
     /// </summary>
     private void Impact()
     {
+        motor.HoldRotation = false;
+
         if (ownHealth.IsDead)
             return;
 
@@ -207,8 +212,8 @@ public class GroundSlam : Ability
     }
 
     /// <summary>
-    /// Esquiva no meio do gesto corta a pancada, como a ordem de andar corta
-    /// o golpe de espada. A recarga continua correndo.
+    /// Mantive so a esquiva cortando a pancada; andar nao cancela o gesto.
+    /// A recarga continua correndo.
     /// </summary>
     private void HandleDodged(float _)
     {
@@ -217,11 +222,16 @@ public class GroundSlam : Ability
 
     private void CancelImpact()
     {
-        if (pendingImpact == null)
-            return;
+        // Soltei tambem depois da pancada: a esquiva corta o resto do gesto.
+        if (motor != null)
+            motor.HoldRotation = false;
 
-        StopCoroutine(pendingImpact);
-        pendingImpact = null;
+        if (pendingImpact != null)
+        {
+            StopCoroutine(pendingImpact);
+            pendingImpact = null;
+        }
+
         EndCast();
     }
 }

@@ -72,6 +72,8 @@ public class PlayerController : MonoBehaviour
     private PotionBelt belt;
     private PlayerInteractor interactor;
     private Dodge dodge;
+    private Ability[] abilities;
+    private readonly RaycastHit[] castHits = new RaycastHit[16];
 
     /// <summary>
     /// O que o clique decidiu quando o botao desceu. Segurar o botao
@@ -95,6 +97,7 @@ public class PlayerController : MonoBehaviour
     // 0,15 s antes da recarga acabar nao saia.
     private bool hasBufferedClick;
     private Ray bufferedClick;
+    private bool bufferedStandingAttack;
     private float bufferedDodgeUntil = -1f;
     private Vector3 bufferedDodgePoint;
     private float bufferedAbilityUntil = -1f;
@@ -117,6 +120,7 @@ public class PlayerController : MonoBehaviour
         belt = GetComponent<PotionBelt>();
         interactor = GetComponent<PlayerInteractor>();
         dodge = GetComponent<Dodge>();
+        abilities = GetComponents<Ability>();
         input = new InputSystem_Actions();
 
         if (rightClickAbility == null)
@@ -146,6 +150,7 @@ public class PlayerController : MonoBehaviour
     private void OnDisable()
     {
         input.Player.Disable();
+        motor.SpeedScale = 1f;
 
         if (health != null)
             health.OnDied -= HandleDied;
@@ -158,6 +163,7 @@ public class PlayerController : MonoBehaviour
 
     private void Update()
     {
+        UpdateCastSpeed();
         // Morto nao anda nem bate. Checo aqui em vez de desligar o
         // componente porque assim, quando o Revive existir, o controle
         // volta sozinho sem ninguem precisar religar nada.
@@ -199,11 +205,13 @@ public class PlayerController : MonoBehaviour
                 ref bufferedKey1Until, ref bufferedKey1Point);
         }
 
+        UpdateCastSpeed();
+
         // Rolando, o clique espera. Nao zero a ordem: se o botao continua
         // segurado, o jogador volta a andar ou a bater sozinho no fim do
         // rolamento, que e o que se espera de quem rolou no meio da briga.
         // Clique novo no meio do rolamento fica guardado e vale no fim.
-        // No gesto da habilidade, igual: o corpo esta preso na pancada.
+        // No gesto parado, mantive a mesma espera.
         if (IsBusy())
         {
             if (input.Player.Click.WasPressedThisFrame() && !IsPointerOverUI())
@@ -211,17 +219,22 @@ public class PlayerController : MonoBehaviour
                 // Guardo o raio e nao a posicao na tela: a camera anda
                 // junto com o rolamento, e o mesmo pixel ja estaria
                 // apontando pra outro lugar no fim.
-                bufferedClick = CursorRay();
-                hasBufferedClick = true;
+                BufferClick(CursorRay());
             }
 
+            return;
+        }
+
+        if (CastingAbility() != null)
+        {
+            HandleMovingCastClick();
             return;
         }
 
         if (hasBufferedClick)
         {
             hasBufferedClick = false;
-            order = DecideOrder(bufferedClick);
+            order = DecideOrder(bufferedClick, bufferedStandingAttack);
             return;
         }
 
@@ -254,14 +267,14 @@ public class PlayerController : MonoBehaviour
     /// Olha o que esta embaixo do cursor e da a ordem certa. A
     /// prioridade e interagivel, depois inimigo, depois chao.
     /// </summary>
-    private Order DecideOrder(Ray ray)
+    private Order DecideOrder(Ray ray, bool standingAttack = false)
     {
         // Shift manda mais que tudo: e o "fica parado" do Diablo 4 e do
         // Path of Exile 2. O personagem golpeia pro lado do cursor sem
         // andar, tenha inimigo, NPC ou chao embaixo. Como o resto, vale o
         // que estava apertado no clique: soltar o Shift com o botao ainda
         // segurado nao faz ele sair andando.
-        if (combat != null && input.Player.AtacarParado.IsPressed())
+        if (combat != null && (standingAttack || input.Player.AtacarParado.IsPressed()))
         {
             if (interactor != null)
                 interactor.ClearTarget();
@@ -353,6 +366,13 @@ public class PlayerController : MonoBehaviour
             return;
         }
 
+        // Pus a mesma espera para qualquer gesto: outra habilidade nao o corta.
+        if (CastingAbility() != null)
+        {
+            ate = Mathf.Max(ate, Time.time + abilityBufferWindow);
+            return;
+        }
+
         if (Time.time > ate)
         {
             ate = -1f;
@@ -364,13 +384,102 @@ public class PlayerController : MonoBehaviour
     }
 
     /// <summary>
-    /// Rolando ou no gesto da habilidade: o corpo nao obedece clique agora.
+    /// Rolando ou no gesto parado: o corpo nao obedece clique agora.
     /// </summary>
     private bool IsBusy()
     {
-        return (dodge != null && dodge.IsDodging) ||
-               (rightClickAbility != null && rightClickAbility.IsCasting) ||
-               (key1Ability != null && key1Ability.IsCasting);
+        if (dodge != null && dodge.IsDodging)
+            return true;
+
+        for (int i = 0; i < abilities.Length; i++)
+        {
+            if (abilities[i].IsCasting && !abilities[i].MoveWhileCasting)
+                return true;
+        }
+
+        return false;
+    }
+
+    private Ability CastingAbility()
+    {
+        for (int i = 0; i < abilities.Length; i++)
+        {
+            if (abilities[i].IsCasting)
+                return abilities[i];
+        }
+
+        return null;
+    }
+
+    private void UpdateCastSpeed()
+    {
+        Ability ability = CastingAbility();
+        motor.SpeedScale = ability != null && ability.MoveWhileCasting &&
+                           (health == null || !health.IsDead) &&
+                           (dodge == null || !dodge.IsDodging)
+            ? ability.CastMoveSpeedScale : 1f;
+    }
+
+    private void BufferClick(Ray ray)
+    {
+        bufferedClick = ray;
+        bufferedStandingAttack = input.Player.AtacarParado.IsPressed();
+        hasBufferedClick = true;
+    }
+
+    private void HandleMovingCastClick()
+    {
+        if (IsPointerOverUI())
+            return;
+
+        bool pressed = input.Player.Click.WasPressedThisFrame();
+        if (!pressed && !input.Player.Click.IsPressed())
+        {
+            order = Order.None;
+            return;
+        }
+
+        Ray ray = CursorRay();
+        bool groundOnly = !input.Player.AtacarParado.IsPressed() &&
+                          (interactor == null || !interactor.TemInteragivel(ray)) &&
+                          !FindEnemy(ray, out _) && !HasPickupAtPointer(ray);
+
+        if (!groundOnly)
+        {
+            // Guardei o Shift junto do raio para soltar a tecla nao trocar a ordem.
+            if (pressed)
+                BufferClick(ray);
+            return;
+        }
+
+        if (pressed)
+            hasBufferedClick = false;
+
+        order = Order.Move;
+        TryMoveToPointer(ray);
+    }
+
+    private bool HasPickupAtPointer(Ray ray)
+    {
+        // Pus buffer fixo porque item e trigger; ignorei os triggers das salas
+        // e limitei pela parede mais proxima para nao pegar item atras dela.
+        int count = Physics.RaycastNonAlloc(ray, castHits, maxRayDistance,
+            attackMask, QueryTriggerInteraction.Collide);
+        float solidDistance = maxRayDistance;
+        for (int i = 0; i < count; i++)
+        {
+            if (!castHits[i].collider.isTrigger)
+                solidDistance = Mathf.Min(solidDistance, castHits[i].distance);
+        }
+
+        for (int i = 0; i < count; i++)
+        {
+            if (castHits[i].distance <= solidDistance &&
+                castHits[i].collider.GetComponentInParent<Pickup>() != null)
+                return true;
+        }
+
+        return false;
     }
 
     private Ray CursorRay()

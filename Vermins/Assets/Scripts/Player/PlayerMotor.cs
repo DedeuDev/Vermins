@@ -100,6 +100,25 @@ public class PlayerMotor : MonoBehaviour
     [SerializeField] private float settleTime = 0.1f;
 
     private NavMeshAgent agent;
+    private float speedScale = 1f;
+
+    // Pus a escala separada para o gesto nao reescrever a velocidade base.
+    public float SpeedScale
+    {
+        get => speedScale;
+        set
+        {
+            float scale = Mathf.Max(0f, value);
+            if (speedScale == scale)
+                return;
+
+            speedScale = scale;
+            if (agent != null)
+                agent.speed = moveSpeed * speedScale;
+        }
+    }
+
+    public bool HoldRotation { get; set; }
 
     // Altura local do modelo como veio no prefab. E dela que a correcao
     // parte, e pra ela que o modelo volta se o raio nao achar chao.
@@ -143,7 +162,7 @@ public class PlayerMotor : MonoBehaviour
     {
         agent = GetComponent<NavMeshAgent>();
 
-        agent.speed = moveSpeed;
+        agent.speed = moveSpeed * speedScale;
         agent.acceleration = acceleration;
         agent.baseOffset = baseOffset;
 
@@ -239,7 +258,7 @@ public class PlayerMotor : MonoBehaviour
     /// </summary>
     private void UpdateRotation()
     {
-        if (!IsAgentReady)
+        if (HoldRotation || !IsAgentReady)
         {
             angularVelocity = 0f;
             return;

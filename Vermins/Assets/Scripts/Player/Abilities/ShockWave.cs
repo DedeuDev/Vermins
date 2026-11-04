@@ -104,7 +104,11 @@ public class ShockWave : Ability
 
         // Larga o que estava fazendo, como o GroundSlam: o golpe de espada
         // no meio seria uma segunda pancada por cima desta.
-        motor.Stop();
+        // Mantive a rota na onda movel; a escala vem do PlayerController.
+        if (!MoveWhileCasting)
+            motor.Stop();
+
+        motor.HoldRotation = MoveWhileCasting;
         combat.ClearTarget();
         combat.InterruptAttack();
 
@@ -132,6 +136,7 @@ public class ShockWave : Ability
 
     private void Launch(Vector3 point)
     {
+        motor.HoldRotation = false;
         Health ownHealth = GetComponent<Health>();
 
         if (ownHealth != null && ownHealth.IsDead)
@@ -175,11 +180,16 @@ public class ShockWave : Ability
 
     private void CancelWave()
     {
-        if (pendingWave == null)
-            return;
+        // Soltei tambem depois do lancamento: a esquiva corta o resto do gesto.
+        if (motor != null)
+            motor.HoldRotation = false;
 
-        StopCoroutine(pendingWave);
-        pendingWave = null;
+        if (pendingWave != null)
+        {
+            StopCoroutine(pendingWave);
+            pendingWave = null;
+        }
+
         EndCast();
     }
 }

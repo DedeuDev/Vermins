@@ -889,6 +889,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::GroundSlam
   cooldown: 5
+  moveWhileCasting: 1
+  castMoveSpeedScale: 0.5
   radius: 3
   damageMultiplier: 2.5
   castTime: 1
@@ -906,6 +908,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ShockWave
   cooldown: 4
+  moveWhileCasting: 1
+  castMoveSpeedScale: 0.5
   projectilePrefab: {fileID: 9151330617227145017, guid: 0e848574b4c7dc5489a2acca800eb188, type: 3}
   damageMultiplier: 1.5
   spawnForward: 0.5

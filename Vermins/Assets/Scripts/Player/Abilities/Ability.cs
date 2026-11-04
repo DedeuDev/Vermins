@@ -23,6 +23,15 @@ public abstract class Ability : MonoBehaviour
              "celeridade neutra (5). Celeridade acima disso encurta.")]
     [SerializeField, Min(0f)] protected float cooldown = 3f;
 
+    [Tooltip("Deixei desligado para o gesto prender o corpo; ligado permite andar.")]
+    [SerializeField] private bool moveWhileCasting = false;
+
+    [Tooltip("Escala da velocidade durante o gesto que permite andar: 0,5 e metade.")]
+    [SerializeField, Range(0.1f, 1f)] private float castMoveSpeedScale = 0.5f;
+
+    public bool MoveWhileCasting => moveWhileCasting;
+    public float CastMoveSpeedScale => castMoveSpeedScale;
+
     private Health health;
     private Dodge dodge;
 
@@ -63,16 +72,15 @@ public abstract class Ability : MonoBehaviour
     public float CooldownFraction => Cooldown > 0f ? Mathf.Clamp01(CooldownRemaining / Cooldown) : 0f;
 
     /// <summary>
-    /// Quanto o gesto trava o jogador, do aperto ate poder andar de novo.
+    /// Quanto dura o gesto, do aperto ate aceitar outra ordem de combate.
     /// Zero e habilidade instantanea. O PlayerAnimator encaixa o clipe neste
     /// tempo.
     /// </summary>
     public virtual float CastTime => 0f;
 
     /// <summary>
-    /// Verdadeiro durante o gesto. O PlayerController trata igual ao
-    /// rolamento: guarda o clique e usa no fim, pra o corpo nao sair
-    /// deslizando no meio da pancada.
+    /// Verdadeiro durante o gesto. Pus MoveWhileCasting para liberar so
+    /// o movimento; o combate espera o fim e so a esquiva corta o gesto.
     /// </summary>
     public bool IsCasting => Time.time < castEndTime;
 
