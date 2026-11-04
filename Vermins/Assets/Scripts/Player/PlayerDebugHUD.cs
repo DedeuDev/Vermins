@@ -783,7 +783,10 @@ public class PlayerDebugHUD : MonoBehaviour
     /// </summary>
     private void DrawTooltip()
     {
-        if (string.IsNullOrEmpty(GUI.tooltip))
+        // So desenho com o mouse em cima dos botoes de ponto: sem ponto
+        // livre os botoes somem, mas o GUI.tooltip guarda o texto velho.
+        Vector2 naTela = Event.current.mousePosition * (Screen.height / 1080f);
+        if (string.IsNullOrEmpty(GUI.tooltip) || !pointsRect.Contains(naTela))
             return;
 
         tooltipContent.text = GUI.tooltip;
