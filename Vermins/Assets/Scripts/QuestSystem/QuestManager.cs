@@ -110,6 +110,15 @@ public class QuestObjectiveProgress
             false;
     }
 
+    // Ian: ponho direto o valor salvo pelo SaveSystem, sem disparar evento.
+    public void RestoreCompleted(
+        bool savedCompleted
+    )
+    {
+        completed =
+            savedCompleted;
+    }
+
     public void SetDescription(
         string newDescription
     )
@@ -341,6 +350,16 @@ public class QuestProgress
         {
             objective?.ResetObjective();
         }
+    }
+
+    // Ian: ponho direto o estado salvo pelo SaveSystem, sem passar pelas
+    // travas de StartQuest ou TurnInQuest.
+    public void RestoreState(
+        QuestState savedState
+    )
+    {
+        state =
+            savedState;
     }
 }
 
@@ -1007,6 +1026,180 @@ public class QuestManager : MonoBehaviour
         )
         {
             quest?.ResetQuest();
+        }
+
+        NotifyQuestUpdated();
+    }
+
+    // Ian: exporto e importo o estado das quests pelo nome dos enums para o
+    // SaveSystem gravar no JSON sem depender da ordem numerica.
+    public void ExportProgress(
+        out string[] states,
+        out string[] completedObjectives
+    )
+    {
+        EnsureQuestDefinitions();
+
+        List<string> stateList =
+            new List<string>(
+                quests.Count
+            );
+
+        List<string> objectiveList =
+            new List<string>();
+
+        foreach (
+            QuestProgress quest
+            in quests
+        )
+        {
+            if (quest == null)
+                continue;
+
+            stateList.Add(
+                $"{quest.QuestId}={quest.State}"
+            );
+
+            foreach (
+                QuestObjectiveProgress objective
+                in quest.Objectives
+            )
+            {
+                if (
+                    objective != null &&
+                    objective.Completed
+                )
+                {
+                    objectiveList.Add(
+                        objective.ObjectiveId.ToString()
+                    );
+                }
+            }
+        }
+
+        states =
+            stateList.ToArray();
+
+        completedObjectives =
+            objectiveList.ToArray();
+    }
+
+    public void ImportProgress(
+        string[] states,
+        string[] completedObjectives
+    )
+    {
+        EnsureQuestDefinitions();
+
+        foreach (
+            QuestProgress quest
+            in quests
+        )
+        {
+            quest?.ResetQuest();
+        }
+
+        if (states != null)
+        {
+            foreach (
+                string entry
+                in states
+            )
+            {
+                if (string.IsNullOrEmpty(entry))
+                    continue;
+
+                int separator =
+                    entry.IndexOf('=');
+
+                if (
+                    separator <= 0 ||
+                    separator >= entry.Length - 1
+                )
+                {
+                    continue;
+                }
+
+                string questName =
+                    entry.Substring(
+                        0,
+                        separator
+                    );
+
+                string stateName =
+                    entry.Substring(
+                        separator + 1
+                    );
+
+                if (
+                    !Enum.TryParse(
+                        questName,
+                        out QuestId questId
+                    )
+                )
+                {
+                    continue;
+                }
+
+                if (
+                    !Enum.TryParse(
+                        stateName,
+                        out QuestState questState
+                    )
+                )
+                {
+                    continue;
+                }
+
+                QuestProgress quest =
+                    FindQuest(
+                        questId
+                    );
+
+                quest?.RestoreState(
+                    questState
+                );
+            }
+        }
+
+        if (completedObjectives != null)
+        {
+            foreach (
+                string objectiveName
+                in completedObjectives
+            )
+            {
+                if (string.IsNullOrEmpty(objectiveName))
+                    continue;
+
+                if (
+                    !Enum.TryParse(
+                        objectiveName,
+                        out QuestObjectiveId objectiveId
+                    )
+                )
+                {
+                    continue;
+                }
+
+                foreach (
+                    QuestProgress quest
+                    in quests
+                )
+                {
+                    if (quest == null)
+                        continue;
+
+                    QuestObjectiveProgress objective =
+                        quest.FindObjective(
+                            objectiveId
+                        );
+
+                    objective?.RestoreCompleted(
+                        true
+                    );
+                }
+            }
         }
 
         NotifyQuestUpdated();

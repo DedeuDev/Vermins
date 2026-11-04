@@ -44,4 +44,10 @@ public class SaveData
 
     // Itens da mochila, preservando a posição de cada espaço.
     public string[] playerInventoryItems;
+
+    // Ian: o estado das quests ("QuestId=State") e os objetivos completos
+    // pelo nome do enum, para nao quebrar se alguem reordenar os ids. Save
+    // de antes destes campos abre com null e as quests zeradas, como antes.
+    public string[] questStates;
+    public string[] completedObjectives;
 }

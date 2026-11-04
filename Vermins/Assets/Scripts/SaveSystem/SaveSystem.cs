@@ -127,6 +127,12 @@ public class SaveSystem : MonoBehaviour
         {
          data.playerInventoryItems = inventory.GetSavedItemNames();
         }
+
+        // Ian: gravo o progresso das quests pelo nome dos enums.
+        if (QuestManager.Instance != null)
+        {
+            QuestManager.Instance.ExportProgress(out data.questStates, out data.completedObjectives);
+        }
         
         string json = JsonUtility.ToJson(data, true);
 
@@ -313,6 +319,17 @@ public class SaveSystem : MonoBehaviour
                         pouch.Restore(
                             pendingLoadData.playerJewels,
                             pendingLoadData.playerJewelsValue
+                        );
+                    }
+
+                    // Ian: devolvo as quests do save, substituindo o que
+                    // estivesse no singleton da sessao. Save antigo, sem
+                    // estes campos, zera tudo.
+                    if (QuestManager.Instance != null)
+                    {
+                        QuestManager.Instance.ImportProgress(
+                            pendingLoadData.questStates,
+                            pendingLoadData.completedObjectives
                         );
                     }
 
