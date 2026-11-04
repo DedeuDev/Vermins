@@ -5,6 +5,13 @@ public class SceneLoader : MonoBehaviour
 {
     public void LoadGame()
     {
+        // Ian: o QuestManager sobrevive a troca de cena, entao sem isto o New Game
+        // na mesma sessao entrava na cidade com a quest do jogo anterior.
+        if (QuestManager.Instance != null)
+        {
+            QuestManager.Instance.ResetAllQuests();
+        }
+
         // Ian: o jogo novo comeca na cidade, onde o guarda da a quest e o
         // bueiro leva pra dungeon. Direto na dungeon a HUBCity nunca
         // aparecia e a quest nao tinha como comecar.

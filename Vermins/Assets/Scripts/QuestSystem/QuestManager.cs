@@ -997,8 +997,9 @@ public class QuestManager : MonoBehaviour
     // DEBUG - RESET
     // ==================================================
 
-    [ContextMenu("DEBUG/Reset All Quests")]
-    private void DebugResetAllQuests()
+    // Ian: expus o reset de todas as quests sem o log de debug para o New Game
+    // do menu principal limpar o progresso deixado no singleton da sessao.
+    public void ResetAllQuests()
     {
         foreach (
             QuestProgress quest
@@ -1008,11 +1009,17 @@ public class QuestManager : MonoBehaviour
             quest?.ResetQuest();
         }
 
+        NotifyQuestUpdated();
+    }
+
+    [ContextMenu("DEBUG/Reset All Quests")]
+    private void DebugResetAllQuests()
+    {
+        ResetAllQuests();
+
         Debug.Log(
             "Todas as quests foram resetadas.",
             this
         );
-
-        NotifyQuestUpdated();
     }
 }
