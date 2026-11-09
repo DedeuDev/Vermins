@@ -66,10 +66,14 @@ public class PlayerMotor : MonoBehaviour
              "mais ou menos na altura certa.")]
     [SerializeField] private float baseOffset = 0.9167f;
 
-    [Tooltip("Distancia maxima entre o ponto pedido e o NavMesh pra " +
-             "ele ainda valer como destino. Vale pro clique: e ela que " +
-             "faz clique no vazio nao virar movimento.")]
+    [Tooltip("Distancia maxima pra aceitar o ponto do clique no NavMesh. " +
+             "Se falhar, sigo na direcao do clique ate a borda.")]
     [SerializeField] private float sampleDistance = 1f;
+
+    [Tooltip("Raio de busca de chao em volta do mouse projetado na " +
+             "altura do jogador, quando o mouse esta numa parede. Cobre " +
+             "a espessura da muralha da HUB (~3 m) a partir do meio dela.")]
+    [SerializeField] private float wallSampleDistance = 2f;
 
     [Tooltip("Raio de busca de NavMesh em volta do ALVO da perseguicao. " +
              "Pode ser folgado sem risco, porque eu procuro em cima do " +
@@ -101,6 +105,14 @@ public class PlayerMotor : MonoBehaviour
 
     private NavMeshAgent agent;
     private float speedScale = 1f;
+
+    // Reaproveito o mesmo caminho em todo clique: segurando o botao o
+    // MoveTo roda todo frame, e um new aqui virava lixo por frame.
+    private NavMeshPath reachPath;
+
+    // Cantos do caminho parcial, sem alocar. Se um dia o caminho passar
+    // de 64 cantos, o TryReachableEnd desiste e uso a linha reta.
+    private readonly Vector3[] pathCorners = new Vector3[64];
 
     // Pus a escala separada para o gesto nao reescrever a velocidade base.
     public float SpeedScale
@@ -161,6 +173,7 @@ public class PlayerMotor : MonoBehaviour
     private void Awake()
     {
         agent = GetComponent<NavMeshAgent>();
+        reachPath = new NavMeshPath();
 
         agent.speed = moveSpeed * speedScale;
         agent.acceleration = acceleration;
@@ -296,34 +309,109 @@ public class PlayerMotor : MonoBehaviour
     }
 
     /// <summary>
-    /// Manda o jogador andar ate um ponto do mundo.
-    /// Devolve false quando nao tem NavMesh perto o suficiente,
-    /// que e o caso de clique no vazio ou fora do cenario.
+    /// Anda ate o ponto do clique ou ate onde o NavMesh deixa chegar
+    /// naquela direcao. Devolve o ponto onde mostro o marcador.
     /// </summary>
-    public bool MoveTo(Vector3 worldPoint)
+    public bool MoveTo(Vector3 worldPoint, out Vector3 markerPoint)
     {
+        markerPoint = worldPoint;
+
         // Espero o agente entrar na malha antes de aceitar uma ordem.
         // Encontrar chao perto do destino nao garante que eu possa sair.
         if (!IsAgentReady)
             return false;
 
-        if (!NavMesh.SamplePosition(
-                worldPoint,
-                out NavMeshHit hit,
-                sampleDistance,
-                NavMesh.AllAreas))
+        bool hasGround = NavMesh.SamplePosition(
+            worldPoint,
+            out NavMeshHit hit,
+            sampleDistance,
+            NavMesh.AllAreas);
+
+        // Chao perto do mouse nao quer dizer chao que eu alcanco. Na HUB
+        // medi 3.224 m2 de NavMesh solto (500 em cima da muralha, ~2.500
+        // fora dela). Mouse ali dava caminho parcial que terminava onde
+        // eu ja estava, e o agente pulsava no lugar (0,39 m/s e para, em
+        // camera lenta). Trato esse ponto como parede.
+        if (hasGround &&
+            (!agent.CalculatePath(hit.position, reachPath) ||
+             reachPath.status != NavMeshPathStatus.PathComplete))
         {
-            return false;
+            hasGround = false;
+        }
+
+        Vector3 destination = hit.position;
+
+        if (!hasGround)
+        {
+            // Medi 1,01 m do topo da muralha ate o chao da HUB. Em vez
+            // de aumentar a busca e arriscar pegar outro andar, parto da
+            // malha do agente e miro na altura do chao, 0,92 m abaixo do pivo.
+            Vector3 origin = agent.nextPosition - Vector3.up * agent.baseOffset;
+            Vector3 projected = new Vector3(worldPoint.x, origin.y, worldPoint.z);
+
+            // Vou ao chao alcancavel mais perto do mouse, na minha altura.
+            // So a linha reta ate a borda falhava colado na muralha: ela
+            // batia na borda na hora e o clique de lado nao fazia nada.
+            // Se o chao mais perto for o de fora da muralha, o fim do
+            // caminho parcial e o ponto de dentro mais perto dele, e
+            // assim ele desliza pela parede.
+            if (!NavMesh.SamplePosition(
+                    projected,
+                    out hit,
+                    wallSampleDistance,
+                    NavMesh.AllAreas) ||
+                !TryReachableEnd(hit.position, out destination))
+            {
+                agent.Raycast(projected, out hit);
+                destination = hit.position;
+            }
+
+            // Meco no plano pra nao repetir ordem quando ja estou a
+            // menos de 10 cm, mesmo que o chao tenha desnivel. Sem isso,
+            // parado no ponto mais perto, ele pulsava no lugar.
+            Vector3 delta = destination - origin;
+            delta.y = 0f;
+            if (delta.sqrMagnitude < 0.01f)
+                return false;
+
+            markerPoint = destination;
         }
 
         // Clique vai ate o fim. Quem perseguiu antes deixou uma
         // distancia de parada guardada no agente, e sem zerar aqui o
         // jogador pararia metros antes de onde a pessoa clicou.
-        if (!agent.SetDestination(hit.position))
+        if (!agent.SetDestination(destination))
             return false;
 
         agent.stoppingDistance = 0f;
         agent.isStopped = false;
+        return true;
+    }
+
+    /// <summary>
+    /// Ponto alcancavel mais perto do alvo: o proprio alvo, se o caminho
+    /// for completo, ou o fim do caminho parcial. Devolve false sem
+    /// caminho, ou se o caminho tiver mais cantos do que cabem no buffer
+    /// (ai o ultimo canto lido nao seria o fim).
+    /// </summary>
+    private bool TryReachableEnd(Vector3 target, out Vector3 end)
+    {
+        end = target;
+
+        if (!agent.CalculatePath(target, reachPath) ||
+            reachPath.status == NavMeshPathStatus.PathInvalid)
+        {
+            return false;
+        }
+
+        if (reachPath.status == NavMeshPathStatus.PathComplete)
+            return true;
+
+        int count = reachPath.GetCornersNonAlloc(pathCorners);
+        if (count == 0 || count == pathCorners.Length)
+            return false;
+
+        end = pathCorners[count - 1];
         return true;
     }
 
@@ -335,8 +423,8 @@ public class PlayerMotor : MonoBehaviour
     /// um ponto no ar a X metros do alvo e mandava pro MoveTo. Esse ponto
     /// nasce na altura do ALVO: com o jogador em cima de uma plataforma e
     /// o bicho la embaixo, ele caia no meio do vao, o SamplePosition nao
-    /// achava NavMesh dentro de 1 m, o MoveTo devolvia false e o jogador
-    /// ficava parado sem log nenhum. No blockout plano nunca deu as caras.
+    /// achava NavMesh dentro de 1 m, o MoveTo antigo devolvia false e o
+    /// jogador ficava parado sem log. No blockout plano nunca deu as caras.
     ///
     /// Aqui eu peco o caminho ate o alvo de verdade, que esta pisando em
     /// NavMesh por definicao, e deixo o proprio agente parar antes. A

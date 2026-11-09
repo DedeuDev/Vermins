@@ -555,7 +555,7 @@ public class PlayerController : MonoBehaviour
         if (!hitGround)
             return;
 
-        if (!motor.MoveTo(hit.point))
+        if (!motor.MoveTo(hit.point, out Vector3 markerPoint))
             return;
 
         // Mandar andar desiste do alvo. Sem isso o PlayerCombat
@@ -572,7 +572,7 @@ public class PlayerController : MonoBehaviour
         if (interactor != null)
             interactor.ClearTarget();
 
-        OnMoveOrdered?.Invoke(hit.point);
+        OnMoveOrdered?.Invoke(markerPoint);
     }
 
     /// <summary>
