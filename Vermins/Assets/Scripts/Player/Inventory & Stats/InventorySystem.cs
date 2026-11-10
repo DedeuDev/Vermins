@@ -1,5 +1,6 @@
 
 using UnityEngine;
+using UnityEngine.AI;
 
 [DisallowMultipleComponent]
 public class InventorySystem : MonoBehaviour
@@ -136,7 +137,13 @@ public class InventorySystem : MonoBehaviour
         if (item == null || equipmentPickupPrefab == null)
             return false;
 
-        Vector3 dropPosition = transform.position + transform.forward * 1.5f;
+        // Ian: antes soltava sempre 1,5 m na frente, sem olhar o cenario.
+        // Medi em 10/11: encostado numa parede de 0,4 m o item nascia 0,6 m
+        // do outro lado, e numa de 4 m nascia dentro; nos dois o jogador
+        // perdia o item. Sem lugar livre, nao solta e o item fica no espaco.
+        if (!TryFindDropPoint(out Vector3 dropPosition))
+            return false;
+
         dropPosition.y += 0.3f;
 
         // Cria o objeto de coleta no mundo.
@@ -153,6 +160,48 @@ public class InventorySystem : MonoBehaviour
         OnInventoryChanged?.Invoke();
 
         return true;
+    }
+
+    // Ian: distancia do drop. Nao pus mais perto porque o raio de coleta e
+    // 1,10 m e o Player pegaria o item de volta na hora.
+    private const float DropDistance = 1.5f;
+
+    // Ian: testo frente, direita, esquerda e tras, sempre a 1,5 m, e fico com
+    // a primeira em que o caminho pelo NavMesh esta livre e o ponto esta no
+    // NavMesh. Assim o item sempre nasce onde o Player consegue andar.
+    private bool TryFindDropPoint(out Vector3 point)
+    {
+        point = Vector3.zero;
+
+        // No meio da esquiva o Player pode estar fora da malha: pego o ponto
+        // mais proximo dela antes do raycast. O pivo fica 0,92 m acima da
+        // malha na Sandbox, entao pus 1,5 m de raio para sobrar em escada.
+        if (!NavMesh.SamplePosition(transform.position, out NavMeshHit origin, 1.5f, NavMesh.AllAreas))
+            return false;
+
+        Vector3 forward = transform.forward;
+        Vector3 right = transform.right;
+
+        for (int i = 0; i < 4; i++)
+        {
+            Vector3 direction = i == 0 ? forward : i == 1 ? right : i == 2 ? -right : -forward;
+            direction.y = 0f;
+            direction.Normalize();
+
+            Vector3 target = origin.position + direction * DropDistance;
+
+            // Bateu na borda da malha: tem parede ou buraco no caminho.
+            if (NavMesh.Raycast(origin.position, target, out _, NavMesh.AllAreas))
+                continue;
+
+            if (!NavMesh.SamplePosition(target, out NavMeshHit ground, 0.3f, NavMesh.AllAreas))
+                continue;
+
+            point = ground.position;
+            return true;
+        }
+
+        return false;
     }
 
     // Ian: tira o item do espaco sem soltar no chao e devolve ele, ou null
