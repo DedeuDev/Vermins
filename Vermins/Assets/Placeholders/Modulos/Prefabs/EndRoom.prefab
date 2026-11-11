@@ -157,6 +157,7 @@ GameObject:
   - component: {fileID: 6627602280723457247}
   - component: {fileID: 1217910219277348022}
   - component: {fileID: 6983686866087060766}
+  - component: {fileID: 2102556034480653198}
   m_Layer: 0
   m_Name: EndRoom
   m_TagString: Untagged
@@ -181,6 +182,7 @@ Transform:
   - {fileID: 4389356865485133510}
   - {fileID: 7993078441532665388}
   - {fileID: 8278765079768818982}
+  - {fileID: 5337248360162230348}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!33 &1586583392326151664
@@ -274,6 +276,19 @@ MonoBehaviour:
   allowBossSpawn: 1
   bossPrefab: {fileID: 2439943171675175868, guid: 89910e7ea437b0c48af5a8605019a0d3, type: 3}
   spawnPoint: {fileID: 7121405224283704969}
+--- !u!114 &2102556034480653198
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4149098822016336000}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 823f98b1669be4f419049ff6dd906b97, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::BossRoomExit
+  exitLadder: {fileID: 2226886079560897090}
 --- !u!1 &5677629760534614827
 GameObject:
   m_ObjectHideFlags: 0
@@ -349,3 +364,74 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 0.25, y: 0.25, z: 4}
   m_Center: {x: 9.875, y: 0, z: 0}
+--- !u!1001 &5872628449660907813
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 2535887730579535004}
+    m_Modifications:
+    - target: {fileID: 1976644206342812009, guid: 79b4ac59d72725745b8cd4a909474c9a, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 7
+      objectReference: {fileID: 0}
+    - target: {fileID: 1976644206342812009, guid: 79b4ac59d72725745b8cd4a909474c9a, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 0.12
+      objectReference: {fileID: 0}
+    - target: {fileID: 1976644206342812009, guid: 79b4ac59d72725745b8cd4a909474c9a, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 8
+      objectReference: {fileID: 0}
+    - target: {fileID: 1976644206342812009, guid: 79b4ac59d72725745b8cd4a909474c9a, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 1976644206342812009, guid: 79b4ac59d72725745b8cd4a909474c9a, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 1976644206342812009, guid: 79b4ac59d72725745b8cd4a909474c9a, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 1976644206342812009, guid: 79b4ac59d72725745b8cd4a909474c9a, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 1976644206342812009, guid: 79b4ac59d72725745b8cd4a909474c9a, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 1976644206342812009, guid: 79b4ac59d72725745b8cd4a909474c9a, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 1976644206342812009, guid: 79b4ac59d72725745b8cd4a909474c9a, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 5735537959782409063, guid: 79b4ac59d72725745b8cd4a909474c9a, type: 3}
+      propertyPath: m_Name
+      value: EscadaSaidaBoss
+      objectReference: {fileID: 0}
+    - target: {fileID: 5735537959782409063, guid: 79b4ac59d72725745b8cd4a909474c9a, type: 3}
+      propertyPath: m_IsActive
+      value: 0
+      objectReference: {fileID: 0}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents: []
+  m_SourcePrefab: {fileID: 100100000, guid: 79b4ac59d72725745b8cd4a909474c9a, type: 3}
+--- !u!1 &2226886079560897090 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 5735537959782409063, guid: 79b4ac59d72725745b8cd4a909474c9a, type: 3}
+  m_PrefabInstance: {fileID: 5872628449660907813}
+  m_PrefabAsset: {fileID: 0}
+--- !u!4 &5337248360162230348 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 1976644206342812009, guid: 79b4ac59d72725745b8cd4a909474c9a, type: 3}
+  m_PrefabInstance: {fileID: 5872628449660907813}
+  m_PrefabAsset: {fileID: 0}
