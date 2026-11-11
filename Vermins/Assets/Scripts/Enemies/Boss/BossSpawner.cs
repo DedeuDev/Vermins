@@ -199,9 +199,15 @@ public class BossSpawner : MonoBehaviour
             // INSTANCIA BOSS
             // ====================================
 
+            // Ian: uso o boss do tema quando a dungeon definir um.
+            var tema = GetComponent<DungeonTheme>();
+            GameObject prefab = (tema != null && tema.BossPrefab != null)
+                ? tema.BossPrefab
+                : bossData.BossPrefab;
+
             GameObject boss =
                 Instantiate(
-                    bossData.BossPrefab,
+                    prefab,
                     spawnPoint.Position,
                     spawnPoint.Rotation,
                     generatedBossesRoot

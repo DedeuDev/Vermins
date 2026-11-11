@@ -68,6 +68,12 @@ public class DungeonTheme : MonoBehaviour
     [Tooltip("O material desta dungeon. Vazio, os modulos ficam cinza.")]
     [SerializeField] private Material moduleMaterial;
 
+    [Header("Boss")]
+    // Ian: cada dungeon agora tem o seu proprio boss. Vazio, o BossSpawner
+    // mantem a capsula que veio no EndRoom como reserva.
+    [Tooltip("Boss desta dungeon. Vazio, usa o do EndRoom.")]
+    [SerializeField] private GameObject bossPrefab;
+
     [Header("Luz")]
     [Tooltip("A luz que sobra onde a tocha nao chega. O seletor e em sRGB, " +
              "igual ao do Lighting. Mais claro apaga a tocha.")]
@@ -110,6 +116,8 @@ public class DungeonTheme : MonoBehaviour
     public int PaintedCount { get; private set; }
 
     public float GIStrength => giStrength;
+
+    public GameObject BossPrefab => bossPrefab;
 
     private void Awake()
     {
