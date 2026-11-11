@@ -173,6 +173,11 @@ public class PlayerDebugHUD : MonoBehaviour
     private readonly CachedText healthLine = new CachedText();
     private readonly CachedText levelLine = new CachedText();
     private readonly CachedText pointsLine = new CachedText();
+    private readonly CachedText teleportLine = new CachedText();
+    private static readonly GUIContent CombatWarningContent = new GUIContent("Em combate");
+    private static readonly Color ChannelColor = new Color(0.3f, 0.8f, 0.95f);
+    private static readonly Color CombatWarningColor = new Color(1f, 0.35f, 0.35f);
+    private ReturnToHub returnToHub;
 
     // As habilidades dos dois botoes, na ordem da tela. O nome da classe
     // sai uma vez no Start: GetType().Name cria string nova a cada chamada.
@@ -277,6 +282,7 @@ public class PlayerDebugHUD : MonoBehaviour
         level = GetComponent<CharacterLevel>();
         equipment = GetComponent<CharacterEquipment>();
         shop = GetComponent<HubShop>();
+        returnToHub = GetComponent<ReturnToHub>();
 
         header = new GUIContent($"<b>DEBUG</b>   ({toggleKey} esconde)");
         shopHeader = new GUIContent($"<b>LOJA</b> (debug)   ({shopKey} fecha)");
@@ -401,6 +407,13 @@ public class PlayerDebugHUD : MonoBehaviour
         {
             if (abilities[i] != null)
                 UpdateAbilityLine(i);
+        }
+
+        if (returnToHub != null && returnToHub.IsChanneling)
+        {
+            int decimos = Mathf.CeilToInt(returnToHub.ChannelRemaining * 10f);
+            if (teleportLine.HasChanged(decimos))
+                teleportLine.Set($"Voltando a HUB {decimos / 10f:0.0} s");
         }
 
         if (belt != null && potionsLine.HasChanged(belt.Count, belt.Capacity))
@@ -610,6 +623,12 @@ public class PlayerDebugHUD : MonoBehaviour
                 altura += TextHeight + BarHeight + Spacing;
         }
 
+        if (returnToHub != null && returnToHub.IsChanneling)
+            altura += TextHeight + BarHeight + Spacing;
+
+        if (returnToHub != null && returnToHub.ShowCombatWarning)
+            altura += TextHeight;
+
         return altura;
     }
 
@@ -677,6 +696,18 @@ public class PlayerDebugHUD : MonoBehaviour
             DrawLine(abilityLines[i].Content, x, largura, ref y, null, AbilityColor);
             DrawBar(new Rect(x, y, largura, BarHeight), 1f - abilities[i].CooldownFraction, AbilityColor);
             y += BarHeight + Spacing;
+        }
+
+        if (returnToHub != null && returnToHub.IsChanneling)
+        {
+            DrawLine(teleportLine.Content, x, largura, ref y, null, ChannelColor);
+            DrawBar(new Rect(x, y, largura, BarHeight), returnToHub.ChannelProgress, ChannelColor);
+            y += BarHeight + Spacing;
+        }
+
+        if (returnToHub != null && returnToHub.ShowCombatWarning)
+        {
+            DrawLine(CombatWarningContent, x, largura, ref y, null, CombatWarningColor);
         }
 
         // Cores dos rotulos dos itens no chao (Pickup), pra a pocao do

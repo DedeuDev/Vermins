@@ -145,6 +145,16 @@
                     "interactions": "",
                     "initialStateCheck": false,
                     "priority": 0
+                },
+                {
+                    "name": "ReturnToHub",
+                    "type": "Button",
+                    "id": "e4f8b91a-7b32-4d26-a05e-8e47bf1b9a2c",
+                    "expectedControlType": "",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": false,
+                    "priority": 0
                 }
             ],
             "bindings": [
@@ -574,6 +584,17 @@
                     "processors": "",
                     "groups": ";Keyboard&Mouse",
                     "action": "Ability2",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "7b2e1a49-9c53-4e8b-a712-4d3b8e5a6f20",
+                    "path": "<Keyboard>/t",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": ";Keyboard&Mouse",
+                    "action": "ReturnToHub",
                     "isComposite": false,
                     "isPartOfComposite": false
                 }
