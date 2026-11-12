@@ -13,4 +13,10 @@ public class BossSacerdoteDataSO : BossDataSO
     public float tempoAvisoArmadilha = 1.0f;
     public float danoArmadilha = 35f;
     public GameObject prefabPilarFogo;
+
+    [Header("Habilidade: Zoltraak (Raio Mágico)")]
+    public float cooldownZoltraak = 4f;
+    public float danoZoltraak = 25f;
+    public float tempoAvisoZoltraak = 0.6f;
+    public GameObject prefabRaioZoltraak; // Opcional: efeito visual do raio
 }
