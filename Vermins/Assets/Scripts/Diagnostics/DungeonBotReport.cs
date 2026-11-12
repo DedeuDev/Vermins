@@ -19,6 +19,11 @@ public class DungeonBotReport
     public int RunNumber;
     public string Result = "em andamento";
 
+    // Rodada direta ao objetivo: salas e inimigos ficam para tras de
+    // proposito, entao esses dois numeros nao sao comparaveis com os da
+    // rodada que limpa tudo.
+    public bool Direct;
+
     // Tempo de jogo, que e o que o jogador sentiria. O real muda com o
     // timeScale da rodada.
     public float GameSeconds;
@@ -66,13 +71,14 @@ public class DungeonBotReport
     public string Summary()
     {
         return string.Format(CultureInfo.InvariantCulture,
-            "rodada {0} | {1} seed {2} | {3} | {4:0} s | salas {5}/{6} | " +
+            "rodada {0}{17} | {1} seed {2} | {3} | {4:0} s | salas {5}/{6} | " +
             "inimigos {7}/{8} | baus {9}/{10} | dano levado {11:0} | " +
             "vida no boss {12:0} | preso {13}x | erros {14} | achados {15} | salvo {16}x",
             RunNumber, Scene, Seed, Result, GameSeconds,
             ModulesVisited, ModulesTotal, EnemiesKilled, EnemiesTotal,
             ChestsOpened, ChestsTotal, DamageTaken, HealthAtBoss,
-            StuckCount, ConsoleErrors, Findings.Count, Rescues);
+            StuckCount, ConsoleErrors, Findings.Count, Rescues,
+            Direct ? " direta" : "");
     }
 
     /// <summary>Grava o .txt da rodada e a linha no resumo. Devolve o caminho.</summary>
@@ -91,6 +97,7 @@ public class DungeonBotReport
         text.AppendLine(Summary());
         text.AppendLine();
         text.AppendFormat(inv, "cena: {0}\nseed: {1}\nresultado: {2}\n", Scene, Seed, Result);
+        text.AppendLine(Direct ? "modo: direto ao objetivo (bau, quest, boss)" : "modo: limpa a dungeon inteira");
         text.AppendFormat(inv, "tempo de jogo: {0:0.0} s (boss: {1:0.0} s)\n", GameSeconds, BossSeconds);
         text.AppendFormat(inv, "salas visitadas: {0} de {1} (sem caminho: {2})\n",
             ModulesVisited, ModulesTotal, ModulesUnreachable);
@@ -130,6 +137,40 @@ public class DungeonBotReport
             EnemiesKilled, EnemiesTotal, ChestsOpened, ChestsTotal, DamageTaken,
             HealthAtBoss, StuckCount, ConsoleErrors, Findings.Count, Rescues));
 
+        return path;
+    }
+
+    /// <summary>
+    /// O arquivo da questline: o resumo, cada passo da historia com o tempo
+    /// de jogo em que aconteceu, e o resumo de cada dungeon jogada no meio.
+    /// </summary>
+    public static string WriteQuestline(string summary, List<string> steps, List<string> runs)
+    {
+        string folder = Path.Combine(Application.persistentDataPath, "DungeonBot");
+        Directory.CreateDirectory(folder);
+
+        string stamp = System.DateTime.Now.ToString("yyyyMMdd-HHmmss",
+            CultureInfo.InvariantCulture);
+        string path = Path.Combine(folder, "questline-" + stamp + ".txt");
+
+        var text = new StringBuilder(1024);
+        text.AppendLine(summary);
+        text.AppendLine();
+        text.AppendLine("passos:");
+
+        for (int i = 0; i < steps.Count; i++)
+            text.Append("  ").AppendLine(steps[i]);
+
+        text.AppendLine();
+        text.AppendLine("dungeons jogadas:");
+
+        if (runs.Count == 0)
+            text.AppendLine("  nenhuma");
+
+        for (int i = 0; i < runs.Count; i++)
+            text.Append("  - ").AppendLine(runs[i]);
+
+        File.WriteAllText(path, text.ToString());
         return path;
     }
 }

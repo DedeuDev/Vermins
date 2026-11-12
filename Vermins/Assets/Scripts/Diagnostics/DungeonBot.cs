@@ -5,6 +5,7 @@ using UnityEngine;
 using UnityEngine.AI;
 using UnityEngine.InputSystem;
 using UnityEngine.SceneManagement;
+using UnityEngine.UI;
 
 /// <summary>
 /// Joga uma dungeon gerada do comeco ao fim, sozinho, e anota o que deu
@@ -24,6 +25,10 @@ using UnityEngine.SceneManagement;
 ///
 /// So existe no editor e em build Development. Liga na tecla F3 dentro de
 /// uma dungeon, ou por DungeonBot.Run(rodadas, timeScale, "CenaA,CenaB").
+///
+/// DungeonBot.RunQuestline() joga a historia inteira: fala com o Capitao
+/// na HUB, entra na dungeon da quest, joga, volta e entrega, ate nao
+/// sobrar quest ou ate travar. Ver a secao QUESTLINE.
 /// Nao mexe em nenhum script do jogo: so le o que esta na cena.
 /// </summary>
 public class DungeonBot : MonoBehaviour
@@ -39,6 +44,10 @@ public class DungeonBot : MonoBehaviour
     // 5 m; com 10 m eu ataco primeiro, como um jogador faria.
     private const float EngageRadius = 10f;
     private const float AggressorRadius = 20f;
+
+    // No modo direto so brigo com quem esta no caminho. O inimigo enxerga
+    // a 5 m; com 6 m eu bato em quem ia me ver e passo longe do resto.
+    private const float DirectEngageRadius = 6f;
     private const float AggressorMemory = 3f;
     private const float LootRadius = 8f;
     private const float NearChestRadius = 12f;
@@ -82,6 +91,11 @@ public class DungeonBot : MonoBehaviour
     // rodada testa a dungeon ate o fim e o relatorio diz quantas vezes o
     // Player teria caido. 30% e mais que o terremoto de 25 tira de uma vez.
     private bool keepAlive;
+
+    // Direto: nao visito as salas. Vou no bau, no guarda da quest, no boss
+    // e na escada, e so mato quem estiver no caminho. E a rodada de quem
+    // ja conhece a dungeon e quer so o objetivo.
+    private bool directMode;
     private bool runActive;
     private int runsLeft;
     private int runsDone;
@@ -149,6 +163,23 @@ public class DungeonBot : MonoBehaviour
     private NavMeshPath path;
     private readonly Vector3[] corners = new Vector3[128];
 
+    // Questline
+    private bool questMode;
+    private bool hubActive;
+    private float questSeconds;
+    private int questDeaths;
+    private readonly int[] questEntries = new int[QuestOrder.Length];
+    private readonly QuestState[] questStates = new QuestState[QuestOrder.Length];
+    private readonly HashSet<QuestObjectiveId> questObjectivesDone = new HashSet<QuestObjectiveId>();
+    private readonly List<string> questSteps = new List<string>();
+    private CaptainGuardQuestNPC captain;
+    private DungeonEntranceInteractable hubEntrance;
+    private DeadGuardQuestInteractable deadGuard;
+    private string hubStep = "";
+    private float hubStepStart;
+    private bool hubDirectDone;
+    private float dialogueSince = -1f;
+
     // ==================================================
     // LIGAR E DESLIGAR
     // ==================================================
@@ -180,12 +211,12 @@ public class DungeonBot : MonoBehaviour
     /// lista ("DungeonComPlayer,DungeonComPlayer2"), alterna entre elas.
     /// </summary>
     public static string Run(int runs = 1, float timeScale = 1f, string sceneList = null,
-                             bool keepAlive = false)
+                             bool keepAlive = false, bool direct = false)
     {
         if (instance == null)
             return "DungeonBot so existe em Play, no editor ou em build Development.";
 
-        return instance.StartBot(runs, timeScale, sceneList, keepAlive);
+        return instance.StartBot(runs, timeScale, sceneList, keepAlive, direct);
     }
 
     public static void Stop()
@@ -211,12 +242,13 @@ public class DungeonBot : MonoBehaviour
         Application.logMessageReceived -= HandleLog;
     }
 
-    private string StartBot(int runs, float scale, string sceneList, bool alive)
+    private string StartBot(int runs, float scale, string sceneList, bool alive, bool direct)
     {
         if (botOn)
             return "DungeonBot ja esta rodando.";
 
         keepAlive = alive;
+        directMode = direct;
 
         scenes = string.IsNullOrWhiteSpace(sceneList)
             ? new[] { SceneManager.GetActiveScene().name }
@@ -230,7 +262,8 @@ public class DungeonBot : MonoBehaviour
         timeScale = Mathf.Clamp(scale, 0.1f, 8f);
         botOn = true;
         Summaries.Clear();
-        string started = "DungeonBot ligado: " + runsLeft + " rodada(s), timeScale " + timeScale + ".";
+        string started = "DungeonBot ligado: " + runsLeft + " rodada(s), timeScale " + timeScale +
+                         (directMode ? ", direto ao objetivo." : ".");
 
         if (SceneManager.GetActiveScene().name == scenes[0])
             beginRoutine = StartCoroutine(BeginRun());
@@ -247,6 +280,9 @@ public class DungeonBot : MonoBehaviour
 
         if (runActive)
             EndRun(why);
+
+        if (questMode)
+            CloseQuestline(why);
 
         if (beginRoutine != null)
             StopCoroutine(beginRoutine);
@@ -274,6 +310,14 @@ public class DungeonBot : MonoBehaviour
             EndRun(state == State.Exit ? "completa" : "cena trocou sozinha");
 
         Unbind();
+
+        if (questMode)
+        {
+            // Na questline quem escolhe a proxima cena e o jogo (a tela de
+            // dungeons, a escada, a morte). Eu so jogo a cena que abriu.
+            beginRoutine = StartCoroutine(scene.name == HubScene ? BeginHub() : BeginRun());
+            return;
+        }
 
         if (runsLeft <= 0)
         {
@@ -308,7 +352,8 @@ public class DungeonBot : MonoBehaviour
         report = new DungeonBotReport
         {
             Scene = SceneManager.GetActiveScene().name,
-            RunNumber = runsDone + 1
+            RunNumber = runsDone + 1,
+            Direct = directMode
         };
 
         runsLeft--;
@@ -411,6 +456,7 @@ public class DungeonBot : MonoBehaviour
         bossHealth = boss != null ? boss.GetComponent<Health>() : null;
         hasFleePoint = false;
         exitRoom = FindFirstObjectByType<BossRoomExit>();
+        deadGuard = questMode ? FindFirstObjectByType<DeadGuardQuestInteractable>() : null;
         chests = FindObjectsByType<TreasureChest>(FindObjectsSortMode.None);
         report.ChestsTotal = chests.Length;
 
@@ -434,6 +480,9 @@ public class DungeonBot : MonoBehaviour
 
         if (exitRoom == null)
             report.AddFinding("nenhum BossRoomExit na cena: a dungeon nao tem escada de saida");
+
+        if (questMode && deadGuard == null && GuardObjectiveOpen())
+            report.AddFinding("a quest 1 pede o guarda morto e esta dungeon nasceu sem ele");
 
         Time.timeScale = timeScale;
         runActive = true;
@@ -461,6 +510,7 @@ public class DungeonBot : MonoBehaviour
         if (controller != null)
             controller.enabled = true;
 
+        hubActive = false;
         player = null;
         controller = null;
         playerHealth = null;
@@ -504,6 +554,13 @@ public class DungeonBot : MonoBehaviour
     {
         EndRun(result);
 
+        // Na questline uma dungeon que nao fecha para a historia inteira.
+        if (questMode)
+        {
+            StopBot("parou na dungeon: " + result);
+            return;
+        }
+
         if (runsLeft > 0)
         {
             Unbind();
@@ -528,7 +585,16 @@ public class DungeonBot : MonoBehaviour
             if (botOn)
                 StopBot("F3");
             else
-                Debug.Log(StartBot(1, 1f, null, false));
+                Debug.Log(StartBot(1, 1f, null, false, false));
+        }
+
+        if (questMode)
+            questSeconds += Time.deltaTime;
+
+        if (hubActive && player != null)
+        {
+            HubUpdate();
+            return;
         }
 
         if (!runActive || player == null)
@@ -550,8 +616,18 @@ public class DungeonBot : MonoBehaviour
             report.Died = true;
             EndRun("morreu");
 
-            if (runsLeft <= 0)
+            if (questMode)
+            {
+                questDeaths++;
+                AddStep("morreu em " + report.Scene + " (" + questDeaths + "a morte)");
+
+                if (questDeaths >= MaxQuestDeaths)
+                    StopBot("morreu " + questDeaths + " vezes");
+            }
+            else if (runsLeft <= 0)
+            {
                 StopBot("morreu");
+            }
 
             return;
         }
@@ -579,6 +655,12 @@ public class DungeonBot : MonoBehaviour
         }
 
         DrinkIfNeeded();
+
+        if (questMode)
+        {
+            PollQuests();
+            ReadDialogue();
+        }
 
         // Rolando ou no gesto da habilidade o corpo nao aceita ordem nova,
         // igual ao controle.
@@ -657,7 +739,16 @@ public class DungeonBot : MonoBehaviour
             return;
         }
 
-        if (exploreGoal < 0 || moduleVisited[exploreGoal])
+        if (GuardPending() && FlatDistance(deadGuard.transform.position) < NearChestRadius)
+        {
+            SetState(State.Chest, deadGuard);
+            ClickOn(deadGuard, deadGuard.transform);
+            return;
+        }
+
+        if (directMode)
+            exploreGoal = -1;
+        else if (exploreGoal < 0 || moduleVisited[exploreGoal])
             exploreGoal = PickModule();
 
         if (exploreGoal >= 0)
@@ -667,7 +758,8 @@ public class DungeonBot : MonoBehaviour
             return;
         }
 
-        // Nao sobrou sala. Bau longe que ficou para tras entra aqui.
+        // Nao sobrou sala. Bau longe que ficou para tras entra aqui; no
+        // modo direto e por aqui que eu vou em cada bau.
         chest = PickChest(float.MaxValue);
 
         if (chest != null)
@@ -677,14 +769,15 @@ public class DungeonBot : MonoBehaviour
             return;
         }
 
+        if (GuardPending())
+        {
+            SetState(State.Chest, deadGuard);
+            ClickOn(deadGuard, deadGuard.transform);
+            return;
+        }
+
         if (bossHealth != null && !bossHealth.IsDead && !ignored.Contains(bossHealth))
         {
-            if (bossStart < 0f)
-            {
-                bossStart = Time.time;
-                report.HealthAtBoss = playerHealth.Current;
-            }
-
             SetState(State.Boss, bossHealth);
             Fight(bossHealth);
             return;
@@ -758,15 +851,18 @@ public class DungeonBot : MonoBehaviour
         if (bossStats == null || bossStats.FaseAtual != 1 || closeAbility == null)
             return false;
 
-        // Com o golpe em area pronto eu entro e bato normalmente.
-        if (closeAbility.IsReady)
+        Vector3 bossPoint = bossHealth.transform.position;
+        float distance = FlatDistance(bossPoint);
+
+        // Com o golpe em area pronto eu entro e bato normalmente. Boss longe
+        // tambem nao e luta: no modo direto eu gastava o golpe num inimigo
+        // do caminho e "fugia" de um boss a 100 m, recuando 8 a 14 m ate a
+        // recarga acabar (medi 4 recuos numa rodada).
+        if (closeAbility.IsReady || distance > AggressorRadius)
         {
             hasFleePoint = false;
             return false;
         }
-
-        Vector3 bossPoint = bossHealth.transform.position;
-        float distance = FlatDistance(bossPoint);
 
         if (farAbility != null && farAbility.IsReady && distance > 3f &&
             distance <= WaveRange && combat.HasLineOfSight(bossHealth))
@@ -859,7 +955,8 @@ public class DungeonBot : MonoBehaviour
                     continue;
             }
 
-            if (!hitMe && (distance > EngageRadius || !combat.HasLineOfSight(enemy)))
+            if (!hitMe && (distance > (directMode ? DirectEngageRadius : EngageRadius) ||
+                           !combat.HasLineOfSight(enemy)))
                 continue;
 
             if (distance < bestDistance)
@@ -874,7 +971,11 @@ public class DungeonBot : MonoBehaviour
 
     private void Fight(Health enemy)
     {
-        if (bossStart < 0f && enemy == bossHealth)
+        // A luta so comeca com o boss a 20 m. Antes eu ligava o relogio ao
+        // escolher o boss como destino, e no modo direto o "tempo no boss"
+        // saia igual ao da rodada inteira, com a vida da largada.
+        if (bossStart < 0f && enemy == bossHealth &&
+            FlatDistance(enemy.transform.position) < AggressorRadius)
         {
             bossStart = Time.time;
             report.HealthAtBoss = playerHealth.Current;
@@ -1073,6 +1174,381 @@ public class DungeonBot : MonoBehaviour
     }
 
     // ==================================================
+    // QUESTLINE
+    // ==================================================
+
+    private static readonly QuestId[] QuestOrder =
+        { QuestId.SewerInvestigation, QuestId.DeeperIntoSewers, QuestId.RatPriest };
+
+    private const string HubScene = "HUBCity";
+    private const int MaxQuestDeaths = 3;
+    private const int MaxQuestEntries = 3;
+
+    // Tempo de jogo com a fala aberta antes de eu fechar, para ela aparecer
+    // no video e para o QuestToast ter tempo de entrar.
+    private const float DialogueReadSeconds = 1.5f;
+
+    // Na HUB nao ha inimigo nem sala para largar: se em 45 s eu nao consigo
+    // clicar no Capitao ou na entrada, anoto e chamo o Interact direto; em
+    // 90 s desisto.
+    private const float HubDirectAt = 45f;
+    private const float HubGiveUpAt = 90f;
+
+    // O painel e os botoes da tela de dungeons sao campos privados do
+    // script do Eduardo. Leio por reflexao para nao mexer no script dele.
+    private static readonly FieldInfo SelectionPanelField = SelectionField("selectionPanel");
+    private static readonly FieldInfo[] DungeonButtonFields =
+    {
+        SelectionField("dungeon1Button"),
+        SelectionField("dungeon2Button"),
+        SelectionField("dungeon3Button")
+    };
+
+    private static FieldInfo SelectionField(string name)
+    {
+        return typeof(DungeonSelectionUI).GetField(name,
+            BindingFlags.Instance | BindingFlags.NonPublic);
+    }
+
+    /// <summary>
+    /// Joga a questline do comeco: Capitao, dungeon da quest, boss, escada,
+    /// entrega, e a proxima quest. Comeca do estado em que as quests
+    /// estiverem; num Play novo, sem carregar save, e do zero.
+    /// </summary>
+    public static string RunQuestline(float timeScale = 1f, bool keepAlive = false,
+                                      bool direct = false)
+    {
+        if (instance == null)
+            return "DungeonBot so existe em Play, no editor ou em build Development.";
+
+        return instance.StartQuestline(timeScale, keepAlive, direct);
+    }
+
+    private string StartQuestline(float scale, bool alive, bool direct)
+    {
+        if (botOn)
+            return "DungeonBot ja esta rodando.";
+
+        keepAlive = alive;
+        directMode = direct;
+        questMode = true;
+        scenes = new[] { HubScene };
+        runsLeft = 99;
+        runsDone = 0;
+        timeScale = Mathf.Clamp(scale, 0.1f, 8f);
+        botOn = true;
+        Summaries.Clear();
+        questSteps.Clear();
+        questObjectivesDone.Clear();
+        questSeconds = 0f;
+        questDeaths = 0;
+        dialogueSince = -1f;
+
+        for (int i = 0; i < QuestOrder.Length; i++)
+        {
+            questEntries[i] = 0;
+            questStates[i] = QuestState.NotStarted;
+        }
+
+        string scene = SceneManager.GetActiveScene().name;
+
+        if (scene == HubScene)
+            beginRoutine = StartCoroutine(BeginHub());
+        else if (FindFirstObjectByType<ModularDungeonGenerator>() != null && QuestManager.Instance != null)
+            beginRoutine = StartCoroutine(BeginRun());
+        else
+            StartCoroutine(LoadNextScene());
+
+        return "DungeonBot ligado: questline, timeScale " + timeScale +
+               (directMode ? ", direto ao objetivo." : ".");
+    }
+
+    private IEnumerator BeginHub()
+    {
+        state = State.Waiting;
+        SetHud("esperando a cidade");
+
+        // O Player da HUB recebe o CrossSceneState no Start.
+        yield return new WaitForSecondsRealtime(1f);
+
+        beginRoutine = null;
+        GameObject found = GameObject.FindGameObjectWithTag("Player");
+
+        if (found == null || QuestManager.Instance == null)
+        {
+            Note("a HUB abriu sem Player ou sem QuestManager");
+            StopBot("HUB incompleta");
+            yield break;
+        }
+
+        player = found.transform;
+        controller = found.GetComponent<PlayerController>();
+        motor = found.GetComponent<PlayerMotor>();
+        combat = found.GetComponent<PlayerCombat>();
+        interactor = found.GetComponent<PlayerInteractor>();
+        playerHealth = found.GetComponent<Health>();
+        dodge = found.GetComponent<Dodge>();
+        abilities = found.GetComponents<Ability>();
+
+        if (controller != null)
+            controller.enabled = false;
+
+        captain = FindFirstObjectByType<CaptainGuardQuestNPC>();
+        hubEntrance = FindFirstObjectByType<DungeonEntranceInteractable>();
+        hubStep = "";
+        hubStepStart = Time.time;
+        hubDirectDone = false;
+        clickMissReported = false;
+        nextThink = 0f;
+        nextOrder = 0f;
+        lastMovePoint = Vector3.positiveInfinity;
+        Time.timeScale = timeScale;
+        hubActive = true;
+    }
+
+    private void HubUpdate()
+    {
+        if (Time.timeScale == 0f || Time.time < nextThink)
+            return;
+
+        nextThink = Time.time + ThinkInterval;
+        PollQuests();
+
+        if (ReadDialogue())
+            return;
+
+        int index = CurrentQuest();
+
+        if (index < 0)
+        {
+            StopBot("questline completa");
+            return;
+        }
+
+        DungeonSelectionUI selection = DungeonSelectionUI.Instance;
+
+        if (selection != null && SelectionPanelField != null &&
+            SelectionPanelField.GetValue(selection) is GameObject panel && panel.activeSelf)
+        {
+            PressDungeonButton(selection, index);
+            return;
+        }
+
+        QuestState questState = questStates[index];
+        MonoBehaviour target = questState == QuestState.Active ? hubEntrance : (MonoBehaviour)captain;
+        string step = questState == QuestState.Active ? "entrar na dungeon da quest " + (index + 1)
+            : questState == QuestState.NotStarted ? "aceitar a quest " + (index + 1)
+            : "entregar a quest " + (index + 1);
+
+        if (step != hubStep)
+        {
+            hubStep = step;
+            hubStepStart = Time.time;
+            hubDirectDone = false;
+            SetHud(step);
+        }
+
+        if (target == null)
+        {
+            Note("a HUB nao tem " + (questState == QuestState.Active
+                ? "DungeonEntranceInteractable" : "CaptainGuardQuestNPC"));
+            StopBot("HUB incompleta");
+            return;
+        }
+
+        float waited = Time.time - hubStepStart;
+
+        if (waited > HubGiveUpAt)
+        {
+            Note("preso na HUB em " + Format(player.position) + " tentando " + step);
+            StopBot("preso na HUB");
+            return;
+        }
+
+        if (waited > HubDirectAt && !hubDirectDone)
+        {
+            hubDirectDone = true;
+            Note("em " + HubDirectAt + " s nao consegui clicar em " + target.name + " em " +
+                 Format(target.transform.position) + " (Player em " + Format(player.position) +
+                 "); chamei o Interact direto");
+            ((IInteractable)target).Interact();
+            return;
+        }
+
+        ClickOn(target, target.transform);
+    }
+
+    // A primeira quest que ainda nao foi entregue, ou -1.
+    private int CurrentQuest()
+    {
+        for (int i = 0; i < QuestOrder.Length; i++)
+        {
+            if (questStates[i] != QuestState.Completed)
+                return i;
+        }
+
+        return -1;
+    }
+
+    // Aperto o botao como o clique faria: so se ele estiver aceso. Botao
+    // apagado e o "BLOQUEADO" ou o "EM BREVE" que o jogador veria.
+    private void PressDungeonButton(DungeonSelectionUI selection, int index)
+    {
+        Button button = DungeonButtonFields[index] != null
+            ? DungeonButtonFields[index].GetValue(selection) as Button
+            : null;
+
+        if (button == null || !button.interactable)
+        {
+            Note("a dungeon da quest " + (index + 1) + " nao abre na tela de selecao " +
+                 "(cena fora da build ou botao bloqueado)");
+            selection.Close();
+            StopBot("quest " + (index + 1) + " sem dungeon");
+            return;
+        }
+
+        questEntries[index]++;
+
+        // Voltar da dungeon com a quest ainda ativa e entrar de novo sem
+        // fim: objetivo que nunca fecha, ou morte toda vez.
+        if (questEntries[index] > MaxQuestEntries)
+        {
+            Note("entrei " + MaxQuestEntries + " vezes na dungeon da quest " + (index + 1) +
+                 " e ela nao ficou pronta para entregar");
+            selection.Close();
+            StopBot("quest " + (index + 1) + " nao fecha");
+            return;
+        }
+
+        AddStep("entrou na dungeon da quest " + (index + 1));
+        hubActive = false;
+        button.onClick.Invoke();
+    }
+
+    // Fecho a fala depois de um tempo, como quem leu. Devolve true enquanto
+    // ela esta aberta.
+    private bool ReadDialogue()
+    {
+        DialogueUI dialogue = DialogueUI.Instance;
+
+        if (dialogue == null || !dialogue.IsOpen)
+        {
+            dialogueSince = -1f;
+            return false;
+        }
+
+        if (dialogueSince < 0f)
+            dialogueSince = Time.time;
+        else if (Time.time > dialogueSince + DialogueReadSeconds)
+            dialogue.HideDialogue();
+
+        return true;
+    }
+
+    // O evento do QuestManager nao diz o que mudou, entao comparo com o que
+    // eu tinha visto, 5 vezes por segundo, e anoto cada passo com o tempo.
+    private void PollQuests()
+    {
+        QuestManager manager = QuestManager.Instance;
+
+        if (manager == null)
+            return;
+
+        for (int i = 0; i < QuestOrder.Length; i++)
+        {
+            QuestProgress quest = manager.FindQuest(QuestOrder[i]);
+
+            if (quest == null)
+                continue;
+
+            // Objetivo antes do estado, para o arquivo sair na ordem em
+            // que o jogador ve: fechou o objetivo, a quest ficou pronta.
+            for (int j = 0; j < quest.Objectives.Count; j++)
+            {
+                QuestObjectiveProgress objective = quest.Objectives[j];
+
+                if (objective != null && objective.Completed &&
+                    questObjectivesDone.Add(objective.ObjectiveId))
+                    AddStep("objetivo " + objective.ObjectiveId + " concluido");
+            }
+
+            if (quest.State != questStates[i])
+            {
+                questStates[i] = quest.State;
+
+                if (quest.State == QuestState.Active)
+                    AddStep("aceitou a quest " + (i + 1) + " (" + QuestOrder[i] + ")");
+                else if (quest.State == QuestState.ReadyToTurnIn)
+                    AddStep("quest " + (i + 1) + " pronta para entregar");
+                else if (quest.State == QuestState.Completed)
+                    AddStep("entregou a quest " + (i + 1));
+            }
+        }
+    }
+
+    private bool GuardObjectiveOpen()
+    {
+        QuestManager manager = QuestManager.Instance;
+
+        return manager != null &&
+               manager.GetQuestState(QuestId.SewerInvestigation) == QuestState.Active &&
+               !manager.IsObjectiveCompleted(QuestId.SewerInvestigation, QuestObjectiveId.FindDeadGuard);
+    }
+
+    private bool GuardPending()
+    {
+        return questMode && deadGuard != null && !ignored.Contains(deadGuard) && GuardObjectiveOpen();
+    }
+
+    private void AddStep(string text)
+    {
+        questSteps.Add(questSeconds.ToString("0", System.Globalization.CultureInfo.InvariantCulture)
+                       .PadLeft(5) + " s | " + text);
+        Debug.Log("DungeonBot: questline, " + text);
+    }
+
+    // Achado: vai para o relatorio da dungeon quando ha rodada aberta e
+    // para o da questline quando estou na HUB.
+    private void Note(string text)
+    {
+        if (runActive && report != null)
+        {
+            report.AddFinding(text);
+            return;
+        }
+
+        if (questMode)
+            questSteps.Add("      ACHADO | " + text);
+
+        Debug.LogWarning("DungeonBot: " + text);
+    }
+
+    private void CloseQuestline(string result)
+    {
+        PollQuests();
+        AddStep("fim: " + result);
+
+        int delivered = 0;
+
+        for (int i = 0; i < QuestOrder.Length; i++)
+        {
+            if (questStates[i] == QuestState.Completed)
+                delivered++;
+        }
+
+        string summary = "questline" + (directMode ? " direta" : "") + " | " + result + " | " +
+            questSeconds.ToString("0", System.Globalization.CultureInfo.InvariantCulture) +
+            " s | quests entregues " + delivered + "/" + QuestOrder.Length +
+            " | mortes " + questDeaths;
+
+        LastReportPath = DungeonBotReport.WriteQuestline(summary, questSteps, Summaries);
+        Summaries.Add(summary);
+        questMode = false;
+        hubActive = false;
+        Debug.Log("DungeonBot: " + summary + "\n" + LastReportPath);
+    }
+
+    // ==================================================
     // ORDENS
     // ==================================================
 
@@ -1147,8 +1623,8 @@ public class DungeonBot : MonoBehaviour
         if (!clickMissReported)
         {
             clickMissReported = true;
-            report.AddFinding("o clique da camera nao achou " + body.name + " em " +
-                              Format(body.position) + " (algo solido na frente?)");
+            Note("o clique da camera nao achou " + body.name + " em " +
+                 Format(body.position) + " (algo solido na frente?)");
         }
 
         if (distance > ReachDistance)
@@ -1182,7 +1658,8 @@ public class DungeonBot : MonoBehaviour
 
     private void SetHud(string text)
     {
-        hudText = (keepAlive ? "BOT sem morrer (F3 desliga): " : "BOT (F3 desliga): ") + text;
+        hudText = (keepAlive ? "BOT sem morrer" : "BOT") + (directMode ? " direto" : "") +
+                  " (F3 desliga): " + text;
     }
 
     private void TrackProgress()
@@ -1235,6 +1712,13 @@ public class DungeonBot : MonoBehaviour
                 break;
 
             case State.Chest:
+                // O guarda morto da quest usa o mesmo estado do bau.
+                if (deadGuard != null && goalName == deadGuard.name)
+                {
+                    ignored.Add(deadGuard);
+                    break;
+                }
+
                 TreasureChest chest = PickChest(float.MaxValue);
 
                 if (chest != null)
@@ -1360,12 +1844,32 @@ public class DungeonBot : MonoBehaviour
 
             float distance = FlatDistance(modulePoints[i]);
 
-            if (distance < ArriveDistance || (distance < 3f && !motor.IsMoving && i == exploreGoal))
+            // Corredor conta ao pisar dentro da caixa dele. Medi numa rodada:
+            // a briga me levou 7 m alem de um Hall_T sem eu passar a 1,5 m
+            // do centro, e eu voltei so para tocar nele. Sala continua
+            // pedindo o centro, senao eu marcava na porta e nao entrava.
+            if (distance < ArriveDistance || InsideCorridor(i) ||
+                (distance < 3f && !motor.IsMoving && i == exploreGoal))
             {
                 moduleVisited[i] = true;
                 madeProgress = true;
             }
         }
+    }
+
+    private bool InsideCorridor(int index)
+    {
+        DungeonModule module = modules[index];
+
+        if (module == null || module.ModuleType != DungeonModuleType.Corridor ||
+            module.PlacementBounds == null)
+            return false;
+
+        Bounds box = module.PlacementBounds.bounds;
+        Vector3 position = player.position;
+
+        return position.x > box.min.x && position.x < box.max.x &&
+               position.z > box.min.z && position.z < box.max.z;
     }
 
     private void HandleDamaged(float amount, GameObject source)
@@ -1411,6 +1915,11 @@ public class DungeonBot : MonoBehaviour
     private void HandleEnemyDied(Health enemy)
     {
         enemy.OnDied -= HandleEnemyDied;
+
+        // O item cai neste mesmo evento. Sem refazer a lista ja na proxima
+        // decisao, eu saia para o proximo objetivo e ate 1 s depois voltava
+        // para pegar o item (medi 3 voltas de 5 a 7 m numa rodada).
+        nextList = 0f;
 
         if (runActive)
             report.EnemiesKilled++;
