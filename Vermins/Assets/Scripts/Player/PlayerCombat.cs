@@ -855,7 +855,13 @@ public class PlayerCombat : MonoBehaviour
         if (!NavMesh.SamplePosition(pe, out NavMeshHit chao, TargetFootRadius, NavMesh.AllAreas))
             return true;
 
-        return !NavMesh.Raycast(agent.nextPosition, chao.position, out _, NavMesh.AllAreas);
+        // Alvo parado em cima da borda do NavMesh: o raio para no pe dele
+        // e dizia "parede". Medi 1 inimigo de 55 assim, invisivel de 81
+        // retas livres. Parou a menos de 10 cm do pe, cheguei.
+        if (!NavMesh.Raycast(agent.nextPosition, chao.position, out NavMeshHit borda, NavMesh.AllAreas))
+            return true;
+
+        return (borda.position - chao.position).sqrMagnitude < 0.01f;
     }
 
     private void Chase(Vector3 alvo, float distanciaDeParada)
