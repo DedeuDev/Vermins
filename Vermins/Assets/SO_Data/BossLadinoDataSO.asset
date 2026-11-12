@@ -14,9 +14,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::BossLadinoDataSO
   nomeBoss: Boss
   vidaMaxima: 1000
-  velocidadeNativo: 4.5
+  velocidadeNativo: 3
   velocidadeFurtivo: 6.5
-  distanciaSegura: 7
+  distanciaSegura: 4
   alcanceBesta: 10
   cooldownFlechaFase1: 1.8
   cooldownFlechaFase2: 1
