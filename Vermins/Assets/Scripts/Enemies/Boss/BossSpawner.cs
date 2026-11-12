@@ -213,6 +213,13 @@ public class BossSpawner : MonoBehaviour
                     generatedBossesRoot
                 );
 
+            // Ian: prende o boss na sala dele (ver BossRoomLeash).
+            var leash = boss.GetComponent<BossRoomLeash>();
+            var sala = bossData.GetComponentInParent<DungeonModule>();
+
+            if (leash != null && sala != null && sala.PlacementBounds != null)
+                leash.SetRoom(sala.PlacementBounds.bounds);
+
             spawnedBosses.Add(
                 boss
             );

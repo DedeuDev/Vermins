@@ -73,6 +73,9 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 2439943171675175868, guid: 89910e7ea437b0c48af5a8605019a0d3, type: 3}
       insertIndex: -1
       addedObject: {fileID: 2300916413019702848}
+    - targetCorrespondingSourceObject: {fileID: 2439943171675175868, guid: 89910e7ea437b0c48af5a8605019a0d3, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 8545094181782349502}
   m_SourcePrefab: {fileID: 100100000, guid: 89910e7ea437b0c48af5a8605019a0d3, type: 3}
 --- !u!1 &7677823864465654603 stripped
 GameObject:
@@ -128,3 +131,17 @@ MonoBehaviour:
   dados: {fileID: 11400000, guid: 3cbcfdea9d3e648788147f9b9f8cea2a, type: 2}
   player: {fileID: 0}
   pontoArmadilha: {fileID: 0}
+--- !u!114 &8545094181782349502
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7677823864465654603}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 94a12e906ca66de4e894687328140ffb, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::BossRoomLeash
+  roomMargin: 1
+  wakeOnDamage: 5

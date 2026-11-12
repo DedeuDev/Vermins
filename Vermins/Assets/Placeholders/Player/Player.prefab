@@ -365,6 +365,7 @@ GameObject:
   - component: {fileID: 720753791961685626}
   - component: {fileID: 8166981664061235315}
   - component: {fileID: 6567093820805432288}
+  - component: {fileID: 5390499532291042525}
   m_Layer: 0
   m_Name: Player
   m_TagString: Player
@@ -946,6 +947,23 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::ReturnToHub
   channelDuration: 5
   combatDuration: 5
+--- !u!114 &5390499532291042525
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7457194079543536127}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3274f17237be0f342b2835ee6d26e2de, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyHealthDebug
+  visible: 1
+  toggleKey: 94
+  lastHitDuration: 3
+  trailDelay: 0.4
+  trailSpeed: 0.8
 --- !u!1001 &9095150474061651368
 PrefabInstance:
   m_ObjectHideFlags: 0

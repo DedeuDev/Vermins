@@ -56,7 +56,12 @@ public class FlechaProjetil : MonoBehaviour
 
             Destroy(gameObject);
         }
-        else if (!EhInimigo(other.transform))
+        // Ian: trigger que nao e o Player nao para a flecha. Cada sala da
+        // dungeon tem um PlacementBounds, um trigger do tamanho da sala, e a
+        // flecha nascia dentro dele: medi 9 flechas vivendo 12 frames ao todo
+        // e nenhuma chegando no Player. Na cena de teste nao tem esse trigger,
+        // por isso la funcionava. A poca de veneno tambem e trigger.
+        else if (!other.isTrigger && !EhInimigo(other.transform))
         {
             Destroy(gameObject);
         }

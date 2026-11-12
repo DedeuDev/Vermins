@@ -3672,7 +3672,7 @@ PrefabInstance:
     - target: {fileID: 4942510435954905036, guid: b3832b5cb55dc84418370776c96ba770, type: 3}
       propertyPath: bossPrefab
       value: 
-      objectReference: {fileID: 1246219892479428569, guid: ad0e451d70636e3428dcee0c259d2295, type: 3}
+      objectReference: {fileID: 6423530745554008805, guid: e1597d3f20b482446b7ecf3cfa0c31d3, type: 3}
     - target: {fileID: 6213920998551177747, guid: b3832b5cb55dc84418370776c96ba770, type: 3}
       propertyPath: m_Enabled
       value: 1

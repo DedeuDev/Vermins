@@ -3676,7 +3676,7 @@ PrefabInstance:
     - target: {fileID: 4942510435954905036, guid: b3832b5cb55dc84418370776c96ba770, type: 3}
       propertyPath: bossPrefab
       value: 
-      objectReference: {fileID: 7677823864465654603, guid: b99f3cb35deaada44834a22613d84b20, type: 3}
+      objectReference: {fileID: 1246219892479428569, guid: ad0e451d70636e3428dcee0c259d2295, type: 3}
     - target: {fileID: 4942510435954905036, guid: b3832b5cb55dc84418370776c96ba770, type: 3}
       propertyPath: ambientColor.b
       value: 0.221
