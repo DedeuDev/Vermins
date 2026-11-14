@@ -1,0 +1,348 @@
+// Luz indireta da dungeon, calculada na foto de cima do DungeonLightMap.
+//
+// A foto tem a cor em RGB e a altura do mundo em A. Como a dungeon tem um
+// andar so e nao tem teto, um raio bate em alguma coisa quando passa por
+// um texel mais alto que ele. Nao preciso de BVH nem de malha.
+//
+// Cada sonda (uma a cada meio metro, em camadas de altura) solta alguns
+// raios por frame, pra todos os lados. O raio que sai por cima das paredes
+// traz a cor do ambiente do tema. O que bate traz a cor do lugar vezes a
+// luz que chega ali: as luzes fixas, com sombra tracada na mesma foto, e
+// o rebote da passada anterior. Guardo a media em SH L1 cru: a media da
+// radiancia e a media da radiancia vezes a direcao.
+//
+// Na convencao da Unity, a luz difusa de um pixel e
+//     albedo * (m0 + 2 * dot(m1, normal))
+// que e o que o Lit espera no bakedGI. A luz direta das tochas nao entra
+// na sonda: essa a URP ja calcula no pixel.
+//
+// A parede mais fina tem 2 texels (medi 0,25 m), e o raio anda um texel
+// por passo, entao sempre cai pelo menos uma amostra dentro dela.
+
+#pragma kernel Bake
+#pragma kernel Dilate
+
+#define VOID_LIMIT -500.0
+#define TWO_PI 6.28318530718
+
+struct LightData
+{
+    float3 position;
+    float range;
+    float3 color;
+    float spotCosOuter;   // -2 em luz pontual
+    float3 direction;
+    float spotInvRange;
+};
+
+Texture2D<float4> _Map;
+Texture3D<float4> _SrcR;
+Texture3D<float4> _SrcG;
+Texture3D<float4> _SrcB;
+RWTexture3D<float4> _DstR;
+RWTexture3D<float4> _DstG;
+RWTexture3D<float4> _DstB;
+SamplerState sampler_linear_clamp;
+
+StructuredBuffer<LightData> _Lights;
+int _LightCount;
+
+float4 _MapMin;      // xyz = canto de menor X, Y e Z; w = metros por texel
+float4 _MapSize;     // xyz = metros em X, Y e Z; w = Y mais alto do cenario
+int4 _MapTexels;     // xy = largura e altura da foto
+int4 _VolumeDims;    // x, z e camadas
+float4 _SkyColor;
+float _MaxDistance;
+int _RaysPerFrame;
+int _Iteration;
+int _UseBounce;
+
+float4 LoadMap(int2 texel)
+{
+    if (texel.x < 0 || texel.y < 0 || texel.x >= _MapTexels.x || texel.y >= _MapTexels.y)
+        return float4(0.0, 0.0, 0.0, -1000.0);
+    return _Map.Load(int3(texel, 0));
+}
+
+int2 TexelOf(float2 xz)
+{
+    return int2(floor((xz - _MapMin.xz) / _MapMin.w));
+}
+
+// A textura 3D guarda X e Z no plano e a altura nas fatias.
+float3 ProbePosition(int3 id)
+{
+    float3 cell = float3(_MapSize.x / _VolumeDims.x, _MapSize.y / _VolumeDims.z, _MapSize.z / _VolumeDims.y);
+    return _MapMin.xyz + float3((id.x + 0.5) * cell.x, (id.z + 0.5) * cell.y, (id.y + 0.5) * cell.z);
+}
+
+// Sonda dentro de parede, de caixa ou fora da dungeon nao enxerga nada.
+bool ProbeValid(int3 id)
+{
+    if (any(id < 0) || id.x >= _VolumeDims.x || id.y >= _VolumeDims.y || id.z >= _VolumeDims.z)
+        return false;
+    float3 position = ProbePosition(id);
+    float height = LoadMap(TexelOf(position.xz)).a;
+    return height > VOID_LIMIT && height <= position.y;
+}
+
+uint Pcg(uint value)
+{
+    uint state = value * 747796405u + 2891336453u;
+    uint word = ((state >> ((state >> 28u) + 4u)) ^ state) * 277803737u;
+    return (word >> 22u) ^ word;
+}
+
+float Random(inout uint seed)
+{
+    seed = Pcg(seed);
+    return seed * (1.0 / 4294967296.0);
+}
+
+float3 SampleIrradiance(float3 position, float3 normal)
+{
+    float3 uvw = ((position - _MapMin.xyz) / _MapSize.xyz).xzy;
+    float4 r = _SrcR.SampleLevel(sampler_linear_clamp, uvw, 0);
+    float4 g = _SrcG.SampleLevel(sampler_linear_clamp, uvw, 0);
+    float4 b = _SrcB.SampleLevel(sampler_linear_clamp, uvw, 0);
+    return max(0.0, float3(r.x + 2.0 * dot(r.yzw, normal),
+                           g.x + 2.0 * dot(g.yzw, normal),
+                           b.x + 2.0 * dot(b.yzw, normal)));
+}
+
+float3 SampleMeanRadiance(float3 position)
+{
+    float3 uvw = ((position - _MapMin.xyz) / _MapSize.xyz).xzy;
+    return max(0.0, float3(_SrcR.SampleLevel(sampler_linear_clamp, uvw, 0).x,
+                           _SrcG.SampleLevel(sampler_linear_clamp, uvw, 0).x,
+                           _SrcB.SampleLevel(sampler_linear_clamp, uvw, 0).x));
+}
+
+bool Shadowed(float3 from, float3 to)
+{
+    float3 delta = to - from;
+    float distance = length(delta);
+    float3 direction = delta / max(distance, 0.0001);
+
+    // Paro 0,35 m antes da luz: a tocha fica a 0,3 m da parede, e o texel
+    // dela pode ser o da propria parede.
+    for (float t = _MapMin.w * 0.5; t < distance - 0.35; t += _MapMin.w)
+    {
+        float3 position = from + direction * t;
+        if (LoadMap(TexelOf(position.xz)).a > position.y)
+            return true;
+    }
+
+    return false;
+}
+
+// A mesma conta da URP pra luz pontual e spot, sem o albedo.
+float3 DirectLight(float3 position, float3 normal)
+{
+    float3 sum = 0.0;
+
+    for (int i = 0; i < _LightCount; i++)
+    {
+        LightData light = _Lights[i];
+        float3 toLight = light.position - position;
+        float distanceSqr = dot(toLight, toLight);
+
+        if (distanceSqr > light.range * light.range)
+            continue;
+
+        float3 direction = toLight * rsqrt(max(distanceSqr, 0.0001));
+        float cosine = dot(normal, direction);
+
+        if (cosine <= 0.0)
+            continue;
+
+        float factor = distanceSqr / (light.range * light.range);
+        float window = saturate(1.0 - factor * factor);
+        float attenuation = window * window / max(distanceSqr, 0.0001);
+
+        if (light.spotCosOuter > -1.5)
+        {
+            float cone = saturate((dot(light.direction, -direction) - light.spotCosOuter) * light.spotInvRange);
+            attenuation *= cone * cone;
+        }
+
+        if (attenuation <= 0.0 || Shadowed(position + normal * 0.05, light.position))
+            continue;
+
+        sum += light.color * (attenuation * cosine);
+    }
+
+    return sum;
+}
+
+// A radiancia que chega na sonda vinda desta direcao.
+float3 Trace(float3 origin, float3 direction)
+{
+    float3 position = origin;
+    int2 previousTexel = TexelOf(origin.xz);
+    float stepLength = _MapMin.w;
+    int steps = (int)(_MaxDistance / stepLength);
+
+    for (int s = 0; s < steps; s++)
+    {
+        float3 next = position + direction * stepLength;
+
+        if (next.y > _MapSize.w)
+            return _SkyColor.rgb;
+
+        // Caiu pra fora da dungeon: la nao tem nada.
+        if (next.y < _MapMin.y - 0.5)
+            return 0.0;
+
+        int2 texel = TexelOf(next.xz);
+        float4 map = LoadMap(texel);
+
+        if (map.a > next.y)
+        {
+            float3 normal;
+            float3 hit;
+
+            // Desceu em cima do texel: bateu no topo. Senao entrou pelo
+            // lado, e a face e a que olha pro texel de onde o raio veio.
+            if (all(texel == previousTexel) || position.y >= map.a)
+            {
+                normal = float3(0.0, 1.0, 0.0);
+                hit = float3(next.x, map.a + 0.03, next.z);
+            }
+            else
+            {
+                int2 side = previousTexel - texel;
+
+                if (side.x != 0 && side.y != 0)
+                {
+                    if (abs(direction.x) > abs(direction.z)) side.y = 0;
+                    else side.x = 0;
+                }
+
+                normal = normalize(float3(side.x, 0.0, side.y));
+                hit = position;
+            }
+
+            float3 light = DirectLight(hit, normal);
+
+            if (_UseBounce != 0)
+                light += SampleIrradiance(hit + normal * 0.3, normal);
+
+            return map.rgb * light;
+        }
+
+        position = next;
+        previousTexel = texel;
+    }
+
+    // Corredor mais comprido que o raio: uso a media do lugar onde parei.
+    return _UseBounce != 0 ? SampleMeanRadiance(position) : 0.0;
+}
+
+[numthreads(8, 8, 1)]
+void Bake(uint3 dispatchId : SV_DispatchThreadID)
+{
+    int3 id = int3(dispatchId);
+
+    if (id.x >= _VolumeDims.x || id.y >= _VolumeDims.y || id.z >= _VolumeDims.z)
+        return;
+
+    if (!ProbeValid(id))
+    {
+        _DstR[id] = 0.0;
+        _DstG[id] = 0.0;
+        _DstB[id] = 0.0;
+        return;
+    }
+
+    float3 origin = ProbePosition(id);
+
+    // Direcoes pela sequencia R2, que cobre a esfera por igual ao longo
+    // dos frames, com um deslocamento sorteado por sonda. Com sorteio puro
+    // medi 7% a 12% de ruido por sonda em 1024 raios.
+    uint seed = Pcg(Pcg(Pcg((uint)id.x) + (uint)id.y) + (uint)id.z * 7919u);
+    float2 offset = float2(Random(seed), Random(seed));
+    float3 mean = 0.0;
+    float3 meanX = 0.0;
+    float3 meanY = 0.0;
+    float3 meanZ = 0.0;
+
+    for (int i = 0; i < _RaysPerFrame; i++)
+    {
+        float index = _Iteration * _RaysPerFrame + i + 1.0;
+        float2 sample2 = frac(offset + index * float2(0.7548776662, 0.5698402910));
+        float z = 1.0 - 2.0 * sample2.x;
+        float radius = sqrt(max(0.0, 1.0 - z * z));
+        float angle = TWO_PI * sample2.y;
+        float3 direction = float3(radius * cos(angle), z, radius * sin(angle));
+        float3 radiance = Trace(origin, direction);
+        mean += radiance;
+        meanX += radiance * direction.x;
+        meanY += radiance * direction.y;
+        meanZ += radiance * direction.z;
+    }
+
+    float scale = 1.0 / _RaysPerFrame;
+    float4 r = float4(mean.r, meanX.r, meanY.r, meanZ.r) * scale;
+    float4 g = float4(mean.g, meanX.g, meanY.g, meanZ.g) * scale;
+    float4 b = float4(mean.b, meanX.b, meanY.b, meanZ.b) * scale;
+
+    // Media corrida entre os frames. Na primeira passada a textura de
+    // origem ainda tem lixo, entao nao leio.
+    if (_Iteration > 0)
+    {
+        float weight = 1.0 / (_Iteration + 1.0);
+        r = lerp(_SrcR.Load(int4(id, 0)), r, weight);
+        g = lerp(_SrcG.Load(int4(id, 0)), g, weight);
+        b = lerp(_SrcB.Load(int4(id, 0)), b, weight);
+    }
+
+    _DstR[id] = r;
+    _DstG[id] = g;
+    _DstB[id] = b;
+}
+
+// Sonda sem valor pega a media das vizinhas que tem, pra interpolacao nao
+// escurecer o pe da parede nem a beira da dungeon.
+[numthreads(8, 8, 1)]
+void Dilate(uint3 dispatchId : SV_DispatchThreadID)
+{
+    int3 id = int3(dispatchId);
+
+    if (id.x >= _VolumeDims.x || id.y >= _VolumeDims.y || id.z >= _VolumeDims.z)
+        return;
+
+    if (ProbeValid(id))
+    {
+        _DstR[id] = _SrcR.Load(int4(id, 0));
+        _DstG[id] = _SrcG.Load(int4(id, 0));
+        _DstB[id] = _SrcB.Load(int4(id, 0));
+        return;
+    }
+
+    float4 r = 0.0;
+    float4 g = 0.0;
+    float4 b = 0.0;
+    float total = 0.0;
+
+    for (int dz = -1; dz <= 1; dz++)
+        for (int dy = -2; dy <= 2; dy++)
+            for (int dx = -2; dx <= 2; dx++)
+            {
+                int3 neighbor = id + int3(dx, dy, dz);
+
+                if (!ProbeValid(neighbor))
+                    continue;
+
+                float weight = 1.0 / (dx * dx + dy * dy + 4.0 * dz * dz);
+                r += _SrcR.Load(int4(neighbor, 0)) * weight;
+                g += _SrcG.Load(int4(neighbor, 0)) * weight;
+                b += _SrcB.Load(int4(neighbor, 0)) * weight;
+                total += weight;
+            }
+
+    float scale = total > 0.0 ? 1.0 / total : 0.0;
+    _DstR[id] = r * scale;
+    _DstG[id] = g * scale;
+    _DstB[id] = b * scale;
+}

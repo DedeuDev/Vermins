@@ -21,6 +21,7 @@ GameObject:
   - component: {fileID: 617386822718373390}
   - component: {fileID: 8034256317629001442}
   - component: {fileID: 1764326901508310579}
+  - component: {fileID: 5311458958135448035}
   m_Layer: 0
   m_Name: DungeonGenerator
   m_TagString: Untagged
@@ -240,9 +241,14 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::DungeonTheme
   replacedMaterial: {fileID: 2100000, guid: 31321ba15b8f8eb4c954353edc038b1d, type: 2}
   moduleMaterial: {fileID: 2100000, guid: 87f11e30e601c33418aa6fa8cf17c04a, type: 2}
+  bossPrefab: {fileID: 0}
   ambientColor: {r: 0.272, g: 0.235, b: 0.206, a: 1}
   giStrength: 1
   outsideColor: {r: 0, g: 0, b: 0, a: 1}
+  playerLightRange: 8
+  playerLightIntensity: 3
+  playerLightColor: {r: 1, g: 0.82, b: 0.62, a: 1}
+  playerLightPullBack: 3
   maxFramesWaitingForNavMesh: 300
 --- !u!114 &617386822718373390
 MonoBehaviour:
@@ -288,5 +294,31 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: e2667fe473c64393ab889e9b6b205f1e, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::DungeonGI
+--- !u!114 &5311458958135448035
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4620527827470701182}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1b029026dcedee34b87fd236c08da5bf, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::DungeonLightMap
+  captureShader: {fileID: 4800000, guid: 58cd71bf75c31564e83f4c9ac47b5ccd, type: 3}
+  texelSize: 0.125
+  maxResolution: 2048
+  border: 1
+  maxFramesWaitingForNavMesh: 300
+  bakeShader: {fileID: 7200000, guid: aa497a51efd125944a92811ad5d921b7, type: 3}
+  probeSpacing: 0.5
+  probeLayers: 4
+  raysPerFrame: 16
+  bakeFrames: 64
+  maxRayDistance: 16
+  multiBounce: 1
+  skyStrength: 1.7
+  fadeFrames: 30

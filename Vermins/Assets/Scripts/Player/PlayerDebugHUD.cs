@@ -149,6 +149,7 @@ public class PlayerDebugHUD : MonoBehaviour
     private CharacterAttributes attributes;
     private NavMeshAgent agent;
     private DungeonReflections dungeonReflections;
+    private DungeonLightMap dungeonLightMap;
 
     // De quanto em quanto tempo a linha do fps troca de numero.
     // Frame a frame o valor treme e nao da pra ler.
@@ -168,6 +169,8 @@ public class PlayerDebugHUD : MonoBehaviour
     private static readonly GUIContent VSyncOff = new GUIContent("vsync desligado");
     private static readonly GUIContent ReflectionsOn = new GUIContent("reflexo das salas: ligado");
     private static readonly GUIContent ReflectionsOff = new GUIContent("reflexo das salas: desligado");
+    private static readonly GUIContent IndirectOn = new GUIContent("luz indireta: ligada");
+    private static readonly GUIContent IndirectOff = new GUIContent("luz indireta: desligada");
     private static readonly GUIContent CapOn = new GUIContent("limite ligado");
     private static readonly GUIContent CapOff = new GUIContent("limite desligado");
     private readonly CachedText healthLine = new CachedText();
@@ -303,6 +306,7 @@ public class PlayerDebugHUD : MonoBehaviour
     private void Start()
     {
         dungeonReflections = FindFirstObjectByType<DungeonReflections>();
+        dungeonLightMap = FindFirstObjectByType<DungeonLightMap>();
         var controle = GetComponent<PlayerController>();
 
         if (controle == null)
@@ -635,7 +639,8 @@ public class PlayerDebugHUD : MonoBehaviour
     private float ControlsHeight()
     {
         return ButtonHeight + Spacing + ButtonHeight + Spacing + SliderHeight + Spacing +
-               (dungeonReflections != null ? ButtonHeight + Spacing : 0f);
+               (dungeonReflections != null ? ButtonHeight + Spacing : 0f) +
+               (dungeonLightMap != null ? ButtonHeight + Spacing : 0f);
     }
 
     private void OnGUI()
@@ -976,6 +981,16 @@ public class PlayerDebugHUD : MonoBehaviour
             GUIContent reflectionsText = dungeonReflections.ProbesEnabled ? ReflectionsOn : ReflectionsOff;
             if (GUI.Button(new Rect(area.x, y, area.width, ButtonHeight), reflectionsText, buttonStyle))
                 dungeonReflections.ProbesEnabled = !dungeonReflections.ProbesEnabled;
+            y += ButtonHeight + Spacing;
+        }
+
+        // So aparece na dungeon. Desligada, o cenario volta pro ambiente
+        // chapado, pra comparar no mesmo lugar sem recalcular nada.
+        if (dungeonLightMap != null)
+        {
+            GUIContent indirectText = dungeonLightMap.GIEnabled ? IndirectOn : IndirectOff;
+            if (GUI.Button(new Rect(area.x, y, area.width, ButtonHeight), indirectText, buttonStyle))
+                dungeonLightMap.GIEnabled = !dungeonLightMap.GIEnabled;
             y += ButtonHeight + Spacing;
         }
 
