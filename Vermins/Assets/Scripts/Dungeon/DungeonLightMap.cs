@@ -36,6 +36,13 @@ using Stopwatch = System.Diagnostics.Stopwatch;
 /// globais: as tres texturas, a foto e as medidas. Quando a conta termina
 /// eu subo o _DungeonGIBlend de 0 a 1 em meio segundo, pra luz nao trocar
 /// de uma vez, e devolvo pra 0 ao sair da dungeon.
+///
+/// Player, inimigos e boss usam o Lit comum e se mexem, entao recebem a
+/// mesma luz por objeto: leio as sondas de volta pra CPU uma vez e, quando
+/// o ator anda mais de 10 cm, interpolo as oito sondas em volta dele (1 m
+/// acima do pe) e mando como SH pelo MaterialPropertyBlock. Pego o bloco
+/// antes de escrever pra nao apagar a cor do DamageFlash, que faz o mesmo.
+/// Ator que nasce depois da carga fica com o ambiente chapado.
 /// </summary>
 [RequireComponent(typeof(RuntimeDungeonNavMesh))]
 public class DungeonLightMap : MonoBehaviour
@@ -145,6 +152,23 @@ public class DungeonLightMap : MonoBehaviour
     private Coroutine bakeRoutine;
     private bool giEnabled = true;
 
+    // Quem tem Health na cena, com os renderers e o uso de sonda original.
+    private struct Actor
+    {
+        public Transform root;
+        public Renderer[] renderers;
+        public LightProbeUsage[] originalUsage;
+        public Vector3 lastPosition;
+    }
+
+    private readonly List<Actor> actors = new List<Actor>();
+    private readonly float[][] probes = new float[3][];
+    private readonly SphericalHarmonicsL2[] actorProbe = new SphericalHarmonicsL2[1];
+    private MaterialPropertyBlock actorBlock;
+    private Coroutine actorRoutine;
+    private float actorBlend;
+    private bool actorsDirty;
+
     public bool Ready { get; private set; }
 
     /// <summary>RGB = cor linear, A = altura do mundo em metros.</summary>
@@ -175,6 +199,7 @@ public class DungeonLightMap : MonoBehaviour
         set
         {
             giEnabled = value;
+            actorsDirty = true;
             if (BakeComplete) Shader.SetGlobalFloat(GlobalBlendId, value ? 1f : 0f);
         }
     }
@@ -183,6 +208,9 @@ public class DungeonLightMap : MonoBehaviour
     public Vector3Int VolumeSize { get; private set; }
 
     public int LightCount { get; private set; }
+
+    /// <summary>Atores que recebem a luz das sondas por objeto.</summary>
+    public int ActorCount => actors.Count;
     public int BakedFrames { get; private set; }
     public double BakeElapsedMilliseconds { get; private set; }
 
@@ -220,7 +248,11 @@ public class DungeonLightMap : MonoBehaviour
     public void Rebake()
     {
         if (bakeRoutine != null) StopCoroutine(bakeRoutine);
+        if (actorRoutine != null) StopCoroutine(actorRoutine);
         bakeRoutine = null;
+        actorRoutine = null;
+        actorBlend = 0f;
+        ApplyActors(true);
         BakeComplete = false;
         Shader.SetGlobalFloat(GlobalBlendId, 0f);
 
@@ -433,14 +465,185 @@ public class DungeonLightMap : MonoBehaviour
         Shader.SetGlobalVector(GlobalMapTexelsId, new Vector4(Map.width, Map.height, 0f, 0f));
         Shader.SetGlobalVector(GlobalSkyId, sky[0] * skyStrength);
 
+        // Copia das sondas na CPU, pros atores. Uma vez so; o pedido volta
+        // em poucos frames e a luz do cenario espera junto pra entrar igual.
+        bool readBack = SystemInfo.supportsAsyncGPUReadback;
+        int sliceLength = width * depth * 4;
+
+        for (int i = 0; i < 3 && readBack; i++)
+        {
+            var request = AsyncGPUReadback.Request(irradiance[i], 0, TextureFormat.RGBAFloat);
+            while (!request.done)
+                yield return null;
+
+            if (request.hasError || request.layerCount != probeLayers)
+            {
+                readBack = false;
+                break;
+            }
+
+            if (probes[i] == null || probes[i].Length != sliceLength * probeLayers)
+                probes[i] = new float[sliceLength * probeLayers];
+
+            for (int layer = 0; layer < probeLayers; layer++)
+                Unity.Collections.NativeArray<float>.Copy(request.GetData<float>(layer), 0, probes[i], layer * sliceLength, sliceLength);
+        }
+
+        if (readBack) CollectActors();
+        else Debug.LogWarning("DungeonLightMap: nao consegui ler as sondas; os atores ficam com o ambiente.", this);
+
         for (int frame = 1; frame <= fadeFrames && giEnabled; frame++)
         {
-            Shader.SetGlobalFloat(GlobalBlendId, frame / (float)fadeFrames);
+            actorBlend = frame / (float)fadeFrames;
+            Shader.SetGlobalFloat(GlobalBlendId, actorBlend);
+            ApplyActors(true);
             yield return null;
         }
 
+        actorBlend = 1f;
         Shader.SetGlobalFloat(GlobalBlendId, giEnabled ? 1f : 0f);
+        ApplyActors(true);
         bakeRoutine = null;
+        actorRoutine = StartCoroutine(FollowActors());
+    }
+
+    private void CollectActors()
+    {
+        actors.Clear();
+        if (actorBlock == null) actorBlock = new MaterialPropertyBlock();
+        var found = new List<Renderer>();
+
+        foreach (Health health in FindObjectsByType<Health>(FindObjectsInactive.Include, FindObjectsSortMode.None))
+        {
+            if (health.gameObject.scene != gameObject.scene)
+                continue;
+
+            found.Clear();
+            foreach (Renderer renderer in health.GetComponentsInChildren<Renderer>(true))
+                if (!(renderer is ParticleSystemRenderer) && !(renderer is LineRenderer) && !(renderer is TrailRenderer))
+                    found.Add(renderer);
+
+            if (found.Count == 0)
+                continue;
+
+            var actor = new Actor
+            {
+                root = health.transform,
+                renderers = found.ToArray(),
+                originalUsage = new LightProbeUsage[found.Count],
+                lastPosition = health.transform.position,
+            };
+
+            for (int i = 0; i < found.Count; i++)
+                actor.originalUsage[i] = found[i].lightProbeUsage;
+
+            actors.Add(actor);
+        }
+    }
+
+    // Um laco por frame so pra ver quem andou. Ator parado nao custa nada
+    // alem da comparacao, e nada aqui aloca.
+    private IEnumerator FollowActors()
+    {
+        while (true)
+        {
+            ApplyActors(actorsDirty);
+            actorsDirty = false;
+            yield return null;
+        }
+    }
+
+    private void ApplyActors(bool force)
+    {
+        if (actors.Count == 0 || probes[0] == null)
+            return;
+
+        bool lit = giEnabled && actorBlend > 0f && isActiveAndEnabled;
+
+        for (int i = actors.Count - 1; i >= 0; i--)
+        {
+            Actor actor = actors[i];
+
+            if (actor.root == null)
+            {
+                actors.RemoveAt(i);
+                continue;
+            }
+
+            Vector3 position = actor.root.position;
+            if (!force && (position - actor.lastPosition).sqrMagnitude < 0.01f)
+                continue;
+
+            actor.lastPosition = position;
+            actors[i] = actor;
+
+            if (!lit)
+            {
+                for (int k = 0; k < actor.renderers.Length; k++)
+                    if (actor.renderers[k] != null)
+                        actor.renderers[k].lightProbeUsage = actor.originalUsage[k];
+                continue;
+            }
+
+            SphericalHarmonicsL2 light = SampleProbes(position + Vector3.up);
+            if (actorBlend < 1f)
+                light = RenderSettings.ambientProbe * (1f - actorBlend) + light * actorBlend;
+            actorProbe[0] = light;
+
+            for (int k = 0; k < actor.renderers.Length; k++)
+            {
+                Renderer renderer = actor.renderers[k];
+                if (renderer == null) continue;
+                renderer.GetPropertyBlock(actorBlock);
+                actorBlock.CopySHCoefficientArraysFrom(actorProbe);
+                renderer.lightProbeUsage = LightProbeUsage.CustomProvided;
+                renderer.SetPropertyBlock(actorBlock);
+            }
+        }
+    }
+
+    /// <summary>
+    /// As oito sondas em volta do ponto, interpoladas na CPU, como o SH da
+    /// Unity: o termo constante e a media, e os tres lineares sao o dobro
+    /// da media vezes a direcao (o shader faz m0 + 2 * dot(m1, normal)).
+    /// </summary>
+    public SphericalHarmonicsL2 SampleProbes(Vector3 world)
+    {
+        var result = new SphericalHarmonicsL2();
+        if (probes[0] == null) return result;
+
+        int width = VolumeSize.x, depth = VolumeSize.y, layers = VolumeSize.z;
+        float gx = Mathf.Clamp((world.x - WorldMin.x) / WorldSize.x * width - 0.5f, 0f, width - 1f);
+        float gz = Mathf.Clamp((world.z - WorldMin.z) / WorldSize.z * depth - 0.5f, 0f, depth - 1f);
+        float gy = Mathf.Clamp((world.y - WorldMin.y) / WorldSize.y * layers - 0.5f, 0f, layers - 1f);
+        int x0 = (int)gx, z0 = (int)gz, y0 = (int)gy;
+        int x1 = Mathf.Min(x0 + 1, width - 1), z1 = Mathf.Min(z0 + 1, depth - 1), y1 = Mathf.Min(y0 + 1, layers - 1);
+        float fx = gx - x0, fz = gz - z0, fy = gy - y0;
+
+        for (int channel = 0; channel < 3; channel++)
+        {
+            float[] data = probes[channel];
+            float m0 = 0f, mx = 0f, my = 0f, mz = 0f;
+
+            for (int corner = 0; corner < 8; corner++)
+            {
+                bool right = (corner & 1) != 0, far = (corner & 2) != 0, top = (corner & 4) != 0;
+                float weight = (right ? fx : 1f - fx) * (far ? fz : 1f - fz) * (top ? fy : 1f - fy);
+                int index = (((top ? y1 : y0) * depth + (far ? z1 : z0)) * width + (right ? x1 : x0)) * 4;
+                m0 += data[index] * weight;
+                mx += data[index + 1] * weight;
+                my += data[index + 2] * weight;
+                mz += data[index + 3] * weight;
+            }
+
+            // Ordem dos coeficientes da Unity: 0 constante, 1 Y, 2 Z, 3 X.
+            result[channel, 0] = m0;
+            result[channel, 1] = 2f * my;
+            result[channel, 2] = 2f * mz;
+            result[channel, 3] = 2f * mx;
+        }
+
+        return result;
     }
 
     // Le de irradiance, escreve em scratch e troca os dois: o resultado
@@ -485,6 +688,10 @@ public class DungeonLightMap : MonoBehaviour
     {
         var lights = new List<LightData>();
 
+        // A forca do rebote e do tema, pra cada dungeon ter a sua.
+        DungeonTheme theme = GetComponent<DungeonTheme>();
+        float strength = theme != null ? theme.GIStrength : 1f;
+
         foreach (Light light in GetComponentsInChildren<Light>())
         {
             if (!light.enabled || light.intensity <= 0f || light.GetComponentInParent<Health>() != null ||
@@ -493,7 +700,7 @@ public class DungeonLightMap : MonoBehaviour
 
             // A URP multiplica a cor linear pela intensidade, e pela
             // temperatura quando ela esta ligada na luz.
-            Color color = light.color.linear * light.intensity;
+            Color color = light.color.linear * (light.intensity * strength);
             if (light.useColorTemperature)
                 color *= Mathf.CorrelatedColorTemperatureToRGB(light.colorTemperature);
 
@@ -543,7 +750,12 @@ public class DungeonLightMap : MonoBehaviour
     private void OnEnable()
     {
         // No primeiro OnEnable a foto ainda nao existe e nada acontece.
-        if (BakeComplete) Shader.SetGlobalFloat(GlobalBlendId, giEnabled ? 1f : 0f);
+        if (BakeComplete)
+        {
+            Shader.SetGlobalFloat(GlobalBlendId, giEnabled ? 1f : 0f);
+            ApplyActors(true);
+            if (actorRoutine == null) actorRoutine = StartCoroutine(FollowActors());
+        }
         else if (Ready) Rebake();
     }
 
@@ -552,7 +764,9 @@ public class DungeonLightMap : MonoBehaviour
         // A rotina morre com o componente desligado. O blend e global: se
         // ficasse em 1, o DungeonLit leria sondas de uma dungeon que saiu.
         bakeRoutine = null;
+        actorRoutine = null;
         Shader.SetGlobalFloat(GlobalBlendId, 0f);
+        ApplyActors(true);
     }
 
     private void ReleaseMap()

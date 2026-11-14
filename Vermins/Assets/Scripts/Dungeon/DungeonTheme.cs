@@ -79,7 +79,8 @@ public class DungeonTheme : MonoBehaviour
              "igual ao do Lighting. Mais claro apaga a tocha.")]
     [SerializeField] private Color ambientColor = new Color(0.272f, 0.235f, 0.206f);
 
-    [Tooltip("A forca do rebote por sala somado ao ambiente deste tema.")]
+    [Tooltip("A forca do rebote das luzes fixas na luz indireta deste tema. " +
+             "O DungeonLightMap multiplica a cor das luzes por ele na conta.")]
     [SerializeField, Min(0f)] private float giStrength = 1f;
 
     [Tooltip("A cor de fora das paredes, onde a camera via o ceu.")]
