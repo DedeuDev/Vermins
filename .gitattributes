@@ -94,6 +94,28 @@ LightingData.asset  binary
 *.rar    binary
 
 
+# ------------------------------------------------------------
+# Bake de luz no Git LFS
+# ------------------------------------------------------------
+# O bake da HUB pesa uns 45 MB (lightmaps, reflection probes e
+# APV) e muda inteiro a cada ajuste de luz. Sem LFS cada rebake
+# fica pra sempre no historico e todo clone baixa todos eles.
+# Com LFS o historico guarda so um ponteiro de poucos bytes e
+# cada um baixa so o bake atual.
+#
+# O GitHub Desktop ja vem com LFS, entao continua sem precisar
+# configurar nada. Quem usar git pelo terminal precisa ter o
+# git-lfs instalado, senao a cena abre com o lightmap quebrado.
+#
+# Pus so o que o bake gera. Os .meta e o "Baking Set.asset"
+# (texto de 12 KB) continuam no Git normal.
+Vermins/Assets/Scenes/**/Lightmap-*.exr         filter=lfs diff=lfs merge=lfs -text
+Vermins/Assets/Scenes/**/Lightmap-*.png         filter=lfs diff=lfs merge=lfs -text
+Vermins/Assets/Scenes/**/ReflectionProbe-*.exr  filter=lfs diff=lfs merge=lfs -text
+Vermins/Assets/Scenes/**/*.Cell*Data.bytes      filter=lfs diff=lfs merge=lfs -text
+Vermins/Assets/Scenes/**/LightingData.asset     filter=lfs diff=lfs merge=lfs -text
+
+
 # ============================================================
 # CENA E PREFAB: ISSO AQUI NENHUMA CONFIGURACAO RESOLVE
 # ============================================================
