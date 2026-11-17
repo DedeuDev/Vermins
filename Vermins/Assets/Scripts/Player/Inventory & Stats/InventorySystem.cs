@@ -96,34 +96,56 @@ public class InventorySystem : MonoBehaviour
 
     // Equipa o item selecionado e coloca o equipamento anterior no espaço.
     public bool EquipItem(int index)
-{
-    if (!IsValidIndex(index) || characterEquipment == null)
+    {
+        if (!IsValidIndex(index) || characterEquipment == null)
+            return false;
+
+        EquipmentItem item = items[index];
+
+        if (item == null)
+            return false;
+
+        Debug.Log("Item clicado: " + item.ItemName);
+        Debug.Log("Item equipado: " +
+            characterEquipment.GetItem(item.Slot)?.ItemName);
+        Debug.Log("É a mesma referência? " +
+            (characterEquipment.GetItem(item.Slot) == item));
+
+        // O sistema de equipamentos devolve o item substituído.
+        EquipmentItem previous = characterEquipment.Equip(item);
+
+        // Não altera o inventário se o item já estiver equipado.
+        if (characterEquipment.GetItem(item.Slot) != item)
+            return false;
+
+        // Guarda o equipamento anterior no espaço usado pelo item equipado.
+        items[index] = previous;
+        OnInventoryChanged?.Invoke();
+
+        return true;
+    }
+
+    // Move um item para outro espaço do inventário, trocando os itens se necessário.
+public bool MoveItem(int fromIndex, int toIndex)
+    {
+    if (!IsValidIndex(fromIndex) || !IsValidIndex(toIndex))
         return false;
 
-    EquipmentItem item = items[index];
-
-    if (item == null)
+    if (fromIndex == toIndex)
         return false;
 
-    Debug.Log("Item clicado: " + item.ItemName);
-    Debug.Log("Item equipado: " +
-        characterEquipment.GetItem(item.Slot)?.ItemName);
-    Debug.Log("É a mesma referência? " +
-        (characterEquipment.GetItem(item.Slot) == item));
+    EquipmentItem temp = items[fromIndex];
 
-    // O sistema de equipamentos devolve o item substituído.
-    EquipmentItem previous = characterEquipment.Equip(item);
-
-    // Não altera o inventário se o item já estiver equipado.
-    if (characterEquipment.GetItem(item.Slot) != item)
+    if (temp == null)
         return false;
 
-    // Guarda o equipamento anterior no espaço usado pelo item equipado.
-    items[index] = previous;
+    items[fromIndex] = items[toIndex];
+    items[toIndex] = temp;
+
     OnInventoryChanged?.Invoke();
 
     return true;
-}
+    } 
 
     // Descarta um equipamento no chão, à frente do personagem.
     public bool DropItem(int index)
@@ -248,39 +270,37 @@ public class InventorySystem : MonoBehaviour
         OnInventoryChanged?.Invoke();
     }
 
-    
-public bool UnequipToInventory(EquipmentSlot slot)
-{
-    if (characterEquipment == null)
-        return false;
-
-    // Verifica se existe um equipamento no slot.
-    EquipmentItem equippedItem = characterEquipment.GetItem(slot);
-
-    if (equippedItem == null)
-        return false;
-
-    // Verifica se existe espaço na mochila antes de desequipar.
-    int emptyIndex = FindEmptySlot();
-
-    if (emptyIndex < 0)
+    public bool UnequipToInventory(EquipmentSlot slot)
     {
-        Debug.LogWarning("Inventário cheio! Não foi possível desequipar.");
-        return false;
+        if (characterEquipment == null)
+            return false;
+
+        // Verifica se existe um equipamento no slot.
+        EquipmentItem equippedItem = characterEquipment.GetItem(slot);
+
+        if (equippedItem == null)
+            return false;
+
+        // Verifica se existe espaço na mochila antes de desequipar.
+        int emptyIndex = FindEmptySlot();
+
+        if (emptyIndex < 0)
+        {
+            Debug.LogWarning("Inventário cheio! Não foi possível desequipar.");
+            return false;
+        }
+
+        // Remove o equipamento do personagem.
+        EquipmentItem removedItem = characterEquipment.Unequip(slot);
+
+        if (removedItem == null)
+            return false;
+
+        // Guarda o equipamento no primeiro espaço vazio da mochila.
+        items[emptyIndex] = removedItem;
+
+        OnInventoryChanged?.Invoke();
+
+        return true;
     }
-
-    // Remove o equipamento do personagem.
-    EquipmentItem removedItem = characterEquipment.Unequip(slot);
-
-    if (removedItem == null)
-        return false;
-
-    // Guarda o equipamento no primeiro espaço vazio da mochila.
-    items[emptyIndex] = removedItem;
-
-    OnInventoryChanged?.Invoke();
-
-    return true;
-}
-
 }
