@@ -20,6 +20,9 @@ EditorBuildSettings:
   - enabled: 1
     path: Assets/Scenes/DungeonComPlayer2.unity
     guid: 097d0e2ce6488f84680f3e662cbb360c
+  - enabled: 1
+    path: Assets/Scenes/DungeonComPlayer3.unity
+    guid: f8c7eb0c335609446886a9a8023c5798
   m_configObjects:
     com.unity.input.settings.actions: {fileID: -944628639613478452, guid: 052faaac586de48259a63d0c4782560b, type: 3}
   m_UseUCBPForAssetBundles: 0

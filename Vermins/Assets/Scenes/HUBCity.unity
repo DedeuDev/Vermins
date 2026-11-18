@@ -15204,7 +15204,7 @@ MonoBehaviour:
   dungeon2DisplayName: Profundezas dos Esgotos
   dungeon3Button: {fileID: 1832134802}
   dungeon3ButtonText: {fileID: 675100534}
-  dungeon3SceneName: Dungeon3
+  dungeon3SceneName: DungeonComPlayer3
   dungeon3DisplayName: "Templo Subterr\xE2neo"
   closeButton: {fileID: 165999913}
 --- !u!1 &1501482359
