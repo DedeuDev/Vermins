@@ -33,7 +33,6 @@ public class ReturnToHub : MonoBehaviour
     private float channelStartTime;
     private float combatWarningUntil = -1f;
     private bool isDungeonScene;
-    private int lastTriggerFrame = -1;
 
     public bool IsChanneling => isChanneling;
     public bool IsInCombat => Time.time < lastCombatTime + combatDuration;
@@ -68,7 +67,6 @@ public class ReturnToHub : MonoBehaviour
     private void OnEnable()
     {
         input.Player.Enable();
-        input.Player.ReturnToHub.performed += HandleReturnToHubPerformed;
 
         if (health != null)
             health.OnDamaged += HandleDamaged;
@@ -96,7 +94,6 @@ public class ReturnToHub : MonoBehaviour
 
     private void OnDisable()
     {
-        input.Player.ReturnToHub.performed -= HandleReturnToHubPerformed;
         input.Player.Disable();
         CancelChannel();
 
@@ -156,17 +153,8 @@ public class ReturnToHub : MonoBehaviour
         }
     }
 
-    private void HandleReturnToHubPerformed(UnityEngine.InputSystem.InputAction.CallbackContext context)
-    {
-        OnTriggerPressed();
-    }
-
     private void OnTriggerPressed()
     {
-        if (Time.frameCount == lastTriggerFrame)
-            return;
-        lastTriggerFrame = Time.frameCount;
-
         if (!isDungeonScene)
             return;
 
