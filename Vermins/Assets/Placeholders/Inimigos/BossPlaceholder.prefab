@@ -223,4 +223,9 @@ MonoBehaviour:
     line: "Chega... chega! N\xE3o fomos n\xF3s que juntamos os cl\xE3s. Foi o Sacerdote.
       Ele promete os t\xFAneis... e a cidade l\xE1 em cima. Se quer ele, procure
       o templo debaixo dos esgotos."
+  - sceneName: DungeonComPlayer3
+    quest: 2
+    objectives: 04000000
+    speaker:
+    line:
   destroyOnDefeat: 1

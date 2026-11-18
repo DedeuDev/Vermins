@@ -23,6 +23,10 @@ using UnityEngine.SceneManagement;
 ///
 /// O interrogatorio da quest 2 completa junto com a morte e mostra uma
 /// fala na DialogueUI. O texto e provisorio meu; o Eduardo troca.
+///
+/// Em 18/11 pus a DungeonComPlayer3 na tabela: a cena existia, mas matar
+/// o boss dela nao fechava a quest 3. A tabela que vale e a serializada
+/// no BossPlaceholder.prefab, herdada pelos 3 bosses, entao mudei os dois.
 /// </summary>
 [RequireComponent(typeof(Health))]
 public class BossQuestObjective : MonoBehaviour
@@ -63,6 +67,12 @@ public class BossQuestObjective : MonoBehaviour
             line = "Chega... chega! Não fomos nós que juntamos os clãs. " +
                    "Foi o Sacerdote. Ele promete os túneis... e a cidade " +
                    "lá em cima. Se quer ele, procure o templo debaixo dos esgotos."
+        },
+        new SceneObjectives
+        {
+            sceneName = "DungeonComPlayer3",
+            quest = QuestId.RatPriest,
+            objectives = new[] { QuestObjectiveId.DefeatRatPriest }
         }
     };
 
