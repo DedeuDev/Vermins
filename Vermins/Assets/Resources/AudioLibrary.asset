@@ -1,0 +1,39 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 52013a265eee1ce49aacdce73a845298, type: 3}
+  m_Name: AudioLibrary
+  m_EditorClassIdentifier: Assembly-CSharp::AudioLibrary
+  mixer: {fileID: 24100000, guid: ed561d35bacfbc4439585872a10bc385, type: 2}
+  sceneMusic:
+  - sceneName: MainMenu
+    musicCue: {fileID: 0}
+  - sceneName: Options
+    musicCue: {fileID: 0}
+  - sceneName: HUBCity
+    musicCue: {fileID: 0}
+  - sceneName: DungeonComPlayer
+    musicCue: {fileID: 0}
+  - sceneName: DungeonComPlayer2
+    musicCue: {fileID: 0}
+  enemyHurt: {fileID: 11400000, guid: f690d6163c43af141afb719d6225dfe4, type: 2}
+  enemyDeath: {fileID: 11400000, guid: 52dc716d814fdd445a1f7c7f195753eb, type: 2}
+  playerHurt: {fileID: 11400000, guid: 77e66463c57f1ab4c968d97d91ea1840, type: 2}
+  playerDeath: {fileID: 11400000, guid: 91f801c89bb3ea641a967b4455c6e9bd, type: 2}
+  swing: {fileID: 11400000, guid: 69e95270a871ded4e9c3bc0377068da1, type: 2}
+  hit: {fileID: 11400000, guid: bcdd4c56beed83c49917a859697865c3, type: 2}
+  dodge: {fileID: 11400000, guid: de95a02ef7b4ad34ca537ba8520bc682, type: 2}
+  groundSlam: {fileID: 11400000, guid: c4b26f6c16bfb4342bcdb10dc5a4ed80, type: 2}
+  shockWave: {fileID: 11400000, guid: cff23396d3ed2e44dba79dd0a29b5a87, type: 2}
+  levelUp: {fileID: 11400000, guid: 353dad19b98530e4aaa9657fae0fbf78, type: 2}
+  gold: {fileID: 11400000, guid: 00640e34466bfa24baf6ae246d9c9d11, type: 2}
+  potionDrink: {fileID: 11400000, guid: e6dcece2f2f2de240bb38780f1aab982, type: 2}
+  pickup: {fileID: 11400000, guid: 71186390dc5722840aa74c26dc2f8129, type: 2}

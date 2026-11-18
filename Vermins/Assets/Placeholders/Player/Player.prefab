@@ -366,6 +366,7 @@ GameObject:
   - component: {fileID: 8166981664061235315}
   - component: {fileID: 6567093820805432288}
   - component: {fileID: 5390499532291042525}
+  - component: {fileID: 5066067136238422090}
   m_Layer: 0
   m_Name: Player
   m_TagString: Player
@@ -964,6 +965,28 @@ MonoBehaviour:
   lastHitDuration: 3
   trailDelay: 0.4
   trailSpeed: 0.8
+--- !u!114 &5066067136238422090
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7457194079543536127}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7181b894ecd879d47991296d5cc9ace3, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PlayerAudio
+  swingCue: {fileID: 0}
+  hitCue: {fileID: 0}
+  dodgeCue: {fileID: 0}
+  groundSlamCue: {fileID: 0}
+  shockWaveCue: {fileID: 0}
+  playerHurtCue: {fileID: 0}
+  playerDeathCue: {fileID: 0}
+  levelUpCue: {fileID: 0}
+  goldCue: {fileID: 0}
+  potionDrinkCue: {fileID: 0}
 --- !u!1001 &9095150474061651368
 PrefabInstance:
   m_ObjectHideFlags: 0

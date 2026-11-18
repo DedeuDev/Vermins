@@ -87,6 +87,17 @@ public class Health : MonoBehaviour
 
     public event System.Action<Health> OnDied;
 
+    // Eventos globais pra audio de inimigos e boss sem precisar mexer nos prefabs deles.
+    public static event System.Action<Health, float> AnyDamaged;
+    public static event System.Action<Health> AnyDied;
+
+    [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+    private static void ResetStaticEvents()
+    {
+        AnyDamaged = null;
+        AnyDied = null;
+    }
+
     private void Awake()
     {
         Current = maxHealth;
@@ -106,6 +117,7 @@ public class Health : MonoBehaviour
         Current = Mathf.Max(0f, Current - amount);
 
         OnDamaged?.Invoke(amount, source);
+        AnyDamaged?.Invoke(this, amount);
         OnChanged?.Invoke(Current, maxHealth);
 
         if (IsDead)
@@ -158,6 +170,7 @@ public class Health : MonoBehaviour
     private void Die()
     {
         OnDied?.Invoke(this);
+        AnyDied?.Invoke(this);
 
         if (destroyOnDeath)
             Destroy(gameObject, destroyDelay);

@@ -27,6 +27,10 @@ public abstract class Pickup : MonoBehaviour
     // soltando item isso vira dezenas.
     private static Material labelMaterial;
 
+    [Header("Audio")]
+    [Tooltip("Som ao coletar. Vazio usa o cue padrao pickup da AudioLibrary.")]
+    [SerializeField] private SoundCue pickupSound;
+
     private bool collected;
 
     /// <summary>
@@ -133,7 +137,21 @@ public abstract class Pickup : MonoBehaviour
             return;
         }
 
+        PlayPickupSound();
         Destroy(gameObject);
+    }
+
+    private void PlayPickupSound()
+    {
+        AudioManager manager = AudioManager.Instance;
+        if (manager == null)
+            return;
+
+        SoundCue cue = pickupSound;
+        if (cue == null && manager.Library != null)
+            cue = manager.Library.Pickup;
+
+        manager.PlayAt(cue, transform.position);
     }
 
     /// <summary>
