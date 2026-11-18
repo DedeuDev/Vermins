@@ -1,5 +1,6 @@
 using System.Collections;
 using UnityEngine;
+using UnityEngine.AI;
 
 /// <summary>
 /// Onda de choque na tecla 1 (3.3): o Player bate a espada no chao e uma
@@ -149,11 +150,28 @@ public class ShockWave : Ability
         float dano = weapon.Damage * damageMultiplier * (critico ? combat.CritMultiplier : 1f);
 
         Projectile onda = Instantiate(projectilePrefab, origem, Quaternion.LookRotation(direcao));
+        LimitAtWall(onda, direcao);
 
         // A closure guarda o critico desta onda. E um new por uso, a cada
         // 4 s no minimo; nao e por frame.
         onda.Launch(direcao, dano, gameObject,
             (alvo, perdeu) => combat.ReportHit(alvo, perdeu, critico));
+    }
+
+    /// <summary>
+    /// Para a onda na borda do NavMesh. A parede da dungeon nao tem
+    /// collider, entao sigo a mesma regra do golpe de espada.
+    /// </summary>
+    private void LimitAtWall(Projectile onda, Vector3 direcao)
+    {
+        if (!NavMesh.SamplePosition(transform.position, out NavMeshHit chao, 1.5f, NavMesh.AllAreas))
+            return;
+
+        Vector3 dir = direcao.sqrMagnitude < 0.0001f ? transform.forward : direcao.normalized;
+        Vector3 fim = chao.position + dir * (onda.MaxRange + spawnForward);
+
+        if (NavMesh.Raycast(chao.position, fim, out NavMeshHit borda, NavMesh.AllAreas))
+            onda.LimitRange(borda.distance - spawnForward);
     }
 
     /// <summary>

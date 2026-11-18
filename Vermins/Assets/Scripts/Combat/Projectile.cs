@@ -80,6 +80,18 @@ public class Projectile : MonoBehaviour
     // tantos colliders.
     private static readonly RaycastHit[] hitBuffer = new RaycastHit[16];
 
+    public float MaxRange => maxRange;
+
+    /// <summary>
+    /// Encurta o alcance desta onda sem mexer no prefab. A ShockWave usa
+    /// pra parar na borda do NavMesh na dungeon, onde a parede nao tem
+    /// collider.
+    /// </summary>
+    public void LimitRange(float range)
+    {
+        maxRange = Mathf.Min(maxRange, Mathf.Max(0f, range));
+    }
+
     /// <summary>
     /// Poe a bola pra voar. Chame logo depois de instanciar - antes
     /// disso ela fica parada de proposito, pra nao sair andando na
@@ -139,7 +151,15 @@ public class Projectile : MonoBehaviour
         if (!launched)
             return;
 
-        float passo = speed * Time.deltaTime;
+        // Corto o ultimo trecho no que falta pro maxRange: sem isso o
+        // SphereCast varreria alem do limite marcado pelo LimitRange.
+        float passo = Mathf.Min(speed * Time.deltaTime, maxRange - traveled);
+
+        if (passo <= 0f)
+        {
+            Despawn();
+            return;
+        }
 
         // Com pierce, um mesmo trecho pode ter dois inimigos colados: testo
         // de novo ate nao sobrar ninguem novo. Cada volta pula quem ja levou,
