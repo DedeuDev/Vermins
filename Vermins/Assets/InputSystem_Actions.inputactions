@@ -147,6 +147,16 @@
                     "priority": 0
                 },
                 {
+                    "name": "Zoom",
+                    "type": "PassThrough",
+                    "id": "3c8f1e52-a4d7-4b19-8e6a-5f2d9c7b0e31",
+                    "expectedControlType": "Axis",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": false,
+                    "priority": 0
+                },
+                {
                     "name": "ReturnToHub",
                     "type": "Button",
                     "id": "e4f8b91a-7b32-4d26-a05e-8e47bf1b9a2c",
@@ -595,6 +605,17 @@
                     "processors": "",
                     "groups": ";Keyboard&Mouse",
                     "action": "ReturnToHub",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "8a4d2f17-6e93-4c5b-b1d8-2e7f0a9c3b64",
+                    "path": "<Mouse>/scroll/y",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": ";Keyboard&Mouse",
+                    "action": "Zoom",
                     "isComposite": false,
                     "isPartOfComposite": false
                 }

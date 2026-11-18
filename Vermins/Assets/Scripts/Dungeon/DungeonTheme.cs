@@ -113,6 +113,12 @@ public class DungeonTheme : MonoBehaviour
     private bool lightChanged;
     private Light playerLight;
 
+    // Ian: a camera agora tem zoom na roda, entao a distancia muda no jogo.
+    // Guardo quem segue e a ultima distancia pra so mexer na luz quando ela
+    // mudar.
+    private IsometricCameraFollow playerLightFollow;
+    private float playerLightDistance;
+
     /// <summary>Quantas malhas trocaram de material. O teste le daqui.</summary>
     public int PaintedCount { get; private set; }
 
@@ -141,6 +147,24 @@ public class DungeonTheme : MonoBehaviour
 
         if (playerLight != null)
             Destroy(playerLight.gameObject);
+    }
+
+    // Ian: sem isto, de perto a luz ficava atras do Player (longe da camera)
+    // e de longe ficava alta demais, porque a posicao so era calculada uma
+    // vez com a distancia padrao.
+    private void LateUpdate()
+    {
+        if (playerLight == null || playerLightFollow == null)
+            return;
+
+        float distance = playerLightFollow.Distance;
+
+        if (distance == playerLightDistance)
+            return;
+
+        playerLightDistance = distance;
+        playerLight.transform.localPosition =
+            Vector3.forward * Mathf.Max(0f, distance - playerLightPullBack);
     }
 
     /// <summary>A luz em volta do Player, ou null. O teste le daqui.</summary>
@@ -186,6 +210,8 @@ public class DungeonTheme : MonoBehaviour
         GameObject luz = new GameObject("Luz do Player");
         luz.transform.SetParent(camera.transform, false);
         luz.transform.localPosition = Vector3.forward * Mathf.Max(0f, segue.Distance - playerLightPullBack);
+        playerLightFollow = segue;
+        playerLightDistance = segue.Distance;
 
         playerLight = luz.AddComponent<Light>();
         playerLight.type = LightType.Point;

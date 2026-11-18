@@ -233,6 +233,16 @@ public partial class @InputSystem_Actions: IInputActionCollection2, IDisposable
                     ""priority"": 0
                 },
                 {
+                    ""name"": ""Zoom"",
+                    ""type"": ""PassThrough"",
+                    ""id"": ""3c8f1e52-a4d7-4b19-8e6a-5f2d9c7b0e31"",
+                    ""expectedControlType"": ""Axis"",
+                    ""processors"": """",
+                    ""interactions"": """",
+                    ""initialStateCheck"": false,
+                    ""priority"": 0
+                },
+                {
                     ""name"": ""ReturnToHub"",
                     ""type"": ""Button"",
                     ""id"": ""e4f8b91a-7b32-4d26-a05e-8e47bf1b9a2c"",
@@ -681,6 +691,17 @@ public partial class @InputSystem_Actions: IInputActionCollection2, IDisposable
                     ""processors"": """",
                     ""groups"": "";Keyboard&Mouse"",
                     ""action"": ""ReturnToHub"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": """",
+                    ""id"": ""8a4d2f17-6e93-4c5b-b1d8-2e7f0a9c3b64"",
+                    ""path"": ""<Mouse>/scroll/y"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": "";Keyboard&Mouse"",
+                    ""action"": ""Zoom"",
                     ""isComposite"": false,
                     ""isPartOfComposite"": false
                 }
@@ -1292,6 +1313,7 @@ public partial class @InputSystem_Actions: IInputActionCollection2, IDisposable
         m_Player_DrinkPotion = m_Player.FindAction("DrinkPotion", throwIfNotFound: true);
         m_Player_Ability1 = m_Player.FindAction("Ability1", throwIfNotFound: true);
         m_Player_Ability2 = m_Player.FindAction("Ability2", throwIfNotFound: true);
+        m_Player_Zoom = m_Player.FindAction("Zoom", throwIfNotFound: true);
         m_Player_ReturnToHub = m_Player.FindAction("ReturnToHub", throwIfNotFound: true);
         // UI
         m_UI = asset.FindActionMap("UI", throwIfNotFound: true);
@@ -1400,6 +1422,7 @@ public partial class @InputSystem_Actions: IInputActionCollection2, IDisposable
     private readonly InputAction m_Player_DrinkPotion;
     private readonly InputAction m_Player_Ability1;
     private readonly InputAction m_Player_Ability2;
+    private readonly InputAction m_Player_Zoom;
     private readonly InputAction m_Player_ReturnToHub;
     /// <summary>
     /// Provides access to input actions defined in input action map "Player".
@@ -1468,6 +1491,10 @@ public partial class @InputSystem_Actions: IInputActionCollection2, IDisposable
         /// Provides access to the underlying input action "Player/Ability2".
         /// </summary>
         public InputAction @Ability2 => m_Wrapper.m_Player_Ability2;
+        /// <summary>
+        /// Provides access to the underlying input action "Player/Zoom".
+        /// </summary>
+        public InputAction @Zoom => m_Wrapper.m_Player_Zoom;
         /// <summary>
         /// Provides access to the underlying input action "Player/ReturnToHub".
         /// </summary>
@@ -1540,6 +1567,9 @@ public partial class @InputSystem_Actions: IInputActionCollection2, IDisposable
             @Ability2.started += instance.OnAbility2;
             @Ability2.performed += instance.OnAbility2;
             @Ability2.canceled += instance.OnAbility2;
+            @Zoom.started += instance.OnZoom;
+            @Zoom.performed += instance.OnZoom;
+            @Zoom.canceled += instance.OnZoom;
             @ReturnToHub.started += instance.OnReturnToHub;
             @ReturnToHub.performed += instance.OnReturnToHub;
             @ReturnToHub.canceled += instance.OnReturnToHub;
@@ -1596,6 +1626,9 @@ public partial class @InputSystem_Actions: IInputActionCollection2, IDisposable
             @Ability2.started -= instance.OnAbility2;
             @Ability2.performed -= instance.OnAbility2;
             @Ability2.canceled -= instance.OnAbility2;
+            @Zoom.started -= instance.OnZoom;
+            @Zoom.performed -= instance.OnZoom;
+            @Zoom.canceled -= instance.OnZoom;
             @ReturnToHub.started -= instance.OnReturnToHub;
             @ReturnToHub.performed -= instance.OnReturnToHub;
             @ReturnToHub.canceled -= instance.OnReturnToHub;
@@ -1997,6 +2030,13 @@ public partial class @InputSystem_Actions: IInputActionCollection2, IDisposable
         /// <seealso cref="UnityEngine.InputSystem.InputAction.performed" />
         /// <seealso cref="UnityEngine.InputSystem.InputAction.canceled" />
         void OnAbility2(InputAction.CallbackContext context);
+        /// <summary>
+        /// Method invoked when associated input action "Zoom" is either <see cref="UnityEngine.InputSystem.InputAction.started" />, <see cref="UnityEngine.InputSystem.InputAction.performed" /> or <see cref="UnityEngine.InputSystem.InputAction.canceled" />.
+        /// </summary>
+        /// <seealso cref="UnityEngine.InputSystem.InputAction.started" />
+        /// <seealso cref="UnityEngine.InputSystem.InputAction.performed" />
+        /// <seealso cref="UnityEngine.InputSystem.InputAction.canceled" />
+        void OnZoom(InputAction.CallbackContext context);
         /// <summary>
         /// Method invoked when associated input action "ReturnToHub" is either <see cref="UnityEngine.InputSystem.InputAction.started" />, <see cref="UnityEngine.InputSystem.InputAction.performed" /> or <see cref="UnityEngine.InputSystem.InputAction.canceled" />.
         /// </summary>

@@ -176,6 +176,13 @@ public class PlayerController : MonoBehaviour
         if (Time.timeScale == 0f)
             return;
 
+        // Zoom na roda. Com o mouse em cima da UI a roda e da UI (rolar a
+        // mochila, a lista do Options), entao nao aproxima a camera.
+        float scroll = input.Player.Zoom.ReadValue<float>();
+
+        if (scroll != 0f && !IsPointerOverUI())
+            IsometricCameraFollow.Zoom(scroll);
+
         // Pocao e toque unico: WasPressedThisFrame, e nao IsPressed como o
         // clique. Segurando o Q, o IsPressed beberia uma pocao por frame
         // ate a vida encher. Fica antes do filtro de clique porque e
