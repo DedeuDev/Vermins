@@ -241,6 +241,9 @@ public class PlayerCombat : MonoBehaviour
     public float AttackDuration => castDuration;
     public bool HasTarget => target != null && !target.IsDead;
 
+    /// <summary>Se ainda esta no meio do gesto do golpe atual.</summary>
+    public bool IsSwinging => swingInProgress && Time.time < nextAttackTime;
+
     /// <summary>
     /// Quanto tempo entre um golpe e o proximo.
     ///

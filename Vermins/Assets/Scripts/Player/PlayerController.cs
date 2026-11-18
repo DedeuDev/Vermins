@@ -256,11 +256,26 @@ public class PlayerController : MonoBehaviour
             return;
 
         if (order == Order.Move)
+        {
             TryMoveToPointer(CursorRay());
+        }
         else if (order == Order.Attack)
-            TryAttackAtPointer(CursorRay());
+        {
+            Ray ray = CursorRay();
+
+            // Morto o alvo e encerrado o golpe que matou, segurar o botao
+            // passa a andar pro cursor, como no Diablo 4 e no PoE 2. Com
+            // alvo vivo e o cursor no chao, nada muda.
+            if (!TryAttackAtPointer(ray) && combat != null && !combat.HasTarget && !combat.IsSwinging)
+            {
+                order = Order.Move;
+                TryMoveToPointer(ray);
+            }
+        }
         else if (order == Order.StandingAttack)
+        {
             combat.StandingAttack(GroundPoint(CursorRay()));
+        }
     }
 
     /// <summary>
