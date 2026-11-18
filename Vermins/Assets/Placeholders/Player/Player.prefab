@@ -367,6 +367,7 @@ GameObject:
   - component: {fileID: 6567093820805432288}
   - component: {fileID: 5390499532291042525}
   - component: {fileID: 5066067136238422090}
+  - component: {fileID: 8997291407195165645}
   m_Layer: 0
   m_Name: Player
   m_TagString: Player
@@ -561,6 +562,7 @@ MonoBehaviour:
   runSpeed: 2.58
   reactionFadeIn: 0.08
   reactionFadeOut: 0.15
+  abilityFadeOut: 0.15
   attackCutFade: 0.1
   rollCutFade: 0.1
 --- !u!114 &986444102126284620
@@ -987,6 +989,29 @@ MonoBehaviour:
   levelUpCue: {fileID: 0}
   goldCue: {fileID: 0}
   potionDrinkCue: {fileID: 0}
+--- !u!114 &8997291407195165645
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7457194079543536127}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1999ff6deeb740848978ecc7c7a39472, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ChannelRing
+  material: {fileID: 2100000, guid: 406722f9762a5d043ba52e33ea765349, type: 2}
+  channelColor: {r: 0.45, g: 0.8, b: 1, a: 0.9}
+  warningColor: {r: 0.95, g: 0.2, b: 0.15, a: 1}
+  radius: 0.9
+  thickness: 0.08
+  segments: 64
+  groundMask:
+    serializedVersion: 2
+    m_Bits: 384
+  groundOffset: 0.03
+  warningFadeTime: 0.5
 --- !u!1001 &9095150474061651368
 PrefabInstance:
   m_ObjectHideFlags: 0
