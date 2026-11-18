@@ -62,6 +62,10 @@ public class PlayerAnimator : MonoBehaviour
              "transicao de volta pro Vazio pelo mesmo motivo.")]
     [SerializeField] private float reactionFadeOut = 0.15f;
 
+    [Tooltip("Segundos pra camada da habilidade sair no fim do gesto andando. " +
+             "Sem rampa o peso caia de 1 pra 0 num frame e os bracos davam um pulo.")]
+    [SerializeField] private float abilityFadeOut = 0.15f;
+
     [Tooltip("Segundos do blend quando uma ordem de andar corta o golpe. " +
              "Curto de proposito: e o tempo em que as pernas ainda estao " +
              "no gesto enquanto o corpo ja anda.")]
@@ -143,6 +147,7 @@ public class PlayerAnimator : MonoBehaviour
     // todo frame porque eu preciso do valor de ONTEM pra saber se estou
     // subindo ou descendo, e e isso que escolhe qual das duas rampas usar.
     private float reactionWeight;
+    private float abilityWeight;
 
     // So reajo se o controller tiver as duas pecas: o trigger e a camada.
     // Sem elas o personagem apanha calado, e esta certo assim - ver o
@@ -393,7 +398,7 @@ public class PlayerAnimator : MonoBehaviour
 
     private void OnDisable()
     {
-        ClearMovingCast();
+        ClearMovingCast(true);
         if (combat != null)
         {
             combat.OnAttack -= HandleAttack;
@@ -523,6 +528,7 @@ public class PlayerAnimator : MonoBehaviour
         {
             // Pus so o torso no golpe; as pernas continuam na locomocao.
             movingCast = habilidade;
+            abilityWeight = 1f;
             animator.ResetTrigger(AttackId);
             animator.CrossFadeInFixedTime(LocomotionStateId, attackCutFade, 0);
             animator.SetLayerWeight(abilityLayer, 1f);
@@ -554,7 +560,7 @@ public class PlayerAnimator : MonoBehaviour
     /// </summary>
     private void HandleDodged(float duracao)
     {
-        ClearMovingCast();
+        ClearMovingCast(true);
         if (dodgeDuration <= 0f || duracao <= 0f)
             return;
 
@@ -653,8 +659,23 @@ public class PlayerAnimator : MonoBehaviour
         // mandar um aviso separado no respawn.
         animator.SetBool(DeadId, morto);
 
-        if (movingCast != null && (morto || !movingCast.isActiveAndEnabled || !movingCast.IsCasting))
-            ClearMovingCast();
+        if (movingCast != null)
+        {
+            if (morto || !movingCast.isActiveAndEnabled)
+                ClearMovingCast(true);
+            else if (!movingCast.IsCasting)
+                ClearMovingCast(false);
+        }
+
+        if (movingCast == null && abilityWeight > 0f && abilityLayer >= 0)
+        {
+            if (morto || abilityFadeOut <= 0f)
+                abilityWeight = 0f;
+            else
+                abilityWeight = Mathf.MoveTowards(abilityWeight, 0f, Time.deltaTime / abilityFadeOut);
+
+            animator.SetLayerWeight(abilityLayer, abilityWeight);
+        }
 
         UpdateReactionWeight(morto);
 
@@ -791,9 +812,15 @@ public class PlayerAnimator : MonoBehaviour
         return info.shortNameHash == ReactStateId;
     }
 
-    private void ClearMovingCast()
+    private void ClearMovingCast(bool instant)
     {
         movingCast = null;
+
+        if (!instant)
+            return;
+
+        abilityWeight = 0f;
+
         if (animator != null && abilityLayer >= 0)
             animator.SetLayerWeight(abilityLayer, 0f);
     }
