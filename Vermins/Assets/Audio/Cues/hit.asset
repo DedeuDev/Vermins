@@ -12,11 +12,14 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0982abd35b55bad4c98b684e489e8a17, type: 3}
   m_Name: hit
   m_EditorClassIdentifier: Assembly-CSharp::SoundCue
-  clips: []
-  minVolume: 1
+  clips:
+  - {fileID: 8300000, guid: 1aafb444edf4eb74aac8c0b40e0cd840, type: 3}
+  - {fileID: 8300000, guid: abf7412a7ea2f374884c4b362ba92114, type: 3}
+  - {fileID: 8300000, guid: a905fa364e599d74fa974a9b0707475b, type: 3}
+  minVolume: 0.85
   maxVolume: 1
-  minPitch: 1
-  maxPitch: 1
+  minPitch: 0.95
+  maxPitch: 1.05
   output: {fileID: -1885160927757663294, guid: ed561d35bacfbc4439585872a10bc385, type: 2}
   spatial: 1
   minDistance: 2

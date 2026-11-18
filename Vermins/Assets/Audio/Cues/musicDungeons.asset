@@ -1,0 +1,25 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0982abd35b55bad4c98b684e489e8a17, type: 3}
+  m_Name: musicDungeons
+  m_EditorClassIdentifier: Assembly-CSharp::SoundCue
+  clips:
+  - {fileID: 8300000, guid: 4ccc8ef6807a68d4f92b65c84a8cd89d, type: 3}
+  minVolume: 0.8
+  maxVolume: 0.8
+  minPitch: 1
+  maxPitch: 1
+  output: {fileID: 1809520611855115912, guid: ed561d35bacfbc4439585872a10bc385, type: 2}
+  spatial: 0
+  minDistance: 2
+  maxDistance: 25
+  cooldown: 0

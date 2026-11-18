@@ -15,15 +15,17 @@ MonoBehaviour:
   mixer: {fileID: 24100000, guid: ed561d35bacfbc4439585872a10bc385, type: 2}
   sceneMusic:
   - sceneName: MainMenu
-    musicCue: {fileID: 0}
+    musicCue: {fileID: 11400000, guid: d07888aaa41603e4980a7895e6189d8e, type: 2}
   - sceneName: Options
-    musicCue: {fileID: 0}
+    musicCue: {fileID: 11400000, guid: d07888aaa41603e4980a7895e6189d8e, type: 2}
   - sceneName: HUBCity
-    musicCue: {fileID: 0}
+    musicCue: {fileID: 11400000, guid: d07888aaa41603e4980a7895e6189d8e, type: 2}
   - sceneName: DungeonComPlayer
-    musicCue: {fileID: 0}
+    musicCue: {fileID: 11400000, guid: 1096e422b0e52894bb57334d825cf8f2, type: 2}
   - sceneName: DungeonComPlayer2
-    musicCue: {fileID: 0}
+    musicCue: {fileID: 11400000, guid: 1096e422b0e52894bb57334d825cf8f2, type: 2}
+  - sceneName: DungeonComPlayer3
+    musicCue: {fileID: 11400000, guid: 1096e422b0e52894bb57334d825cf8f2, type: 2}
   enemyHurt: {fileID: 11400000, guid: f690d6163c43af141afb719d6225dfe4, type: 2}
   enemyDeath: {fileID: 11400000, guid: 52dc716d814fdd445a1f7c7f195753eb, type: 2}
   playerHurt: {fileID: 11400000, guid: 77e66463c57f1ab4c968d97d91ea1840, type: 2}
