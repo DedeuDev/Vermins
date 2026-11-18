@@ -66,6 +66,10 @@ MonoBehaviour:
   - {fileID: 5108991184130643275, guid: b317e4ef502d90f46ad1d3e656066eb6, type: 3}
   - {fileID: 2468310055477016165, guid: bfb24d46c293cbf47b45947de297d1cc, type: 3}
   - {fileID: 2782494041361718734, guid: 9753b866b1da5d34387acd97773e71d9, type: 3}
+  - {fileID: 7906117476757644673, guid: 973301c9f8cb3e14ea408615d1245a5a, type: 3}
+  - {fileID: 4663386459130143050, guid: 3b6f529b31504e14289c4cb17c5795b8, type: 3}
+  - {fileID: 2441515142597641149, guid: 8c00bd09759fb21429c287b3e5e2a0e4, type: 3}
+  - {fileID: 4012180777213325695, guid: 0b8330939fc365a4fb49238ba771586e, type: 3}
   corridorPrefabs:
   - {fileID: 1622441819026266171, guid: b9fe2bc4e7cc3f547bc0ab7801fc8155, type: 3}
   - {fileID: 4089367115916095043, guid: 3060d56d058e150449e89c014e7be937, type: 3}
@@ -225,6 +229,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::DungeonSeams
   pillarPrefab: {fileID: 7716154056053669401, guid: f599cb94e3ad5844e994a80b69b255a9, type: 3}
   jambOffset: 1.95
+  lintelPrefab: {fileID: 4442090152729353596, guid: 49f6a4beb8b4bca4ba2fc0df5fbbd46a, type: 3}
   maxFramesWaitingForNavMesh: 300
 --- !u!114 &4942510435954905036
 MonoBehaviour:

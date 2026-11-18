@@ -35,6 +35,10 @@ public class DungeonSeams : MonoBehaviour
              "cobre o batente da sala (2 m) e a parede do corredor (1,75 m).")]
     [SerializeField, Min(0f)] private float jambOffset = 1.95f;
 
+    [Tooltip("A VigaDaPorta.prefab: viga de madeira entre os dois pilares, com pivo " +
+             "no centro da porta, no chao. Vazio, sem viga.")]
+    [SerializeField] private GameObject lintelPrefab;
+
     [Tooltip("Maximo de frames esperando o NavMesh, igual aos spawners.")]
     [SerializeField, Min(1)] private int maxFramesWaitingForNavMesh = 300;
 
@@ -115,6 +119,10 @@ public class DungeonSeams : MonoBehaviour
             Instantiate(pillarPrefab, centro + lado * jambOffset, giro, generatedRoot);
             Instantiate(pillarPrefab, centro - lado * jambOffset, giro, generatedRoot);
             PillarCount += 2;
+
+            // Ian: viga so em porta encaixada; o socket solto ganha SocketBlocker e vira parede.
+            if (lintelPrefab != null && socket.IsConnected)
+                Instantiate(lintelPrefab, centro, giro, generatedRoot);
         }
     }
 }

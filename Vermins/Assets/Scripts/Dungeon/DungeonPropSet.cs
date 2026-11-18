@@ -38,11 +38,16 @@ public class DungeonPropSet : ScriptableObject
         [Tooltip("Quantos tento por corredor, de x a y.")]
         [SerializeField] private Vector2Int perCorridor = Vector2Int.zero;
 
+        [Tooltip("No chao, gira so em multiplos de 90 graus, alinhado com a sala. " +
+                 "Para o que tem grade, como as lajes.")]
+        [SerializeField] private bool snapRotation;
+
         public GameObject Prefab => prefab;
         public Placement Placement => placement;
         public Vector2 Size => size;
         public Vector2Int PerRoom => perRoom;
         public Vector2Int PerCorridor => perCorridor;
+        public bool SnapRotation => snapRotation;
     }
 
     [SerializeField] private Entry[] entries;

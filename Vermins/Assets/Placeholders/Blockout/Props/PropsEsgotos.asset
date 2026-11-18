@@ -13,43 +13,147 @@ MonoBehaviour:
   m_Name: PropsEsgotos
   m_EditorClassIdentifier: Assembly-CSharp::DungeonPropSet
   entries:
+  - prefab: {fileID: 5270361987696907707, guid: 5d10b9834ad335344904c20e328ad59d, type: 3}
+    placement: 1
+    size: {x: 0.9, y: 0.9}
+    perRoom: {x: 0, y: 1}
+    perCorridor: {x: 0, y: 0}
+    snapRotation: 0
+  - prefab: {fileID: 8325197710820110357, guid: dd4fdb803a9263842913d260e5b856db, type: 3}
+    placement: 1
+    size: {x: 1, y: 1}
+    perRoom: {x: 0, y: 1}
+    perCorridor: {x: 0, y: 0}
+    snapRotation: 0
+  - prefab: {fileID: 6558923160638634628, guid: d4794b6b544a457439ef3127acb4400e, type: 3}
+    placement: 0
+    size: {x: 1.8, y: 0.75}
+    perRoom: {x: 1, y: 2}
+    perCorridor: {x: 0, y: 1}
+    snapRotation: 0
+  - prefab: {fileID: 4291023377821508013, guid: 3ef2d1496f7f1b649a0c912f8bf89ed7, type: 3}
+    placement: 0
+    size: {x: 1.3, y: 0.7}
+    perRoom: {x: 1, y: 2}
+    perCorridor: {x: 0, y: 1}
+    snapRotation: 0
+  - prefab: {fileID: 1384444305455208331, guid: 93e23c9d2e521b246bdb4222bcf389be, type: 3}
+    placement: 0
+    size: {x: 1.8, y: 0.75}
+    perRoom: {x: 1, y: 2}
+    perCorridor: {x: 0, y: 1}
+    snapRotation: 0
   - prefab: {fileID: 1583339901839603148, guid: 6dbbe429b228f774faab906a2b0a3f39, type: 3}
     placement: 1
     size: {x: 1.4, y: 0.85}
     perRoom: {x: 0, y: 1}
     perCorridor: {x: 0, y: 0}
+    snapRotation: 0
   - prefab: {fileID: 6578839198391026754, guid: 8eb7a839a2a3f464b8861c2f2e6170e0, type: 3}
     placement: 1
     size: {x: 1.3, y: 0.65}
     perRoom: {x: 0, y: 1}
     perCorridor: {x: 0, y: 0}
+    snapRotation: 0
   - prefab: {fileID: 378511920907319600, guid: 0e5a54d5a8b9b414ead0bfe687219f3a, type: 3}
     placement: 1
     size: {x: 0.7, y: 0.7}
+    perRoom: {x: 0, y: 0}
+    perCorridor: {x: 0, y: 0}
+    snapRotation: 0
+  - prefab: {fileID: 9087076551093606147, guid: 29352bc61a422f448865328cbd6dd6e3, type: 3}
+    placement: 1
+    size: {x: 0.6, y: 0.6}
+    perRoom: {x: 1, y: 2}
+    perCorridor: {x: 0, y: 1}
+    snapRotation: 0
+  - prefab: {fileID: 7460912847055472800, guid: 4d395241afe0fbe4a89cdbb509bbde4d, type: 3}
+    placement: 0
+    size: {x: 1, y: 0.6}
     perRoom: {x: 0, y: 1}
     perCorridor: {x: 0, y: 0}
+    snapRotation: 0
+  - prefab: {fileID: 5370940490707775479, guid: 881d9a84af123b84bb443e05692bb0e9, type: 3}
+    placement: 0
+    size: {x: 0.6, y: 0.35}
+    perRoom: {x: 1, y: 3}
+    perCorridor: {x: 0, y: 1}
+    snapRotation: 0
+  - prefab: {fileID: 5878992239204916084, guid: fa674ee26f3231943af4afbe2a6b0b79, type: 3}
+    placement: 0
+    size: {x: 1.2, y: 0.08}
+    perRoom: {x: 2, y: 3}
+    perCorridor: {x: 1, y: 2}
+    snapRotation: 0
+  - prefab: {fileID: 626652339973946187, guid: 122056f24e5a6944c85fc4c12d6c2492, type: 3}
+    placement: 0
+    size: {x: 0.9, y: 0.5}
+    perRoom: {x: 0, y: 0}
+    perCorridor: {x: 0, y: 0}
+    snapRotation: 0
+  - prefab: {fileID: 1318212120828510578, guid: c32ec0e32f4e6d043a0cb96ebaa3776a, type: 3}
+    placement: 0
+    size: {x: 0.5, y: 0.15}
+    perRoom: {x: 0, y: 1}
+    perCorridor: {x: 0, y: 1}
+    snapRotation: 0
   - prefab: {fileID: 378511920907319600, guid: 0e5a54d5a8b9b414ead0bfe687219f3a, type: 3}
     placement: 0
     size: {x: 0.7, y: 0.7}
-    perRoom: {x: 0, y: 1}
+    perRoom: {x: 0, y: 0}
     perCorridor: {x: 0, y: 0}
+    snapRotation: 0
   - prefab: {fileID: 1054525191981932880, guid: 609287ed74ff9ae43b0bc130677fec39, type: 3}
     placement: 0
     size: {x: 0.6, y: 0.6}
-    perRoom: {x: 0, y: 1}
-    perCorridor: {x: 0, y: 1}
+    perRoom: {x: 0, y: 0}
+    perCorridor: {x: 0, y: 0}
+    snapRotation: 0
   - prefab: {fileID: 4442513903497137707, guid: 18426d8d435f65a459c7be89afd80100, type: 3}
     placement: 0
     size: {x: 0.9, y: 0.6}
     perRoom: {x: 0, y: 1}
     perCorridor: {x: 0, y: 1}
+    snapRotation: 0
   - prefab: {fileID: 1784079101098895340, guid: 7f12dd35ecab2624ea6a07a5b2386c0a, type: 3}
     placement: 0
     size: {x: 2.5, y: 0.3}
     perRoom: {x: 0, y: 1}
+    perCorridor: {x: 0, y: 0}
+    snapRotation: 0
+  - prefab: {fileID: 6786010624982046513, guid: 7e9d3ab4d24a6964aaa78b5bd4cb1377, type: 3}
+    placement: 2
+    size: {x: 3, y: 3}
+    perRoom: {x: 1, y: 2}
+    perCorridor: {x: 0, y: 0}
+    snapRotation: 1
+  - prefab: {fileID: 3461647148840006490, guid: 55f0f0cd0ec970e4e8c675f814b4eaa5, type: 3}
+    placement: 2
+    size: {x: 1.4, y: 1.4}
+    perRoom: {x: 1, y: 2}
     perCorridor: {x: 0, y: 1}
+    snapRotation: 0
+  - prefab: {fileID: 5728747871341884832, guid: 622a0babce3c96d42bee3cbcf866cd07, type: 3}
+    placement: 2
+    size: {x: 0.9, y: 0.9}
+    perRoom: {x: 0, y: 1}
+    perCorridor: {x: 0, y: 0}
+    snapRotation: 0
+  - prefab: {fileID: 3930665501246806949, guid: dedccb7f039308f4baa63664d04340b5, type: 3}
+    placement: 2
+    size: {x: 1.2, y: 0.8}
+    perRoom: {x: 0, y: 1}
+    perCorridor: {x: 0, y: 1}
+    snapRotation: 0
+  - prefab: {fileID: 418259056147996202, guid: 713aae37ec6c97c45b4308889e491448, type: 3}
+    placement: 2
+    size: {x: 0.8, y: 0.6}
+    perRoom: {x: 0, y: 1}
+    perCorridor: {x: 0, y: 1}
+    snapRotation: 0
   - prefab: {fileID: 9050595861957953220, guid: 298319ec3f9a6db42b9418437fdd6342, type: 3}
     placement: 2
     size: {x: 1.2, y: 0.9}
     perRoom: {x: 0, y: 1}
-    perCorridor: {x: 0, y: 1}
+    perCorridor: {x: 0, y: 0}
+    snapRotation: 0

@@ -242,7 +242,7 @@ public class DungeonDressing : MonoBehaviour
             Quaternion giro;
 
             bool achou = chao
-                ? FloorSpot(ponto.position, tamanho, out lugar, out giro)
+                ? FloorSpot(ponto.position, tamanho, item.SnapRotation, out lugar, out giro)
                 : WallSpot(ponto.position, tamanho, item.Placement == DungeonPropSet.Placement.Corner, out lugar, out giro);
 
             float raio = Mathf.Max(tamanho.x, tamanho.y) * 0.5f;
@@ -348,7 +348,7 @@ public class DungeonDressing : MonoBehaviour
     /// Solto no chao. Pode passar da borda do NavMesh, mas nao da parede,
     /// que fica pelo menos 0,15 m alem dela.
     /// </summary>
-    private bool FloorSpot(Vector3 ponto, Vector2 tamanho, out Vector3 lugar, out Quaternion giro)
+    private bool FloorSpot(Vector3 ponto, Vector2 tamanho, bool alinhar, out Vector3 lugar, out Quaternion giro)
     {
         lugar = default;
         giro = Quaternion.identity;
@@ -361,7 +361,9 @@ public class DungeonDressing : MonoBehaviour
 
         lugar = ponto;
         lugar.y = FloorHeight(ponto + Vector3.up * ProbeHeight, ponto.y);
-        giro = Quaternion.Euler(0f, Random.Range(0f, 360f), 0f);
+        // Grade (laje) gira em multiplo de 90 pra ficar alinhada com a sala.
+        float yaw = alinhar ? 90f * Random.Range(0, 4) : Random.Range(0f, 360f);
+        giro = Quaternion.Euler(0f, yaw, 0f);
         return true;
     }
 
