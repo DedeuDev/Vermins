@@ -383,13 +383,18 @@ public class PlayerCombat : MonoBehaviour
 
         swingInProgress = false;
 
+        bool antesDaPancada = waitingForEvent;
+
         // Sem esta linha o WatchAnimationEvent entregaria o dano do golpe
         // cortado no fim do prazo, e ainda reclamaria que falta o evento
         // no clipe.
         waitingForEvent = false;
 
-        // Golpe cortado quebra a sequencia: o proximo volta pro primeiro.
-        nextStep = 0;
+        // Cortado antes da pancada, perde o dano e volta pro primeiro;
+        // cortado depois, a sequencia segue e a janela do combo (0,6 s
+        // depois do fim do golpe) continua valendo.
+        if (antesDaPancada)
+            nextStep = 0;
 
         OnAttackInterrupted?.Invoke();
     }
