@@ -1,4 +1,3 @@
-using System.Collections;
 using UnityEngine;
 
 /// <summary>
@@ -12,7 +11,8 @@ using UnityEngine;
 /// O dano sai num tempo fixo depois do aperto, e nao do Animation Event do
 /// clipe. O LandHit do clipe vai pro PlayerCombat, que so aceita quando um
 /// golpe de espada dele esta esperando, entao aqui ele chega e e ignorado.
-/// O impactDelay foi medido pra cair no mesmo frame do LandHit.
+/// O GreatSwordAttack03 tem 1,83 s e o LandHit dele cai aos 0,935 s;
+/// encaixado em 1 s ele toca a 1,93x e o impactDelay fica em 0,48 s.
 ///
 /// O acerto passa pelo PlayerCombat.ReportHit. Numero, sangue, tremor e XP
 /// escutam o OnAttackHit de la, e assim funcionam sem saber do golpe em
@@ -28,7 +28,7 @@ using UnityEngine;
 /// uso e outro.
 /// </summary>
 [RequireComponent(typeof(MeleeAttack), typeof(PlayerCombat), typeof(PlayerMotor))]
-public class GroundSlam : Ability
+public class GroundSlam : DelayedAbility
 {
     [Tooltip("Ate onde o golpe pega, em metros, do centro do Player ao " +
              "centro do inimigo, medido no chao.")]
@@ -43,24 +43,11 @@ public class GroundSlam : Ability
              "tempo.")]
     [SerializeField, Min(0.1f)] private float castTime = 1f;
 
-    [Tooltip("Do aperto ate a pancada. O GreatSwordAttack03 tem 1,83 s e o " +
-             "LandHit dele cai aos 0,935 s. Encaixado em 1 s, ele toca a " +
-             "1,93x e o LandHit cai aos 0,48 s. Mudou o castTime, mude aqui.")]
-    [SerializeField, Min(0f)] private float impactDelay = 0.48f;
-
     // Buffers fixos pra pancada nao gerar lixo. 32 sobra num raio de 3 m. O
     // segundo guarda quem ja levou, porque inimigo com mais de um collider
     // apareceria mais de uma vez no Overlap.
     private static readonly Collider[] Overlaps = new Collider[32];
     private static readonly Health[] AlreadyHit = new Health[32];
-
-    private MeleeAttack weapon;
-    private PlayerCombat combat;
-    private PlayerMotor motor;
-    private Health ownHealth;
-    private Dodge dodge;
-
-    private Coroutine pendingImpact;
 
     public override float CastTime => castTime;
 
@@ -74,79 +61,19 @@ public class GroundSlam : Ability
     public event System.Action<Vector3, float> OnImpact;
 
     // A recarga mora na base, com 3 s de padrao. O Reset roda quando o
-    // componente e adicionado no editor e poe os 5 s deste golpe. Sem ele o
-    // prefab nasceu com 3 (medi no teste).
+    // componente e adicionado no editor e poe os valores deste golpe.
     private void Reset()
     {
         cooldown = 5f;
-    }
-
-    protected override void Awake()
-    {
-        base.Awake();
-        weapon = GetComponent<MeleeAttack>();
-        combat = GetComponent<PlayerCombat>();
-        motor = GetComponent<PlayerMotor>();
-        ownHealth = GetComponent<Health>();
-        dodge = GetComponent<Dodge>();
-    }
-
-    private void OnEnable()
-    {
-        if (dodge != null)
-            dodge.OnDodged += HandleDodged;
-    }
-
-    private void OnDisable()
-    {
-        if (dodge != null)
-            dodge.OnDodged -= HandleDodged;
-
-        CancelImpact();
-    }
-
-    protected override bool Activate(Vector3 point)
-    {
-        // Mantive a rota com o gesto movel a 50%; larguei o combate para
-        // nao somar um golpe de espada nem perseguir o alvo no meio dele.
-        if (!MoveWhileCasting)
-            motor.Stop();
-
-        motor.HoldRotation = MoveWhileCasting;
-        combat.ClearTarget();
-        combat.InterruptAttack();
-
-        Vector3 dir = point - transform.position;
-        dir.y = 0f;
-
-        // Mouse em cima do proprio personagem: fica virado pra onde estava.
-        if (dir.sqrMagnitude > 0.09f)
-            transform.rotation = Quaternion.LookRotation(dir);
-
-        pendingImpact = StartCoroutine(ImpactAfterDelay());
-        return true;
-    }
-
-    private IEnumerator ImpactAfterDelay()
-    {
-        // Um WaitForSeconds por uso, a cada 5 s no minimo. Nao e por frame.
-        yield return new WaitForSeconds(impactDelay);
-
-        pendingImpact = null;
-        Impact();
+        impactDelay = 0.48f;
     }
 
     /// <summary>
     /// A pancada: todo vivo a ate radius do Player, sem parede no meio,
     /// leva o dano. Mesmos testes de parede do golpe de espada.
     /// </summary>
-    private void Impact()
+    protected override void Impact(Vector3 point)
     {
-        motor.HoldRotation = false;
-
-        if (ownHealth.IsDead)
-            return;
-
         // Aviso antes do dano, pra o anel aparecer no mesmo frame do numero.
         OnImpact?.Invoke(transform.position, radius);
 
@@ -209,29 +136,5 @@ public class GroundSlam : Ability
         }
 
         return false;
-    }
-
-    /// <summary>
-    /// Mantive so a esquiva cortando a pancada; andar nao cancela o gesto.
-    /// A recarga continua correndo.
-    /// </summary>
-    private void HandleDodged(float _)
-    {
-        CancelImpact();
-    }
-
-    private void CancelImpact()
-    {
-        // Soltei tambem depois da pancada: a esquiva corta o resto do gesto.
-        if (motor != null)
-            motor.HoldRotation = false;
-
-        if (pendingImpact != null)
-        {
-            StopCoroutine(pendingImpact);
-            pendingImpact = null;
-        }
-
-        EndCast();
     }
 }

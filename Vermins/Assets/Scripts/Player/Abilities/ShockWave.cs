@@ -1,4 +1,3 @@
-using System.Collections;
 using UnityEngine;
 using UnityEngine.AI;
 
@@ -17,7 +16,9 @@ using UnityEngine.AI;
 /// do Player, aqui e uma linha pra longe.
 ///
 /// O gesto e o golpe 01 da espada, e a onda sai por tempo no frame do
-/// LandHit dele, como no GroundSlam. Esquiva no meio corta a onda.
+/// LandHit dele, como no GroundSlam. O GreatSwordAttack01 tem 1,27 s e o
+/// LandHit cai aos 0,646 s; encaixado em 0,6 s ele toca a 2,22x e o
+/// impactDelay fica em 0,29 s. Esquiva no meio corta a onda.
 ///
 /// O critico e sorteado no lancamento: a onda carrega o dano pronto. O
 /// acerto volta pelo onHit e passa pelo PlayerCombat.ReportHit, entao
@@ -29,7 +30,7 @@ using UnityEngine.AI;
 /// somava dano; com 22,5 ainda nao mata sozinha o inimigo de 30.
 /// </summary>
 [RequireComponent(typeof(MeleeAttack), typeof(PlayerCombat), typeof(PlayerMotor))]
-public class ShockWave : Ability
+public class ShockWave : DelayedAbility
 {
     [Tooltip("A onda. O OndaDeChoque.prefab: um Projectile com pierce " +
              "ligado, largo e baixo.")]
@@ -49,19 +50,6 @@ public class ShockWave : Ability
              "tempo.")]
     [SerializeField, Min(0.1f)] private float castTime = 0.6f;
 
-    [Tooltip("Do aperto ate a onda sair. O GreatSwordAttack01 tem 1,27 s e o " +
-             "LandHit dele cai aos 0,646 s. Encaixado em 0,6 s, ele toca a " +
-             "2,22x e o LandHit cai aos 0,29 s. Mudou o castTime, mude aqui.")]
-    [SerializeField, Min(0f)] private float impactDelay = 0.29f;
-
-    private MeleeAttack weapon;
-    private PlayerCombat combat;
-    private PlayerMotor motor;
-    private Dodge dodge;
-
-    private Coroutine pendingWave;
-    private Vector3 pendingPoint;
-
     public override float CastTime => castTime;
 
     // O primeiro golpe do combo: um golpe reto, de cima pra baixo, sem
@@ -69,80 +57,17 @@ public class ShockWave : Ability
     public override int AttackClip => 0;
 
     // A recarga mora na base, com 3 s de padrao. Mesmo esquema do
-    // GroundSlam: o Reset poe os 4 s desta quando o componente entra.
+    // GroundSlam: o Reset poe os valores desta quando o componente entra.
     private void Reset()
     {
         cooldown = 4f;
+        impactDelay = 0.29f;
     }
 
-    protected override void Awake()
+    protected override bool CanActivate(Vector3 point) => projectilePrefab != null;
+
+    protected override void Impact(Vector3 point)
     {
-        base.Awake();
-        weapon = GetComponent<MeleeAttack>();
-        combat = GetComponent<PlayerCombat>();
-        motor = GetComponent<PlayerMotor>();
-        dodge = GetComponent<Dodge>();
-    }
-
-    private void OnEnable()
-    {
-        if (dodge != null)
-            dodge.OnDodged += HandleDodged;
-    }
-
-    private void OnDisable()
-    {
-        if (dodge != null)
-            dodge.OnDodged -= HandleDodged;
-
-        CancelWave();
-    }
-
-    protected override bool Activate(Vector3 point)
-    {
-        if (projectilePrefab == null)
-            return false;
-
-        // Larga o que estava fazendo, como o GroundSlam: o golpe de espada
-        // no meio seria uma segunda pancada por cima desta.
-        // Mantive a rota na onda movel; a escala vem do PlayerController.
-        if (!MoveWhileCasting)
-            motor.Stop();
-
-        motor.HoldRotation = MoveWhileCasting;
-        combat.ClearTarget();
-        combat.InterruptAttack();
-
-        // Viro o corpo pro mouse, no plano. Mouse em cima do proprio
-        // personagem: fica virado pra onde estava.
-        Vector3 plano = point - transform.position;
-        plano.y = 0f;
-
-        if (plano.sqrMagnitude > 0.09f)
-            transform.rotation = Quaternion.LookRotation(plano);
-
-        pendingPoint = point;
-        pendingWave = StartCoroutine(WaveAfterDelay());
-        return true;
-    }
-
-    private IEnumerator WaveAfterDelay()
-    {
-        // Um WaitForSeconds por uso, a cada 4 s no minimo. Nao e por frame.
-        yield return new WaitForSeconds(impactDelay);
-
-        pendingWave = null;
-        Launch(pendingPoint);
-    }
-
-    private void Launch(Vector3 point)
-    {
-        motor.HoldRotation = false;
-        Health ownHealth = GetComponent<Health>();
-
-        if (ownHealth != null && ownHealth.IsDead)
-            return;
-
         Vector3 origem = transform.position + transform.forward * spawnForward;
         Vector3 direcao = AimDirection(origem, point);
 
@@ -185,29 +110,5 @@ public class ShockWave : Ability
         Vector3 direcao = pontoNoChao - origem;
         direcao.y = 0f;
         return direcao;
-    }
-
-    /// <summary>
-    /// Esquiva no meio do gesto corta a onda, como corta o golpe em area. A
-    /// recarga continua correndo.
-    /// </summary>
-    private void HandleDodged(float _)
-    {
-        CancelWave();
-    }
-
-    private void CancelWave()
-    {
-        // Soltei tambem depois do lancamento: a esquiva corta o resto do gesto.
-        if (motor != null)
-            motor.HoldRotation = false;
-
-        if (pendingWave != null)
-        {
-            StopCoroutine(pendingWave);
-            pendingWave = null;
-        }
-
-        EndCast();
     }
 }
