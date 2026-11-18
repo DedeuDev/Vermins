@@ -735,7 +735,11 @@ public class PlayerCombat : MonoBehaviour
         }
 
         Vector3 alvo = target.transform.position;
-        float distancia = Vector3.Distance(transform.position, alvo);
+        // So no plano: a mesma regra do BladeReaches, e quem barra alvo
+        // em outro andar e o HasLineOfSight, que anda pelo NavMesh.
+        Vector3 ate = alvo - transform.position;
+        ate.y = 0f;
+        float distancia = ate.magnitude;
 
         float alcance = EffectiveRange;
 
