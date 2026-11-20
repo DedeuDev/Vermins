@@ -13,6 +13,7 @@ public class BossSacerdote : MonoBehaviour
     
     private float timerArmadilha = 0f;
     private float timerZoltraak = 0f;
+    private float timerMeteoro = 0f;
     private bool estaExecutandoAcao = false;
 
     private void Awake()
@@ -44,8 +45,17 @@ public class BossSacerdote : MonoBehaviour
         // Atualiza os timers das habilidades
         timerArmadilha += Time.deltaTime;
         timerZoltraak += Time.deltaTime;
+        timerMeteoro += Time.deltaTime;
 
-        // Prioridade 1: Zoltraak (Agora pode ser usado a qualquer distância quando o cooldown zerar)
+        // Prioridade 1: Meteoro de Magia
+        if (timerMeteoro >= dados.cooldownMeteoro)
+        {
+            StartCoroutine(RotinaMeteoroMagia());
+            timerMeteoro = 0f;
+            return;
+        }
+
+        // Prioridade 2: Zoltraak (Agora pode ser usado a qualquer distância quando o cooldown zerar)
         if (timerZoltraak >= dados.cooldownZoltraak)
         {
             StartCoroutine(RotinaZoltraak());
@@ -53,7 +63,7 @@ public class BossSacerdote : MonoBehaviour
             return;
         }
 
-        // Prioridade 2: Chuva de Fogo (Controle de área)
+        // Prioridade 3: Chuva de Fogo (Controle de área)
         if (timerArmadilha >= dados.cooldownArmadilha)
         {
             StartCoroutine(RotinaArmadilhaFogo());
@@ -231,6 +241,136 @@ public class BossSacerdote : MonoBehaviour
                     vidaPlayer.TakeDamage(dados.danoZoltraak);
                     Debug.Log("<color=red>[SACERDOTE] Player atingido em cheio pelo Zoltraak!</color>");
                 }
+            }
+        }
+
+        yield return new WaitForSeconds(0.5f);
+        agent.isStopped = false;
+        estaExecutandoAcao = false;
+    }
+
+    // --- METEORO DE MAGIA (Nasce acima do Boss e cai em diagonal até o alvo) ---
+    private IEnumerator RotinaMeteoroMagia()
+    {
+        estaExecutandoAcao = true;
+        agent.isStopped = true;
+
+        // Olha na direção do alvo antes de conjurar
+        Vector3 direcaoOlhar = player.position - transform.position;
+        direcaoOlhar.y = 0f;
+        if (direcaoOlhar.sqrMagnitude > 0.001f)
+        {
+            transform.rotation = Quaternion.LookRotation(direcaoOlhar);
+        }
+
+        // Define o ponto de impacto no chão (com leve ajuste de altura para não clipar)
+        Vector3 pontoImpacto = player.position;
+        pontoImpacto.y += 0.05f;
+
+        // Ponto inicial logo acima da cabeça do Sacerdote
+        float alturaAcimaBoss = 3.5f;
+        Vector3 posicaoInicialMeteoro = transform.position + Vector3.up * alturaAcimaBoss;
+        Vector3 posicaoFinalMeteoro = pontoImpacto + Vector3.up * 0.6f;
+
+        Debug.Log("<color=purple>[SACERDOTE] Conjurando METEORO DE MAGIA em diagonal!</color>");
+
+        // 1. Círculo de aviso no chão
+        GameObject circuloAviso = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
+        Destroy(circuloAviso.GetComponent<Collider>());
+        circuloAviso.transform.position = pontoImpacto;
+
+        float diametro = dados.raioMeteoro * 2f;
+        circuloAviso.transform.localScale = new Vector3(diametro, 0.02f, diametro);
+
+        Renderer renAviso = circuloAviso.GetComponent<Renderer>();
+        if (renAviso != null)
+        {
+            renAviso.material.color = new Color(0.65f, 0.15f, 1f, 0.55f);
+        }
+
+        // 2. Cria o meteoro acima da cabeça do boss
+        GameObject meteoroObj;
+        if (dados.prefabMeteoro != null)
+        {
+            meteoroObj = Instantiate(dados.prefabMeteoro, posicaoInicialMeteoro, Quaternion.identity);
+        }
+        else
+        {
+            meteoroObj = GameObject.CreatePrimitive(PrimitiveType.Sphere);
+            Destroy(meteoroObj.GetComponent<Collider>());
+            meteoroObj.transform.position = posicaoInicialMeteoro;
+            meteoroObj.transform.localScale = Vector3.one * 1.4f;
+
+            Renderer renMeteoro = meteoroObj.GetComponent<Renderer>();
+            if (renMeteoro != null)
+            {
+                renMeteoro.material.color = new Color(0.5f, 0.1f, 1f, 1f);
+            }
+        }
+
+        // Orienta o meteoro na direção da trajetória diagonal (útil se você usar um prefab com frente/cauda)
+        Vector3 trajetorias = posicaoFinalMeteoro - posicaoInicialMeteoro;
+        if (trajetorias.sqrMagnitude > 0.001f && meteoroObj != null)
+        {
+            meteoroObj.transform.rotation = Quaternion.LookRotation(trajetorias);
+        }
+
+        float tempoDecorrido = 0f;
+        float duracaoQueda = Mathf.Max(0.1f, dados.tempoAvisoMeteoro);
+
+        while (tempoDecorrido < duracaoQueda)
+        {
+            tempoDecorrido += Time.deltaTime;
+            float progresso = Mathf.Clamp01(tempoDecorrido / duracaoQueda);
+
+            // Aceleração progressiva na trajetória diagonal
+            float curvaQueda = progresso * progresso;
+            if (meteoroObj != null)
+            {
+                meteoroObj.transform.position = Vector3.Lerp(posicaoInicialMeteoro, posicaoFinalMeteoro, curvaQueda);
+            }
+
+            // Pulso no círculo de aviso no chão
+            if (circuloAviso != null)
+            {
+                float pulso = 1f + Mathf.Sin(Time.time * 16f) * 0.06f;
+                circuloAviso.transform.localScale = new Vector3(diametro * pulso, 0.02f, diametro * pulso);
+            }
+
+            yield return null;
+        }
+
+        // Remove o aviso e o projétil em queda
+        if (circuloAviso != null) Destroy(circuloAviso);
+        if (meteoroObj != null) Destroy(meteoroObj);
+
+        // 3. Explosão / Impacto final
+        Debug.Log("<color=magenta>[SACERDOTE] IMPACTO DO METEORO DE MAGIA!</color>");
+
+        GameObject explosaoFallback = GameObject.CreatePrimitive(PrimitiveType.Sphere);
+        Destroy(explosaoFallback.GetComponent<Collider>());
+        explosaoFallback.transform.position = pontoImpacto;
+        explosaoFallback.transform.localScale = Vector3.one * (dados.raioMeteoro * 1.2f);
+
+        Renderer renExplosao = explosaoFallback.GetComponent<Renderer>();
+        if (renExplosao != null)
+        {
+            renExplosao.material.color = new Color(0.8f, 0.3f, 1f, 0.8f);
+        }
+
+        Destroy(explosaoFallback, 0.35f);
+
+        // Checa se o player ainda está dentro do raio do meteoro
+        Vector3 playerNoPlano = player.position;
+        playerNoPlano.y = pontoImpacto.y;
+
+        if (Vector3.Distance(pontoImpacto, playerNoPlano) <= dados.raioMeteoro)
+        {
+            Health vidaPlayer = player.GetComponentInParent<Health>();
+            if (vidaPlayer != null)
+            {
+                vidaPlayer.TakeDamage(dados.danoMeteoro);
+                Debug.Log("<color=red>[SACERDOTE] Player atingido pelo Meteoro de Magia!</color>");
             }
         }
 

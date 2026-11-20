@@ -19,4 +19,12 @@ public class BossSacerdoteDataSO : BossDataSO
     public float danoZoltraak = 25f;
     public float tempoAvisoZoltraak = 0.6f;
     public GameObject prefabRaioZoltraak; // Opcional: efeito visual do raio
+
+    [Header("Habilidade: Meteoro de Magia")]
+    public float cooldownMeteoro = 7f;
+    public float raioMeteoro = 4.5f;
+    public float danoMeteoro = 45f;
+    public float tempoAvisoMeteoro = 1.2f;
+    public float alturaQuedaMeteoro = 10f;
+    public GameObject prefabMeteoro; // Opcional: se vazio, usa um fallback simples em código
 }
